@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recette de Prestation</title>
+    <style>
+        /* Reset some basic styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 20px;
+
+
+            width: 80mm; /* Largeur d'un ticket standard (80mm) pour l'imprimante a ticket */
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .header {
+            text-align: center;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        .header h1 {
+            color: #2d3e50;
+            font-size: 36px;
+            margin: 0px;
+        }
+
+        .header h2 {
+            color: #2d3e50;
+            font-size: 25px;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        .header p {
+            color: #7a8b8e;
+            font-size: 15px;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            max-width: 150px;
+            height: auto;
+        }
+
+        .details {
+            margin-bottom: 30px;
+        }
+
+        .details p {
+            font-size: 18px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        .details strong {
+            color: #2d3e50;
+        }
+
+        .table-container {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .table-container th, .table-container td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .table-container th {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 18px;
+        }
+
+        .table-container tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .table-container td {
+            font-size: 16px;
+            color: #555;
+        }
+
+        .table-container tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+            margin-top: 50px;
+        }
+
+        .footer p {
+            margin: 5px;
+        }
+
+        .note {
+            font-size: 14px;
+            color: #555;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .note p {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+
+        table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid black;
+    padding: 5px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+    </style>
+</head>
+{% load humanize %}
+<body>
+
+    <div class="container">
+
+        <div class="header">
+            <h2>Republique de Guinée</h2>
+            <p>
+                <span style="color: red;">Travail</span>-
+                <span style="color: yellow;">Justice</span>- 
+                <span style="color: green;">Solidarité</span>
+              </p>
+            <p>MINISTERE DE LA SANTE</p>
+            <h2>Clinique Medico Chirurgical Kanteba Sogona Kante </h2>
+            <p>CONTACT : (+224) 622 74 06 41/620 20 29 08</p>
+        </div>
+        <div class="logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" alt="Logo de la clinique">
+        </div>
+        
+        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Liste des produits</h1>
+
+        <div class="details">
+            <table style="border: solid 1px; width: 100%;">
+                <thead>
+                    <th style="width: 10%;">N°</th>
+                    <th style="width: 40%;">Libelle</th>
+                    <th style="width: 15%;">Quanttite</th>
+                    <th style="width: 15%;">Prix U</th>
+                    <th style="width: 20%;">Montant</th>
+                </thead>
+                <tbody>
+                    {% if listes %}
+                    {% for liste in listes %}
+                      <tr>
+                        <td >{{liste.id}}</td>
+                        <td>{{liste.produit.libelle}}</td>
+                        <td >{{liste.quantite}}</td>
+                        <td >{{liste.prix}}</td>
+                        <td>{{ liste.montant}} </td>
+
+                      </tr>
+                    {% endfor %}
+                    <tr>
+                        <td colspan="2" style="font-size: 15px;" ><h2>Total</h2> </td>
+                        <td colspan="3" style="font-size: 15px; text-align: center;"><h2>{{ total}}</h2> </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="font-size: 15px;" ><h2>Remise</h2> </td>
+                        <td colspan="3" style="font-size: 15px; text-align: center;"><h2>{{ remise}}</h2> </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="font-size: 15px;" ><h2>Net</h2> </td>
+                        <td colspan="3" style="font-size: 15px; text-align: center;"><h2>{{ net}}</h2> </td>
+                    </tr>
+                  {% else %}
+                    <tr>
+                      <td colspan="5" >Aucune ligne disponible pour le moment.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        
+        <div class="footer">
+            <p>Adresse : Rue des médecins, Siguiri</p>
+            <p>Contact : +224 622 74 06 41</p>
+        </div>
+
+        <div class="note">
+            <p>Merci pour votre confiance !</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,419 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    
+            <div class="row">
+              <div class="col-md-12">
+                <div class="card card-primary">
+                  <div class="card-header">
+                    <h3 class="card-title">Recheche</h3>
+                  </div>
+                  <form role="form" action="{% url 'commerce_listeDepense' %}" id="form-depense" method="post">
+                    {% csrf_token %}
+                    <div class="card-body">
+                      <div class="row justify-content-center align-items-end">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <select class="form-control select2bs4" id="idTypePrix" style="width: 100%;">
+                                  <option value="achat">Prix achat</option>
+                                  <option value="enGros">Prix de vente en gros</option>
+                                  <option value="detail">Prix de vente en detail</option>
+                                </select>
+                            </div>
+                          </div>
+
+                          <div class="col-md-3">
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                                <a type="submit" href="{% url 'commerce_etatSituationBoutique' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
+                            </div>
+                          </div>
+
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h4 class="text-danger" id="montant">Montant: </h4>
+      </div>
+      <div class="col-md-6">
+        <h4 class="text-danger" id="benefice">Benefice: </h4>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+            <div class="card-header">
+              <h4 class="card-title">Situation</h4>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body">
+              <table class="table table-bordered table-hover table-striped">
+                <thead>                  
+                  <tr>
+                    <th style="width: 10px" class="text-center">#</th>
+                    <th class="text-center">Produits</th>
+                    <th class="text-center">Quantite</th>
+                    <th class="text-center">Prix</th>
+                    <th class="text-center">Montant</th>
+                  </tr>
+                </thead>
+                <tbody id="liste-categorie">
+
+                </tbody>
+              </table>
+            </div>
+            <!-- /.card-body -->
+            <div class="card-footer clearfix">
+              <ul class="pagination pagination-sm m-0 justify-content-center">
+                <li class="page-item">
+                  {% if listes.has_previous %}
+                    <a class="page-link" href="?page={{ listes.previous_page_number }}">«</a>
+                  {% endif %}
+                  {% for num in listes.paginator.page_range %}
+                    {% if listes.number == num %}
+                      <li class="page-item"><a class="page-link" href="">{{ num }}</a></li>
+                    {% else %}
+                      <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                  {% endfor %}
+    
+                  {% if listes.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ listes.next_page_number }}">»</a></li>
+                  {% endif %}
+                
+              </ul>
+            </div>
+          </div>
+      </div>
+    </div>
+    <!-- /.row -->
+  </div><!-- /.container-fluid -->
+</section>
+<!-- /.content -->
+ 
+
+  {% endblock %}
+
+
+  {% block js %}
+
+    <!-- jQuery -->
+    <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <!-- bs-custom-file-input -->
+    <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js' %}"></script>
+    <!-- AdminLTE App -->
+    <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/moment/moment.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/inputmask/min/jquery.inputmask.bundle.min.js' %}"></script>
+    <!-- AdminLTE for demo purposes -->
+    <script src="{% static 'autre/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+    <!-- Bootstrap Switch -->
+    <script src="{% static 'autre/plugins/bootstrap-switch/js/bootstrap-switch.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+    <script type="text/javascript">
+    $(document).ready(function () {
+    bsCustomFileInput.init();
+    });
+
+
+    $(document).ready(function () {
+        bsCustomFileInput.init();
+
+        //Initialize Select2 Elements
+        $('.select2').select2()
+
+        //Initialize Select2 Elements
+        $('.select2bs4').select2({
+        theme: 'bootstrap4'
+        })
+
+    });
+
+
+
+
+
+    
+    $(document).ready(function () {
+    $('#idrechercher').on('click', function (e) {
+      e.preventDefault();
+
+      const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+      const typePrix = $('#idTypePrix').val();  // ID de l'examen sélectionné
+
+      var montant=0;
+      var benefice=0;
+      var montantAchat=0;
+      $('#montant').html("Total : "+ montant.toLocaleString());
+      $('#benefice').html("Total : "+ benefice.toLocaleString());
+
+      $.ajax({
+        url: "{% url 'commerce_rechercheSituationBoutique' %}",
+        type: "POST",
+        data: {
+            typePrix: typePrix,
+            csrfmiddlewaretoken: csrfToken
+        },
+        success: function (response) {
+          const patientsTable = $('#liste-categorie');
+          patientsTable.empty();
+          if (response.clients && response.clients.length > 0) {
+            response.clients.forEach(data => {
+              patientsTable.append(`
+                <tr>
+                        <td class="text-center">${data.id}</td>
+                        <td>${data.libelle}</td>
+                        <td class="text-center">${data.quantite}</td>
+                        <td class="text-center">${data.prix}</td>
+                        <td class="text-center">${data.montant.toLocaleString()}</td>
+                </tr>
+              `);
+              montant +=data.montant;
+              benefice +=data.montant-data.montantAchat;
+            });
+            $('#montant').html("Montant : "+ montant.toLocaleString());
+            $('#benefice').html("Benefice : "+ benefice.toLocaleString());
+          } else {
+            patientsTable.append('<tr><td colspan="14" class="text-center">Aucun ligne trouvée.</td></tr>');
+          }
+        },
+        error: function () {
+          alert('Une erreur est survenue. Veuillez réessayer.');
+        }
+      });
+    });
+  });
+
+
+
+
+
+
+
+  
+  $(document).ready(function () {
+    $('#idImprimer').on('click', function (e) {
+        e.preventDefault();
+
+        const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+        const typePrix = $('#idTypePrix').val();  // ID de l'examen sélectionné
+
+        // Ouvrir une nouvelle fenêtre où le PDF sera affiché
+        let pdfWindow = window.open("", "_blank");
+
+        $.ajax({
+            url: "{% url 'commerce_etatSituationBoutique' %}",
+            type: "POST",
+            data: {
+                typePrix: typePrix,
+                csrfmiddlewaretoken: csrfToken
+            },
+            xhrFields: {
+                responseType: 'blob'  // Important pour récupérer un fichier binaire (PDF)
+            },
+            success: function (response) {
+                let blob = new Blob([response], { type: "application/pdf" });
+                let url = URL.createObjectURL(blob);
+                pdfWindow.location.href = url;  // Charger le PDF dans la nouvelle fenêtre
+            },
+            error: function () {
+                alert('Une erreur est survenue. Veuillez réessayer.');
+            }
+        });
+    });
+});
+
+
+
+
+
+
+
+  $(function() {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000
+    });
+
+    $('.swalDefaultSuccess').click(function() {
+      Toast.fire({
+        icon: 'success',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultInfo').click(function() {
+      Toast.fire({
+        icon: 'info',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultError').click(function() {
+      Toast.fire({
+        icon: 'error',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultWarning').click(function() {
+      Toast.fire({
+        icon: 'warning',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultQuestion').click(function() {
+      Toast.fire({
+        icon: 'question',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+
+    $('.toastrDefaultSuccess').click(function() {
+      toastr.success('Enregistrement reussi')
+    });
+    $('.toastrDefaultInfo').click(function() {
+      toastr.info('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
+    });
+    $('.toastrDefaultError').click(function() {
+      toastr.error('{{ message }}.')
+    });
+    $('.toastrDefaultWarning').click(function() {
+      toastr.warning('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
+    });
+
+    $('.toastsDefaultDefault').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultTopLeft').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        position: 'topLeft',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultBottomRight').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        position: 'bottomRight',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultBottomLeft').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        position: 'bottomLeft',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultAutohide').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        autohide: true,
+        delay: 750,
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultNotFixed').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        fixed: false,
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultFull').click(function() {
+      $(document).Toasts('create', {
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        icon: 'fas fa-envelope fa-lg',
+      })
+    });
+    $('.toastsDefaultFullImage').click(function() {
+      $(document).Toasts('create', {
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        image: '../../dist/img/user3-128x128.jpg',
+        imageAlt: 'User Picture',
+      })
+    });
+    $('.toastsDefaultSuccess').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-success', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultInfo').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-info', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultWarning').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-warning', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultDanger').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-danger', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultMaroon').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-maroon', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+  });
+
+</script>
+
+
+  {% endblock %}

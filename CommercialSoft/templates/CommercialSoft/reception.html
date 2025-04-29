@@ -1,0 +1,569 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+    <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+  <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Nouvelle reception</h3>
+          </div>
+            <div class="card-body">
+              <div class="row">
+                {% if messages %}
+                    <div>
+                    {% for message in messages %}
+                        <div class="bg-{{message.tags}} text-center h-15">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+                {% if livraison_form.errors %}
+                    <div class="error">{{ livraison_form.errors }}</div>
+                {% endif %}
+              </div>
+              <form role="form" action="{% url 'commerce_reception' %}" id="LivraisonForm" method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-3">
+                    <div class="form-group">
+                      <label for="numeroFacture">N° facture</label>
+                      {{ livraison_form.numeroFacture }}
+                    </div>
+                  </div>
+                  <div class="col-md-6 col-lg-3">
+                    <div class="form-group">
+                      <label for="fournisseur">Fournisseur</label>
+                      {{ livraison_form.fournisseur }}
+                    </div>
+                  </div>
+                  <div class="col-md-6 col-lg-3">
+                    <div class="form-group">
+                      <label for="date">Date</label>
+                      {{ livraison_form.date }}
+                    </div>
+                  </div>
+                  <div class="col-md-6 col-lg-3">
+                    <div class="form-group">
+                      <label for="montant">Montant</label>
+                      {{ livraison_form.montant }}
+                    </div>
+                  </div>
+                </div>
+              
+                <div class="row" id="formset-container">
+                  {{ formset.management_form }}
+                  {% for form in formset %}
+                    <div class="formset-item">
+                      <div class="row">
+                        <div class="col-md-3 col-lg-3">
+                          <div class="form-group">
+                            <label>Produit</label>
+                            {{ form.produit }}
+                          </div>
+                        </div>
+                        <div class="col-md-2 col-lg-2">
+                          <div class="form-group">
+                            <label>Quantité</label>
+                            {{ form.quantite }}
+                          </div>
+                        </div>
+                        <div class="col-md-2 col-lg-2">
+                          <div class="form-group">
+                            <label>Prix</label>
+                            {{ form.prix }}
+                          </div>
+                        </div>
+                        <div class="col-md-2 col-lg-2">
+                          <div class="form-group">
+                            <label for="prixDetail">Prix vente</label>
+                            {{ form.prixDetail }}
+                          </div>
+                        </div>
+                        <div class="col-md-2 col-lg-2">
+                          <div class="form-group">
+                            <label for="peremption">Peremption</label>
+                            {{ form.peremption }}
+                          </div>
+                        </div>
+                        <div class="col-md-1 col-lg-1">
+                          <label for="age">bouton</label>
+                          <div class="form-group">
+                            <button class="btn btn-primary" id="idAjouter">Ajouter</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              
+                <div class="card-footer clearfix text-center">
+                  <button type="submit" class="btn btn-primary">Valider la facture</button>
+                </div>
+              
+              </form>
+              
+        </div>
+      </div>
+    </div>
+    <!-- /.row -->
+     <div class="row">
+      <div class="card card-primary">
+        <div class="card-header">
+          <h3 class="card-title">Liste des produits</h3>
+        </div>
+        <!-- /.card-header -->
+        <div class="card-body">
+          <table class="table table-bordered table-hover table-striped table-sm">
+            <thead>                  
+              <tr>
+                <th style="width: 10px" class="text-center">#</th>
+                <th class="text-center">Libelle produits</th>
+                <th class="text-center">Quantité</th>
+                <th class="text-center">Prix d'achat</th>
+                <th class="text-center">Montant</th>
+                <th class="text-center">Peremption</th>
+                <th class="text-center">Prix vente</th>
+                <th style="width: 40px" class="text-center">#</th>
+              </tr>
+            </thead>
+            <tbody id="livraison-produits">
+            </tbody>
+          </table>
+        </div>
+        <!-- /.card-body -->
+      </div>
+     </div>
+  </div><!-- /.container-fluid -->
+</section>
+<!-- /.content -->
+ 
+
+  {% endblock %}
+
+
+  {% block js %}
+
+    <!-- jQuery -->
+    <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <!-- bs-custom-file-input -->
+    <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+    <!-- AdminLTE App -->
+    <script src="{% static 'autre/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
+    <!-- AdminLTE for demo purposes -->
+    <script src="{% static 'autre/plugins/moment/moment.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/inputmask/min/jquery.inputmask.bundle.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+    <!-- Bootstrap Switch -->
+    <script src="{% static 'autre/plugins/bootstrap-switch/js/bootstrap-switch.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
+    <!-- AdminLTE for demo purposes -->
+    <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+    <script type="text/javascript">
+    $(document).ready(function () {
+      bsCustomFileInput.init();
+    });
+
+    $(document).ready(function () {
+        bsCustomFileInput.init();
+
+        //Initialize Select2 Elements
+        $('.select2').select2()
+
+        //Initialize Select2 Elements
+        $('.select2bs4').select2({
+          theme: 'bootstrap4'
+        })
+
+    });
+
+
+
+
+   // Événement sur le changement de produit
+   $('#idProduit').on('change', function () {
+        var produitId = $(this).val(); // Récupère l'ID du produit sélectionné
+        if (produitId !== "0") { 
+            $.ajax({
+                url: "{% url 'get_produit_details' %}", // Remplacez par l'URL de votre vue Django
+                type: "GET",
+                data: {
+                    produit_id: produitId
+                },
+                dataType: "json",
+                success: function (data) {
+                    if (data.success) {
+                        $('#prixAchat').val(data.prix_achat);
+                        $('#prixDetail').val(data.prix_detail);
+                    } else {
+                        toastr.error("Erreur lors de la récupération des prix du produit.");
+                    }
+                },
+                error: function () {
+                    toastr.error("Erreur : Produit introuvable !");
+                }
+            });
+        } else {
+            // Réinitialiser les champs si aucun produit n'est sélectionné
+            $('#prixAchat').val('');
+            $('#prixDetail').val('');
+        }
+    });
+
+
+
+
+    $(document).ready(function () {
+      // Au moment de la soumission du formulaire principal
+      $("#LivraisonForm").on("submit", function (event) {
+        // Parcourir chaque conteneur de formulaire (formset-item)
+        $("#formset-container .formset-item").each(function () {
+          // Récupère la valeur des champs 'produit' et 'quantite'
+          let produit = $(this).find("[name$='-produit']").val() || "";
+          let quantite = $(this).find("[name$='-quantite']").val() || "";
+          
+          // Si les deux champs sont vides (après suppression des espaces), on supprime le conteneur
+          if (!produit.trim() || !quantite.trim()) {
+            $(this).remove();
+          }
+        });
+
+        // Après suppression, on réindexe les formulaires restants et met à jour le management form
+        reindexFormset();
+        updateFormsetCount();
+      });
+
+      // Met à jour le champ TOTAL_FORMS du management form
+      function updateFormsetCount() {
+        let totalForms = $("#formset-container .formset-item").length;
+        $("#id_livraisonproduit_set-TOTAL_FORMS").val(totalForms);
+        // Pour debug, tu peux utiliser console.log(totalForms);
+        // console.log("Total forms:", totalForms);
+      }
+
+      // Réindexe les formulaires restants pour que les indices soient consécutifs
+      function reindexFormset() {
+        $("#formset-container .formset-item").each(function (index) {
+          // Pour chaque formulaire, on met à jour le nom et l'id de chaque champ
+          $(this).find(':input').each(function(){
+            // Met à jour l'attribut name
+            let name = $(this).attr("name");
+            if(name) {
+              let newName = name.replace(/livraisonproduit_set-\d+-/, "livraisonproduit_set-" + index + "-");
+              $(this).attr("name", newName);
+            }
+            // Met à jour l'attribut id
+            let id = $(this).attr("id");
+            if(id) {
+              let newId = id.replace(/id_livraisonproduit_set-\d+-/, "id_livraisonproduit_set-" + index + "-");
+              $(this).attr("id", newId);
+            }
+          });
+        });
+      }
+    });
+
+
+
+
+
+
+
+    $(document).ready(function () {
+      bsCustomFileInput.init();
+
+    $("#idAjouter").on("click", function (event) {
+      event.preventDefault();
+
+        let produitId = $("#idProduit").val();
+        let produitNom = $("#idProduit option:selected").text();
+        let quantite = $("#quantite").val();
+        let prixAchat = $("#prixAchat").val();
+        let prixDetail = $("#prixDetail").val();
+        let montant=prixAchat*quantite;
+        let datePeremption=$("#peremption").val();
+
+        
+        let ancienMontant=$("#numLivraison").val();
+        ancienMontant = ancienMontant ? parseFloat(ancienMontant) || 0 : 0;
+        let montantLivraison=ancienMontant+montant;
+
+        if (!produitId || !quantite || !prixAchat || !datePeremption) {
+            toastr.error("Veuillez remplir tous les champs !");
+            return;
+        }
+
+        // Vérifier si le produit est déjà dans le formset
+      let produitExiste = false;
+      $("#formset-container input[name^='livraisonproduit_set-'][name$='-produit']").each(function () {
+          if ($(this).val() === produitId) {
+              produitExiste = true;
+              return false; // Sortir de la boucle
+          }
+      });
+
+      if (produitExiste) {
+          toastr.warning("Ce produit a déjà été ajouté !");
+          return;
+      }
+
+        
+        // Ajouter les valeurs au formset Django
+        let formsetContainer = $("#formset-container");
+        let formCount = formsetContainer.children().length;  // Nombre d'éléments existants
+
+        let newForm = `
+            <div class="formset-item">
+                <input type="hidden" name="livraisonproduit_set-${formCount}-produit" value="${produitId}">
+                <input type="hidden" name="livraisonproduit_set-${formCount}-quantite" value="${quantite}">
+                <input type="hidden" name="livraisonproduit_set-${formCount}-prix" value="${prixAchat}">
+                <input type="hidden" name="livraisonproduit_set-${formCount}-prixDetail" value="${prixDetail}">
+                <input type="hidden" name="livraisonproduit_set-${formCount}-peremption" value="${datePeremption}">
+            </div>`;
+
+        formsetContainer.append(newForm);
+
+
+        // Ajouter une ligne au tableau
+        let newRow = `
+          <tr>
+            <td>${formCount}</td>
+            <td>${produitNom}</td>
+            <td class='text-center'>${quantite}</td>
+            <td class='text-center'>${prixAchat}</td>
+            <td class='text-center' montant='${montant}'>${montant}</td>
+            <td class='text-center'>${datePeremption}</td>
+            <td class='text-center'>${prixDetail}</td>
+            <td><button type="button" class="btn btn-danger btn-sm btn-remove">Supprimer</button></td>
+          </tr>`;
+
+        $("#livraison-produits").append(newRow);
+
+        $("#numLivraison").val(montantLivraison);
+
+        // Mettre à jour le total des formulaires
+        $("#id_livraisonproduit_set-TOTAL_FORMS").val(formCount + 1);
+
+        // Réinitialiser les champs
+        $("#quantite").val('');
+        $("#prixAchat").val('');
+        $("#prixDetail").val('');
+        $("#peremption").val('');
+    });
+
+    // Supprimer une ligne du tableau et du formset
+    $(document).on("click", ".btn-remove", function () {
+        let rowIndex = $(this).closest("tr").index();
+        $(this).closest("tr").remove();
+        $("#formset-container .formset-item").eq(rowIndex).remove();
+
+        // Mettre à jour le total des formulaires
+        let formCount = $("#formset-container .formset-item").length;
+        $("#id_livraisonproduit_set-TOTAL_FORMS").val(formCount);
+
+        let row = $(this).closest("tr");
+        let montantARetirer = parseFloat(row.find("td:eq(4)").text()) || 0; // Récupérer le montant dans la 5e colonne
+        let produitId = row.find("td:eq(1)").text(); // Nom du produit (associé à l'ID dans le formset)
+
+
+        // Mettre à jour le montant total
+        let ancienMontant = $("#numLivraison").val();
+        ancienMontant = ancienMontant ? parseFloat(ancienMontant) || 0 : 0;
+        let nouveauMontant = ancienMontant - montantARetirer;
+        $("#numLivraison").val(nouveauMontant);
+    });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+  $(function() {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000
+    });
+
+    $('.swalDefaultSuccess').click(function() {
+      Toast.fire({
+        icon: 'success',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultInfo').click(function() {
+      Toast.fire({
+        icon: 'info',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultError').click(function() {
+      Toast.fire({
+        icon: 'error',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultWarning').click(function() {
+      Toast.fire({
+        icon: 'warning',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.swalDefaultQuestion').click(function() {
+      Toast.fire({
+        icon: 'question',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+
+    $('.toastrDefaultSuccess').click(function() {
+      toastr.success('Enregistrement reussi.')
+    });
+    $('.toastrDefaultInfo').click(function() {
+      toastr.info('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
+    });
+    $('.toastrDefaultError').click(function() {
+      toastr.error('Operation non effectuée.')
+    });
+    $('.toastrDefaultWarning').click(function() {
+      toastr.warning('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
+    });
+
+    $('.toastsDefaultDefault').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultTopLeft').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        position: 'topLeft',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultBottomRight').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        position: 'bottomRight',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultBottomLeft').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        position: 'bottomLeft',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultAutohide').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        autohide: true,
+        delay: 750,
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultNotFixed').click(function() {
+      $(document).Toasts('create', {
+        title: 'Toast Title',
+        fixed: false,
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultFull').click(function() {
+      $(document).Toasts('create', {
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        icon: 'fas fa-envelope fa-lg',
+      })
+    });
+    $('.toastsDefaultFullImage').click(function() {
+      $(document).Toasts('create', {
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        image: '../../dist/img/user3-128x128.jpg',
+        imageAlt: 'User Picture',
+      })
+    });
+    $('.toastsDefaultSuccess').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-success', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultInfo').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-info', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultWarning').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-warning', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultDanger').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-danger', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastsDefaultMaroon').click(function() {
+      $(document).Toasts('create', {
+        class: 'bg-maroon', 
+        title: 'Toast Title',
+        subtitle: 'Subtitle',
+        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+  });
+
+</script>
+
+
+  {% endblock %}

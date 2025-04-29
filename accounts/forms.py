@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from .models import CustomUser
+from django.contrib.auth.models import Group
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -12,20 +13,29 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 
 
+
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True, label="Email")  # Ajout d'un champ pour l'email
+    email = forms.EmailField(required=True, label="Email")
     first_name = forms.CharField(max_length=150, label="Prénom")
     last_name = forms.CharField(max_length=150, label="Nom")
+    groupe = forms.ModelChoiceField(
+        queryset=Group.objects.all(),
+        label="Groupe d'utilisateur",
+        required=True
+    )
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'first_name', 'last_name', 'email')  # Email ajouté aux champs à afficher
+        fields = ('username', 'first_name', 'last_name', 'email', 'groupe')
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.email = self.cleaned_data["email"]  # On enregistre l'email
+        user.email = self.cleaned_data["email"]
+
         if commit:
             user.save()
+            groupe = self.cleaned_data["groupe"]
+            user.groups.add(groupe)
         return user
     
 

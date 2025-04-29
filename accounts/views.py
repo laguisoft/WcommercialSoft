@@ -2,9 +2,30 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 
+
+
+#------------------------ Gestion des droits d'acces avec les decorateur -----------------
+def est_administrateur(user):
+    return user.groups.filter(name='Administrateur').exists()
+
+def est_gestionnaire(user):
+    return user.groups.filter(name='Gestionnaire').exists()
+
+def est_utilisateur(user):
+    return user.groups.filter(name='Utilisateur').exists()
+
+def est_comptable(user):
+    return user.groups.filter(name='Comptable').exists()
+
+
+
+
+
+
+@login_required
 def register_view(request):
     form = CustomUserCreationForm(request.POST or None)
     if form.is_valid():
@@ -19,7 +40,7 @@ def login_view(request):
     if form.is_valid():
         user = form.get_user()
         login(request, user)
-        return redirect('home')
+        return redirect('commerce_dashboard')
     return render(request, 'accounts/login.html', {'form': form})
 
 
