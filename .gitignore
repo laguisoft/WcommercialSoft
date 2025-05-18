@@ -1,0 +1,26 @@
+# Environnement virtuel
+venv/
+env/
+
+# Fichiers Python
+__pycache__/
+*.py[cod]
+
+# Static et media (si pas versionnés)
+staticfiles/
+media/
+
+# Fichiers de config
+.env
+*.env
+
+# Bases locales
+*.sqlite3
+
+# VS Code / PyCharm
+.vscode/
+.idea/
+
+# Système
+.DS_Store
+Thumbs.db
