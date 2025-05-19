@@ -108,7 +108,7 @@ class CommandeForm(forms.ModelForm):
             'montant': forms.TextInput(attrs={'class': 'form-control','id':'netPayer',"hidden":"true",'readonly':'true'}),
             'remise': forms.NumberInput(attrs={'class': 'form-control','placeholder':'Remise','id':'remise'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idEcheance'}),
-            'typeVente': forms.Select(attrs={'class': 'form-control'}),
+            'typeVente': forms.Select(attrs={'class': 'form-control', 'id':'typeVente'}),
             'typePayement': forms.Select(attrs={'class': 'form-control','id':'typePayement'}),
         }
 

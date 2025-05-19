@@ -361,38 +361,60 @@
 
 
 
-
- // Événement sur le changement de produit
-  $('#idProduit').on('change', function () {
-      var produitId = $(this).val(); // Récupère l'ID du produit sélectionné
-      if (produitId !== "0") { 
-          $.ajax({
-              url: "{% url 'get_produit_details' %}", // Remplacez par l'URL de votre vue Django
-              type: "GET",
-              data: {
-                  produit_id: produitId
-              },
-              dataType: "json",
-              success: function (data) {
-                  if (data.success) {
-                      $('#stock').val(data.stock);
-                      $('#prixDetail').val(data.prix_detail);
-                      $('#quantite').val(1);
-                  } else {
-                      toastr.error("Erreur lors de la récupération des prix du produit.");
+      var dernierProduitData = null; // Pour stocker les infos du produit sélectionné
+      // Événement sur le changement de produit
+      $('#idProduit').on('change', function () {
+          var produitId = $(this).val();
+          if (produitId !== "0") {
+              $.ajax({
+                  url: "{% url 'get_produit_details' %}",
+                  type: "GET",
+                  data: {
+                      produit_id: produitId
+                  },
+                  dataType: "json",
+                  success: function (data) {
+                      if (data.success) {
+                          $('#stock').val(data.stock);
+                          $('#quantite').val(1);
+      
+                          // Stocker les données du produit pour utilisation ultérieure
+                          dernierProduitData = data;
+      
+                          // Mettre à jour le prix selon typeVente
+                          mettreAJourPrix();
+                      } else {
+                          toastr.error("Erreur lors de la récupération des prix du produit.");
+                      }
+                  },
+                  error: function () {
+                      toastr.error("Erreur lors de la requête AJAX.");
                   }
-              },
-              error: function () {
-                  
+              });
+          } else {
+              $('#stock').val('');
+              $('#prixDetail').val('');
+              dernierProduitData = null;
+          }
+      });
+      
+      // Événement sur le changement de type de vente
+      $('#typeVente').on('change', function () {
+          mettreAJourPrix();
+      });
+      
+      // Fonction pour mettre à jour le prix selon le type de vente sélectionné
+      function mettreAJourPrix() {
+          if (dernierProduitData) {
+              var typeVente = $('#typeVente').val();
+              if (typeVente === "detail") {
+                  $('#prixDetail').val(dernierProduitData.prix_detail);
+              } else {
+                  $('#prixDetail').val(dernierProduitData.prix_en_gros);
               }
-          });
-      } else {
-          // Réinitialiser les champs si aucun produit n'est sélectionné
-          $('#stock').val('');
-          $('#prixDetail').val('');
+          }
       }
-  });
-
+      
 
 
 

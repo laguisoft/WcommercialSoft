@@ -250,7 +250,7 @@ def produit_list_create(request):
 def produit_list(request):
     categorie=Categorie.objects.all()
     produit=Produit.objects.all()
-    return render(request, 'commercialSoft/listeProduits.html',{'categories':categorie,'produits':produit})
+    return render(request, 'CommercialSoft/listeProduits.html', {'categories':categorie,'produits':produit})
 
 
 
@@ -259,7 +259,7 @@ def produit_list(request):
 def produit_perime(request):
     aujourdhui = timezone.now().date()
     produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui)
-    return render(request, 'commercialSoft/produitPerime.html',{'listes':produits_perimes})
+    return render(request, 'CommercialSoft/produitPerime.html',{'listes':produits_perimes})
 
 
 
@@ -267,20 +267,20 @@ def produit_perime(request):
 @login_required
 def produit_rupture(request):
     produits_rupture=Produit.objects.filter(quantite__lte=F('seuil'))
-    return render(request, 'commercialSoft/produitEnRupture.html',{'listes':produits_rupture})
+    return render(request, 'CommercialSoft/produitEnRupture.html',{'listes':produits_rupture})
 
 
 
 @login_required
 def produit_livrer(request):
-    return render(request, 'commercialSoft/produitLivrer.html')
+    return render(request, 'CommercialSoft/produitLivrer.html')
 
 
 
 @login_required
 def produit_vendu(request):
     users = User.objects.all()  # Récupérer tous les utilisateurs
-    return render(request, 'commercialSoft/produitVendu.html', {'users': users})
+    return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
 
 
 
@@ -406,19 +406,6 @@ def produit_livrer_delete(request, pk):
 
 
 
- # Example for Patient Views
-@login_required
-def produit_delete(request, pk):
-    produit = get_object_or_404(Produit, pk=pk)
-    try:
-        produit.delete()
-        messages.success(request, "Produit supprimée avec succès!")
-    except IntegrityError:
-        messages.error(request, "Erreur: Cette produit est liée à d'autres entités et ne peut pas être supprimée.")
-    return redirect('commerce_produit')
-
-
-
 @login_required
 def get_produit_details(request):
     produit_id = request.GET.get('produit_id')
@@ -428,6 +415,7 @@ def get_produit_details(request):
             "success": True,
             "prix_achat": produit.prixAchat,  # Remplacez par le champ réel
             "prix_detail": produit.prixDetail,  # Remplacez par le champ réel
+            "prix_en_gros": produit.prixEnGros,  # Remplacez par le champ réel
             "stock": produit.quantite,  # Remplacez par le champ réel
         }
     except Produit.DoesNotExist:
@@ -742,7 +730,7 @@ def produit_edit(request, pk):
 
 
  # Example for Patient Views
-@user_passes_test(est_gestionnaire, est_administrateur)
+@user_passes_test(est_administrateur,est_gestionnaire)
 @login_required
 def produit_delete(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
@@ -1763,7 +1751,7 @@ def recu(request, pk):
     context = {'listes': produits,'total':total_formatte,'net':net_formatte,'remise':commande.remise}
     
     # Chemin vers le fichier HTML dans le répertoire templates
-    template_name = 'commercialSoft/recuVente.html/'  # Chemin relatif à partir du répertoire templates
+    template_name = 'commercialSoft/recuVente.html'  # Chemin relatif à partir du répertoire templates
     output_filename = 'sortie.pdf'  # Nom du fichier PDF généré
     
     # Générer le PDF à partir du template
@@ -1881,6 +1869,7 @@ def pdf_Produit_livrer(request):
 
 #--------------------------liste des produits livrer -----------------------
 # Exemple d'utilisation
+
 def pdf_etat_depense(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -2102,29 +2091,32 @@ def pdf_etat_client(request):
 
 
 
-
 #--------------------------liste des Versement des client -----------------------
-# Exemple d'utilisation
+
 def pdf_etat_situation_client(request):
-    if request.method =="POST":
-        clientId= request.POST.get('idClient')
-        clientId=int(clientId)
-        
-        clients=Client.objects.filter()
+    if request.method == "POST":
+        id_client_str = request.POST.get('idClient')
 
-        # Filtrer par catégorie si elle est fournie
-        if clientId:
+        clients = Client.objects.all()  # Par défaut, on récupère tous les clients
+
+        if id_client_str:  # Si un ID est fourni
             try:
-                clients = Client.objects.filter(id=clientId)
-            except Client.DoesNotExist:
-                return JsonResponse({"error": "Client introuvable"}, status=404)
+                id_client = int(id_client_str)
+                clients = Client.objects.filter(id=id_client)
 
-        # Construire la réponse JSON
-        montantPret=0
-        montantVersement=0
-        balance=0
-        produits_data = [
-            {
+                if not clients.exists():
+                    return JsonResponse({"error": "Client introuvable"}, status=404)
+
+            except ValueError:
+                return JsonResponse({"error": "ID du client invalide"}, status=400)
+
+        produits_data = []
+        for client in clients:
+            total_pret = client.prets.aggregate(Sum('montant'))['montant__sum'] or 0
+            total_versement = client.versements.aggregate(Sum('montant'))['montant__sum'] or 0
+            balance = total_pret - total_versement
+
+            produits_data.append({
                 "id": client.id,
                 "nom": client.nom,
                 "telephone": client.telephone,
@@ -2133,37 +2125,35 @@ def pdf_etat_situation_client(request):
                 "matricule": client.matricule,
                 "pourcentage": client.pourcentage,
                 "detteMaximale": client.detteMaximale,
-                "total_pret": client.prets.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "total_versement": client.versements.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) - 
-                           (client.versements.aggregate(Sum('montant'))['montant__sum'] or 0),
-            }
-            for client in clients
-        ]
+                "total_pret": total_pret,
+                "total_versement": total_versement,
+                "balance": balance,
+            })
 
-        montantPret = sum(client["total_pret"] for client in produits_data)
-        montantVersement = sum(client["total_versement"] for client in produits_data)
-        balance = sum(client["balance"] for client in produits_data)
-        # Formatage avec séparateur de milliers (ex: 1 234 567)
-        montantPret_formate = "{:,.0f}".format(montantPret).replace(",", " ")
-        montantVersement_formate = "{:,.0f}".format(montantVersement).replace(",", " ")
-        balance_formate = "{:,.0f}".format(balance).replace(",", " ")
+        # Calcul des totaux globaux
+        montant_pret = sum(c["total_pret"] for c in produits_data)
+        montant_versement = sum(c["total_versement"] for c in produits_data)
+        balance_total = sum(c["balance"] for c in produits_data)
 
-        context = {'listes': produits_data, 'montantPret': montantPret_formate,'montantVersement':montantVersement_formate, 'balance':balance_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatSituationClient.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'situation_client.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
+        # Formatage des montants
+        def formater(montant):
+            return "{:,.0f}".format(montant).replace(",", " ")
+
+        context = {
+            'listes': produits_data,
+            'montantPret': formater(montant_pret),
+            'montantVersement': formater(montant_versement),
+            'balance': formater(balance_total),
+        }
+
+        # Génération du PDF
+        template_name = 'commercialSoft/pdfEtatSituationClient.html'
+        output_filename = 'situation_client.pdf'
         generate_pdf_from_template(template_name, context, output_filename)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
         with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
+            return HttpResponse(pdf_file.read(), content_type='application/pdf')
+
     return HttpResponse("Méthode non autorisée", status=405)
 
 
