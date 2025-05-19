@@ -92,10 +92,10 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gberedoudolar$commercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'gberedoudolar',         # Remplacez par votre nom d'utilisateur
+        'NAME': 'skservice$commercialSoft',  # Remplacez par le nom de votre base
+        'USER': 'skservice',         # Remplacez par votre nom d'utilisateur
         'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
-        'HOST': 'gberedoudolar.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'skservice.mysql.pythonanywhere-services.com',  # Hôte MySQL
         #'HOST': 'localhost',  # Hôte MySQL
         'PORT': '3306',  # Port MySQL
     }
