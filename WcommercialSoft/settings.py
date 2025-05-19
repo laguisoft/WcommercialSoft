@@ -85,10 +85,27 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+"""
+
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'gberedoudolar$commercialSoft',  # Remplacez par le nom de votre base
+        'USER': 'gberedoudolar',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
+        'HOST': 'gberedoudolar.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        #'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
+
 
 
 
 """
+# client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -100,6 +117,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
+"""
 
 
 
