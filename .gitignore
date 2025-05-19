@@ -17,6 +17,8 @@ media/
 # Bases locales
 *.sqlite3
 
+db.sqlite3
+
 # VS Code / PyCharm
 .vscode/
 .idea/
