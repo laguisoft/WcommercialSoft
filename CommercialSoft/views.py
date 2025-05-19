@@ -1751,7 +1751,7 @@ def recu(request, pk):
     context = {'listes': produits,'total':total_formatte,'net':net_formatte,'remise':commande.remise}
     
     # Chemin vers le fichier HTML dans le répertoire templates
-    template_name = 'commercialSoft/recuVente.html'  # Chemin relatif à partir du répertoire templates
+    template_name = 'CommercialSoft/recuVente.html'  # Chemin relatif à partir du répertoire templates
     output_filename = 'sortie.pdf'  # Nom du fichier PDF généré
     
     # Générer le PDF à partir du template

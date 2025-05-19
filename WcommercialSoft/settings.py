@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -95,12 +95,12 @@ DATABASES = {
         'NAME': 'gberedoudolar$commercialSoft',  # Remplacez par le nom de votre base
         'USER': 'gberedoudolar',         # Remplacez par votre nom d'utilisateur
         'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
-        'HOST': 'sylimultiservice.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'gberedoudolar.mysql.pythonanywhere-services.com',  # Hôte MySQL
         #'HOST': 'localhost',  # Hôte MySQL
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 # Password validation
