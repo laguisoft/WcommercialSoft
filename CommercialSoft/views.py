@@ -1752,7 +1752,7 @@ def recu(request, pk):
     
     # Chemin vers le fichier HTML dans le répertoire templates
     template_name = 'CommercialSoft/recuVente.html'  # Chemin relatif à partir du répertoire templates
-    output_filename = 'sortie.pdf'  # Nom du fichier PDF généré
+    output_filename = 'facture.pdf'  # Nom du fichier PDF généré
     
     # Générer le PDF à partir du template
     generate_pdf_from_template(template_name, context, output_filename)
@@ -1763,17 +1763,17 @@ def recu(request, pk):
         response['Content-Disposition'] = f'inline; filename="{output_filename}"'
         return response
 
+from django.http import HttpResponse
+from django.template.loader import get_template
+from io import BytesIO
+from xhtml2pdf import pisa  # ou weasyprint si tu préfères
 
-#--------------------------liste des produits disponible -----------------------
-# Exemple d'utilisation
 def pdf_Produit_disponible(request):
-    if request.method =="POST":
+    if request.method == "POST":
         categorieId = request.POST.get('idCategorie')
         produitId = request.POST.get("produitId")
-        # Données contextuelles pour le template HTML (vous pouvez ajuster cela)
-        produits = Produit.objects.all()  # Récupérer tous les produits par défaut
+        produits = Produit.objects.all()
 
-        # Filtrer par catégorie si elle est fournie
         if categorieId:
             try:
                 cat = Categorie.objects.get(id=categorieId)
@@ -1781,17 +1781,12 @@ def pdf_Produit_disponible(request):
             except Categorie.DoesNotExist:
                 return JsonResponse({"error": "Catégorie introuvable"}, status=404)
 
-        # Filtrer par produit si fourni
         if produitId:
-            try:
-                produits = produits.filter(id=produitId)
-            except Produit.DoesNotExist:
-                return JsonResponse({"error": "Produit introuvable"}, status=404)
+            produits = produits.filter(id=produitId)
 
-        # Construire la réponse JSON
         produits_data = [
             {
-                "id":produit.id,
+                "id": produit.id,
                 "code": produit.codebare,
                 "libelle": produit.libelle,
                 "quantite": produit.quantite,
@@ -1803,23 +1798,22 @@ def pdf_Produit_disponible(request):
             }
             for produit in produits
         ]
+
         context = {'listes': produits_data}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfProduitDisponible.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'produit_disponible.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            print("PDF généré avec succès")  # Test pour voir si ça passe ici
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
+        template = get_template('commercialSoft/pdfProduitDisponible.html')
+        html = template.render(context)
+
+        # Créer un fichier PDF en mémoire
+        result = BytesIO()
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+
+        if not pdf.err:
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = 'inline; filename="produit_disponible.pdf"'
             return response
-
+        else:
+            return HttpResponse("Erreur lors de la génération du PDF", status=500)
 
 
 
