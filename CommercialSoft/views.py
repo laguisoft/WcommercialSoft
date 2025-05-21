@@ -1713,9 +1713,11 @@ def recherche_benefice_sur_vente(request):
 
 
 #************************************** Etat **************************************************
+
+from io import BytesIO
 from django.template.loader import get_template
 from xhtml2pdf import pisa
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import os
 
 def convert_html_to_pdf(source_html, output_filename):
@@ -1770,15 +1772,12 @@ def recu(request, pk):
 
 
 
-
-
-from io import BytesIO
-from django.template.loader import get_template
-from xhtml2pdf import pisa
-from django.http import HttpResponse
-
 def generate_pdf_response_vrais(template_src, context_dict):
-    template = get_template(template_src)
+    try:
+        template = get_template(template_src)
+    except Exception as e:
+        return HttpResponse(f"Erreur de chargement du template : {e}", status=500)
+
     html = template.render(context_dict)
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
@@ -1788,36 +1787,32 @@ def generate_pdf_response_vrais(template_src, context_dict):
         return response
     return HttpResponse("Erreur lors de la génération du PDF", status=500)
 
-
-
-#--------------------------liste des produits disponible -----------------------
-# Exemple d'utilisation
+# -------------------------- Vue PDF des produits disponibles -----------------------
 def pdf_Produit_disponible(request):
-    if request.method =="POST":
+    if request.method == "POST":
         categorieId = request.POST.get('idCategorie')
         produitId = request.POST.get("produitId")
-        # Données contextuelles pour le template HTML (vous pouvez ajuster cela)
-        produits = Produit.objects.all()  # Récupérer tous les produits par défaut
 
-        # Filtrer par catégorie si elle est fournie
+        produits = Produit.objects.all()
+
+        # Filtrer par catégorie si valide
         if categorieId:
             try:
-                cat = Categorie.objects.get(id=categorieId)
-                produits = produits.filter(categorie=cat)
-            except Categorie.DoesNotExist:
-                return JsonResponse({"error": "Catégorie introuvable"}, status=404)
+                produits = produits.filter(categorie__id=int(categorieId))
+            except (ValueError, Categorie.DoesNotExist):
+                return JsonResponse({"error": "Catégorie invalide ou introuvable"}, status=400)
 
-        # Filtrer par produit si fourni
+        # Filtrer par produit si valide
         if produitId:
             try:
-                produits = produits.filter(id=produitId)
-            except Produit.DoesNotExist:
-                return JsonResponse({"error": "Produit introuvable"}, status=404)
+                produits = produits.filter(id=int(produitId))
+            except (ValueError, Produit.DoesNotExist):
+                return JsonResponse({"error": "Produit invalide ou introuvable"}, status=400)
 
-        # Construire la réponse JSON
+        # Construire les données
         produits_data = [
             {
-                "id":produit.id,
+                "id": produit.id,
                 "code": produit.codebare,
                 "libelle": produit.libelle,
                 "quantite": produit.quantite,
@@ -1829,9 +1824,11 @@ def pdf_Produit_disponible(request):
             }
             for produit in produits
         ]
+
         context = {'listes': produits_data}
-        
-        return generate_pdf_response_vrais("commercialSoft/pdfProduitDisponible.html", context)
+        return generate_pdf_response_vrais("CommercialSoft/pdfProduitDisponible.html", context)
+
+    return HttpResponse("Méthode non autorisée", status=405)
 
 
 
@@ -1874,20 +1871,9 @@ def pdf_Produit_livrer(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         context = {'listes': produits_data, 'montant': montant_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfProduitLivrer.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'produit_livre.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfProduitLivrer.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
+    return HttpResponse("Méthode non autorisée", status=405)
 
 
 
@@ -1931,20 +1917,8 @@ def pdf_etat_depense(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         context = {'listes': produits_data, 'montant': montant_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatDepense.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'etat_depense.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatDepense.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -1985,20 +1959,8 @@ def pdf_etat_versementClient(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         context = {'listes': produits_data, 'montant': montant_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatVersementClient.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'etat_versementClient.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementClient.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2040,20 +2002,8 @@ def pdf_etat_versementFournisseur(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         context = {'listes': produits_data, 'montant': montant_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatVersementFournisseur.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'etat_versementFournisseur.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementFournisseur.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2099,18 +2049,9 @@ def pdf_etat_client(request):
         context = {'listes': produits_data, 'montant': montant_formate}
         
         # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatClient.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'etat_client.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        template_name = 'commercialSoft/pdfEtatClient.html'  
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatClient.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2171,13 +2112,7 @@ def pdf_etat_situation_client(request):
             'balance': formater(balance_total),
         }
 
-        # Génération du PDF
-        template_name = 'commercialSoft/pdfEtatSituationClient.html'
-        output_filename = 'situation_client.pdf'
-        generate_pdf_from_template(template_name, context, output_filename)
-
-        with open(output_filename, 'rb') as pdf_file:
-            return HttpResponse(pdf_file.read(), content_type='application/pdf')
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationClient.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
 
@@ -2230,20 +2165,8 @@ def pdf_etat_situation_fournisseur(request):
         balance_formate = "{:,.0f}".format(balance).replace(",", " ")
 
         context = {'listes': produits_data, 'montantPret': montantPret_formate,'montantVersement':montantVersement_formate, 'balance':balance_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatSituationFournisseur.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'situation_fournisseur.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationFournisseur.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2293,19 +2216,8 @@ def pdf_etat_situation_boutique(request):
 
         context = {'listes': produits_data, 'montant': montant_formate,'benefice':benefice_formate}
         
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatSituationBoutique.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'situation_boutique.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationBoutique.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2337,19 +2249,8 @@ def pdf_etat_produit_perime(request):
 
         context = {'listes': produits_data}
         
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatProduitPerime.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'produit_perime.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitPerime.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2380,19 +2281,8 @@ def pdf_etat_produit_rupture(request):
 
         context = {'listes': produits_data}
         
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatProduitRupture.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'produit_rupture.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitRupture.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2439,19 +2329,8 @@ def pdf_etat_pretClient(request):
 
         context = {'listes': produits_data, 'montant': montant_formate}
         
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatPretClient.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'etat_pretClient.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatPretClient.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
 
 
@@ -2495,18 +2374,7 @@ def pdf_etat_versementGerant(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         context = {'listes': produits_data, 'montant': montant_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatVersementGerant.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'etat_versementGerant.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
+        # Chemin relatif à partir du répertoire templates
+        return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementGerant.html", context)
 
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            pdf_content = pdf_file.read()
-            response = HttpResponse(pdf_content, content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
     return HttpResponse("Méthode non autorisée", status=405)
