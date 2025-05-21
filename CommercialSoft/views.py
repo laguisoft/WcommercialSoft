@@ -1764,6 +1764,32 @@ def recu(request, pk):
         return response
 
 
+
+
+
+
+
+
+
+
+from io import BytesIO
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from django.http import HttpResponse
+
+def generate_pdf_response_vrais(template_src, context_dict):
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="produit_disponible.pdf"'
+        return response
+    return HttpResponse("Erreur lors de la génération du PDF", status=500)
+
+
+
 #--------------------------liste des produits disponible -----------------------
 # Exemple d'utilisation
 def pdf_Produit_disponible(request):
@@ -1805,20 +1831,21 @@ def pdf_Produit_disponible(request):
         ]
         context = {'listes': produits_data}
         
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfProduitDisponible.html'  # Chemin relatif à partir du répertoire templates
-        output_filename = 'produit_disponible.pdf'  # Nom du fichier PDF généré
-        
-        # Générer le PDF à partir du template
-        generate_pdf_from_template(template_name, context, output_filename)
-
-        # Renvoyer le fichier PDF comme réponse HTTP
-        with open(output_filename, 'rb') as pdf_file:
-            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
-            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
-            return response
+        return generate_pdf_response_vrais("commercialSoft/pdfProduitDisponible.html", context)
 
 
+
+
+
+
+
+
+
+
+
+
+
+    
 
 
 #--------------------------liste des produits livrer -----------------------
