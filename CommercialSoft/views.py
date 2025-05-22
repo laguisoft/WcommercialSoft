@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import LoginForm, FournisseurForm, CategorieForm, ProduitForm, LivraisonForm, LivraisonProduitFormSet, CommandeForm, CommandeProduitFormSet, LivraisonProduitForm, CategorieDepenseForm, DepenseForm, VersementClientForm, pretClientForm, clientForm, societeForm, DetteFournisseurForm, VersementFournisseurForm, detteClientForm, VersementGerantForm
-from .models import Fournisseur, Categorie, Produit, Livraison, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, DetteFournisseur, VersementFournisseur, VersementGerant
+from .models import Fournisseur, Categorie, Produit, Livraison, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, DetteFournisseur, VersementFournisseur, VersementGerant, InfoBoutique
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -60,8 +60,23 @@ def login_view(request):
 
 @login_required
 def dashboard(request):
-    return render(request, 'CommercialSoft/dashboard.html',{'nom_agent':request.user.username,'numero_user':request.user.id})
+    info_boutique = InfoBoutique.objects.first()
+    total_produits = Produit.objects.count()
+    produits_perimes = Produit.objects.filter(datePeremption__lt=now()).count()
+    produits_rupture = Produit.objects.filter(quantite__lte=F('seuil')).count()
+    total_dettes = PretClient.objects.count()
 
+    context = {
+        'nom_agent': request.user.username,
+        'numero_user': request.user.id,
+        'boutique': info_boutique,
+        'total_produits': total_produits,
+        'produits_perimes': produits_perimes,
+        'produits_rupture': produits_rupture,
+        'total_dettes': total_dettes,
+    }
+
+    return render(request, 'CommercialSoft/dashboard.html', context)
 
 
 
@@ -1750,7 +1765,8 @@ def recu(request, pk):
     total_formatte = intcomma(total).replace(",", ".")
     net=total-commande.remise 
     net_formatte = intcomma(net).replace(",", ".")
-    context = {'listes': produits,'total':total_formatte,'net':net_formatte,'remise':commande.remise}
+    infoBoutique=InfoBoutique.objects.first()
+    context = {'listes': produits,'total':total_formatte,'net':net_formatte,'remise':commande.remise,'boutique':infoBoutique,'commande':commande}
     
     # Chemin vers le fichier HTML dans le répertoire templates
     template_name = 'CommercialSoft/recuVente.html'  # Chemin relatif à partir du répertoire templates
@@ -1786,6 +1802,9 @@ def generate_pdf_response_vrais(template_src, context_dict):
         response['Content-Disposition'] = 'inline; filename="produit_disponible.pdf"'
         return response
     return HttpResponse("Erreur lors de la génération du PDF", status=500)
+
+
+
 
 # -------------------------- Vue PDF des produits disponibles -----------------------
 def pdf_Produit_disponible(request):
@@ -1825,7 +1844,9 @@ def pdf_Produit_disponible(request):
             for produit in produits
         ]
 
-        context = {'listes': produits_data}
+        
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfProduitDisponible.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
@@ -1870,7 +1891,9 @@ def pdf_Produit_livrer(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate}
+        
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfProduitLivrer.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
@@ -1880,47 +1903,56 @@ def pdf_Produit_livrer(request):
 
 #--------------------------liste des produits livrer -----------------------
 # Exemple d'utilisation
+from django.views.decorators.csrf import csrf_exempt
 
+@csrf_exempt  # juste pour test si CSRF gêne
 def pdf_etat_depense(request):
-    if request.method =="POST":
-        dateDebut= request.POST.get('dateDebut')
-        dateFin= request.POST.get('dateFin')
-        categorieId= request.POST.get('idCategorie')
+    if request.method == "POST":
+        try:
+            dateDebut = request.POST.get('dateDebut')
+            dateFin = request.POST.get('dateFin')
+            categorie_id = request.POST.get('idCategorie')
 
-        depenses=Depense.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+            depenses = Depense.objects.filter(date__gte=dateDebut, date__lte=dateFin)
 
-        # Filtrer par catégorie si elle est fournie
-        if categorieId:
-            try:
-                cat = Categorie_Depense.objects.get(id=categorieId)
-                depenses=Depense.objects.filter(categorie=cat,date__gte=dateDebut, date__lte=dateFin)
-            except Categorie_Depense.DoesNotExist:
-                return JsonResponse({"error": "Catégorie introuvable"}, status=404)
 
-        # Construire la réponse JSON
-        montant=0
-        produits_data = [
-            {
-                "code": depense.id,
-                "intitule": depense.intitule,
-                "quantite": depense.quantite,
-                "prix": depense.prix,
-                "date": depense.date,
-                "categorie":depense.categorie,
-                "montant": depense.quantite*depense.prix,
+            if categorie_id:
+                try:
+                    categorie = Categorie_Depense.objects.get(id=categorie_id)
+                    depenses = depenses.filter(categorie=categorie)
+                except Categorie_Depense.DoesNotExist:
+                    return JsonResponse({"error": "Catégorie invalide ou introuvable"}, status=404)
+                
+            produits_data = []
+            for depense in depenses:
+                montant = (depense.quantite or 0) * (depense.prix or 0)
+                produits_data.append({
+                    "code": depense.id,
+                    "intitule": depense.intitule,
+                    "quantite": depense.quantite,
+                    "prix": depense.prix,
+                    "date": depense.date,
+                    "categorie": depense.categorie,
+                    "montant": montant,
+                })
+
+            montant_total = sum(p["montant"] for p in produits_data)
+            montant_formate = "{:,.0f}".format(montant_total).replace(",", " ")
+
+            infoBoutique = InfoBoutique.objects.first()
+
+            context = {
+                'listes': produits_data,
+                'montant': montant_formate,
+                'boutique': infoBoutique
             }
-            for depense in depenses
-        ]
 
-        montant = sum(depense["montant"] for depense in produits_data)
-        # Formatage avec séparateur de milliers (ex: 1 234 567)
-        montant_formate = "{:,.0f}".format(montant).replace(",", " ")
+            return generate_pdf_response_vrais("CommercialSoft/pdfEtatDepense.html", context)
 
-        context = {'listes': produits_data, 'montant': montant_formate}
-        return generate_pdf_response_vrais("CommercialSoft/pdfEtatDepense.html", context)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
     return HttpResponse("Méthode non autorisée", status=405)
-
 
 
 
@@ -1958,7 +1990,8 @@ def pdf_etat_versementClient(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementClient.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
@@ -2001,7 +2034,8 @@ def pdf_etat_versementFournisseur(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementFournisseur.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
@@ -2046,10 +2080,9 @@ def pdf_etat_client(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate}
-        
-        # Chemin vers le fichier HTML dans le répertoire templates
-        template_name = 'commercialSoft/pdfEtatClient.html'  
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
+          
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatClient.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
@@ -2058,14 +2091,11 @@ def pdf_etat_client(request):
 
 
 #--------------------------liste des Versement des client -----------------------
-
 def pdf_etat_situation_client(request):
     if request.method == "POST":
         id_client_str = request.POST.get('idClient')
 
-        clients = Client.objects.all()  # Par défaut, on récupère tous les clients
-
-        if id_client_str:  # Si un ID est fourni
+        if id_client_str and id_client_str != '0':  # Si un ID spécifique est fourni et différent de '0'
             try:
                 id_client = int(id_client_str)
                 clients = Client.objects.filter(id=id_client)
@@ -2075,7 +2105,10 @@ def pdf_etat_situation_client(request):
 
             except ValueError:
                 return JsonResponse({"error": "ID du client invalide"}, status=400)
+        else:
+            clients = Client.objects.all()  # Si '0' ou rien => tous les clients
 
+        # Reste du traitement…
         produits_data = []
         for client in clients:
             total_pret = client.prets.aggregate(Sum('montant'))['montant__sum'] or 0
@@ -2096,20 +2129,22 @@ def pdf_etat_situation_client(request):
                 "balance": balance,
             })
 
-        # Calcul des totaux globaux
+        # Totaux globaux
         montant_pret = sum(c["total_pret"] for c in produits_data)
         montant_versement = sum(c["total_versement"] for c in produits_data)
         balance_total = sum(c["balance"] for c in produits_data)
 
-        # Formatage des montants
+        # Format
         def formater(montant):
             return "{:,.0f}".format(montant).replace(",", " ")
 
+        infoBoutique = InfoBoutique.objects.first()
         context = {
             'listes': produits_data,
             'montantPret': formater(montant_pret),
             'montantVersement': formater(montant_versement),
             'balance': formater(balance_total),
+            'boutique': infoBoutique,
         }
 
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationClient.html", context)
@@ -2164,7 +2199,8 @@ def pdf_etat_situation_fournisseur(request):
         montantVersement_formate = "{:,.0f}".format(montantVersement).replace(",", " ")
         balance_formate = "{:,.0f}".format(balance).replace(",", " ")
 
-        context = {'listes': produits_data, 'montantPret': montantPret_formate,'montantVersement':montantVersement_formate, 'balance':balance_formate}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montantPret': montantPret_formate,'montantVersement':montantVersement_formate, 'balance':balance_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationFournisseur.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
@@ -2214,7 +2250,8 @@ def pdf_etat_situation_boutique(request):
         montant_formate = "{:,.0f}".format(montantTotal).replace(",", " ")
         benefice_formate = "{:,.0f}".format(benefice).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate,'benefice':benefice_formate}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'benefice':benefice_formate,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationBoutique.html", context)
 
@@ -2246,8 +2283,8 @@ def pdf_etat_produit_perime(request):
             for produit in produits
         ]
 
-
-        context = {'listes': produits_data}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitPerime.html", context)
 
@@ -2278,8 +2315,8 @@ def pdf_etat_produit_rupture(request):
             for produit in produits
         ]
 
-
-        context = {'listes': produits_data}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitRupture.html", context)
 
@@ -2327,7 +2364,8 @@ def pdf_etat_pretClient(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate}
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatPretClient.html", context)
 
@@ -2373,8 +2411,8 @@ def pdf_etat_versementGerant(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        context = {'listes': produits_data, 'montant': montant_formate}
-        # Chemin relatif à partir du répertoire templates
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementGerant.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)

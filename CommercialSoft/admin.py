@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe,
-    VersementFournisseur, DetteFournisseur, VersementGerant
+    VersementFournisseur, DetteFournisseur, VersementGerant, InfoBoutique
 )
 
 
@@ -145,3 +145,12 @@ class versementGerantAdmin(admin.ModelAdmin):
     search_fields = ('user', 'montant', 'date')
     list_filter = ('user', 'date')
     ordering = ('-date',)
+
+
+
+@admin.register(InfoBoutique)
+class infoBoutiqueAdmin(admin.ModelAdmin):
+    list_display=('nom', 'emplacement','ville','telephone','proprietaire')
+    search_fields=('nom', 'emplacement','ville','telephone','proprietaire') 
+    list_filter=('nom','telephone','proprietaire')
+    ordering=('nom',)

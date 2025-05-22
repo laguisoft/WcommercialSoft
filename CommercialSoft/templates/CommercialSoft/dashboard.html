@@ -8,7 +8,7 @@
     <div class="container position-relative">
 
       <div class="welcome position-relative col-md-12">
-        <h2>Welcome to Laguisoft</h2>
+        <h2>{{boutique.nom}}</h2>
         <p>Le commerce à portée de main</p>
       </div><!-- End Welcome -->
 
@@ -21,31 +21,31 @@
             <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
               <i class="fa-solid fa-user-doctor"></i>
               <div class="stats-item">
-                <span data-purecounter-start="0" data-purecounter-end="85" data-purecounter-duration="1" class="purecounter"></span>
-                <p>Produits périmés</p>
+                <span data-purecounter-start="0" data-purecounter-end="{{total_produits}}" data-purecounter-duration="1" class="purecounter"></span>
+                <p>Total produits</p>
               </div>
             </div><!-- End Stats Item -->
     
             <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
               <i class="fa-regular fa-hospital"></i>
               <div class="stats-item">
-                <span data-purecounter-start="0" data-purecounter-end="18" data-purecounter-duration="1" class="purecounter"></span>
-                <p>Dettes à reclamer</p>
+                <span data-purecounter-start="0" data-purecounter-end="{{total_produits}}" data-purecounter-duration="1" class="purecounter"></span>
+                <p>Produits périmés</p>
               </div>
             </div><!-- End Stats Item -->
     
             <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
               <i class="fas fa-flask"></i>
               <div class="stats-item">
-                <span data-purecounter-start="0" data-purecounter-end="12" data-purecounter-duration="1" class="purecounter"></span>
-                <p>Research Labs</p>
+                <span data-purecounter-start="0" data-purecounter-end="{{total_dettes}}" data-purecounter-duration="1" class="purecounter"></span>
+                <p>Total dette</p>
               </div>
             </div><!-- End Stats Item -->
     
             <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
               <i class="fas fa-award"></i>
               <div class="stats-item">
-                <span data-purecounter-start="0" data-purecounter-end="150" data-purecounter-duration="1" class="purecounter"></span>
+                <span data-purecounter-start="0" data-purecounter-end="{{produits_rupture}}" data-purecounter-duration="1" class="purecounter"></span>
                 <p>Produits en rupture</p>
               </div>
             </div><!-- End Stats Item -->

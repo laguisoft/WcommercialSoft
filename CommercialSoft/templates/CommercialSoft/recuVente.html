@@ -162,18 +162,24 @@ th {
     <div class="container">
 
         <div class="header">
-            <h2>Republique de Guinée</h2>
-            <p>
-                <span style="color: red;">Travail</span>-
-                <span style="color: yellow;">Justice</span>- 
-                <span style="color: green;">Solidarité</span>
-              </p>
-            <p>MINISTERE DE LA SANTE</p>
-            <h2>Clinique Medico Chirurgical Kanteba Sogona Kante </h2>
-            <p>CONTACT : (+224) 622 74 06 41/620 20 29 08</p>
+            <table style="width: 100%; font-size: 14pt; border: none;">
+                <tr>
+                    <!-- Colonne de gauche -->
+                    <td style="width: 50%; text-align: left; padding: 5px; border: none;">
+                        <strong style="font-size: 14pt;">{{ boutique.nom }}</strong><br>
+                        {{ boutique.telephone }}
+                    </td>
+            
+                    <!-- Colonne de droite -->
+                    <td style="width: 50%; text-align: right; padding: 5px; border: none;">
+                        <strong style="font-size: 14pt;">{{ boutique.ville }}</strong><br>
+                        {{ boutique.emplacement }}
+                    </td>
+                </tr>
+            </table>
+            </br>
         </div>
        
-        
         <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Liste des produits</h1>
 
         <div class="details">
@@ -216,12 +222,12 @@ th {
                   {% endif %}
                 </tbody>
             </table>
+        
         </div>
 
-        
-        <div class="footer">
-            <p>Adresse : Rue des médecins, Siguiri</p>
-            <p>Contact : +224 622 74 06 41</p>
+        <div class="footer" style="padding-top: 20px;">
+            <p>Adresse : {{boutique.emplacement}}, {{boutique.ville}}</p>
+            <p>Contact : +224 {{boutique.telephone}}</p>
         </div>
 
         <div class="note">
