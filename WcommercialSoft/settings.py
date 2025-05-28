@@ -88,7 +88,7 @@ DATABASES = {
 """
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -118,7 +118,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 
 # Password validation
