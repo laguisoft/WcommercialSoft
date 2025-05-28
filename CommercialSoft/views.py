@@ -697,12 +697,25 @@ def produit_par_vente(request):
 @login_required
 def vente_delete(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
+
     try:
-        commande.delete()
-        messages.success(request, "vente supprimée avec succès!")
+        with transaction.atomic():
+            # Met à jour les quantités des produits
+            for commandeP in commande.commandeproduit_set.all():
+                produit = commandeP.produit
+                produit.quantite += commandeP.quantite  # Réajoute la quantité au stock
+                produit.save()
+
+            # Supprime la commande
+            commande.delete()
+            messages.success(request, "Vente supprimée avec succès !")
+
     except IntegrityError:
-        messages.error(request, "Erreur: Cette vente est liée à d'autres entités et ne peut pas être supprimée.")
+        messages.error(request, "Erreur : Cette vente est liée à d'autres entités et ne peut pas être supprimée.")
+    
     return redirect('commerce_produitVendu')
+
+
 
 
 
@@ -718,6 +731,9 @@ def commandeP_delete(request):
             montant=commande.montant
             newMontant=montant-commandeP.prix
             commande.montant=newMontant
+            produit=commandeP.produit
+            produit.quantite += commandeP.quantite
+            produit.save()
             commande.save()
             return JsonResponse({"success": True, "message": "Produit supprimé avec succès !"})
         except IntegrityError:
