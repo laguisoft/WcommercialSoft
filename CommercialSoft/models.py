@@ -24,7 +24,7 @@ class Categorie(models.Model):
 
 
 class Produit(models.Model):
-    codebare=models.CharField(max_length=100, null=True, blank=True)
+    codebare=models.CharField(max_length=100, unique=True)
     categorie=models.ForeignKey(Categorie, on_delete=models.SET_NULL, null=True, blank=True)
     libelle=models.CharField(max_length=60, unique=True)
     quantite=models.IntegerField()

@@ -1,3 +1,4 @@
+import traceback
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
@@ -250,7 +251,7 @@ def produit_list_create(request):
     else:
         form = ProduitForm()
     
-    produit = Produit.objects.all()
+    produit = Produit.objects.all().order_by('id')
     paginator = Paginator(produit, 15)
     page = request.GET.get('page')
     paginated = paginator.get_page(page)
@@ -296,6 +297,14 @@ def produit_livrer(request):
 def produit_vendu(request):
     users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
+
+
+
+@login_required
+def situation_vente(request):
+    produit = Produit.objects.all()  # Récupérer tous les utilisateurs
+    return render(request, 'CommercialSoft/situationVente.html', {'listes': produit})
+
 
 
 
@@ -661,6 +670,85 @@ def recherche_vente(request):
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
+
+
+@login_required
+def recherche_situation_vente(request):
+    if request.method == "POST":
+        idProduit = request.POST.get('idProduit')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        filtre = {}
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+
+        # Récupérer les ventes
+        produits_infos = []
+
+        if idProduit != "":
+            try:
+                produit = Produit.objects.get(id=idProduit)
+
+                # Calculer quantités pour ce produit
+                entree = LivraisonProduit.objects.filter(produit=produit)
+                sortie = CommandeProduit.objects.filter(produit=produit)
+
+                if dateDebut:
+                    entree = entree.filter(livraison__date__gte=dateDebut)
+                    sortie = sortie.filter(date__gte=dateDebut)
+                if dateFin:
+                    entree = entree.filter(livraison__date__lte=dateFin)
+                    sortie = sortie.filter(date__lte=dateFin)
+
+                quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
+                quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
+                stock = produit.quantite
+
+                produits_infos.append({
+                    "id": produit.id,
+                    "libelle": produit.libelle,
+                    "quantite_entree": quantite_entree,
+                    "quantite_sortie": quantite_sortie,
+                    "stock": stock
+                })
+
+            except Produit.DoesNotExist:
+                return JsonResponse({"error": "Produit introuvable"}, status=404)
+
+        else:
+            # Parcourir tous les produits
+            produits = Produit.objects.all()
+            for produit in produits:
+                entree = LivraisonProduit.objects.filter(produit=produit)
+                sortie = CommandeProduit.objects.filter(produit=produit)
+
+                if dateDebut:
+                    entree = entree.filter(livraison__date__gte=dateDebut)
+                    sortie = sortie.filter(date__gte=dateDebut)
+                if dateFin:
+                    entree = entree.filter(livraison__date__lte=dateDebut)
+                    sortie = sortie.filter(date__lte=dateFin)
+
+                quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
+                quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
+                stock = produit.quantite
+
+                produits_infos.append({
+                    "id": produit.id,
+                    "libelle": produit.libelle,
+                    "quantite_entree": quantite_entree,
+                    "quantite_sortie": quantite_sortie,
+                    "stock": stock
+                })
+
+        return JsonResponse({
+            "vente": produits_infos
+        })
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
 
 
 
@@ -1806,18 +1894,37 @@ def recu(request, pk):
 
 def generate_pdf_response_vrais(template_src, context_dict):
     try:
+        print("Chargement du template...")
         template = get_template(template_src)
     except Exception as e:
+        print(f"Erreur de chargement du template : {e}")
         return HttpResponse(f"Erreur de chargement du template : {e}", status=500)
 
-    html = template.render(context_dict)
+    try:
+        print("Rendu du HTML avec le contexte...")
+        html = template.render(context_dict)
+        print("HTML rendu avec succès.")
+    except Exception as e:
+        print(f"Erreur lors du rendu du template : {e}")
+        traceback.print_exc()
+        return HttpResponse(f"Erreur dans le template : {e}", status=500)
+
     result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
-    if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = 'inline; filename="produit_disponible.pdf"'
-        return response
-    return HttpResponse("Erreur lors de la génération du PDF", status=500)
+    try:
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+        if not pdf.err:
+            print("PDF généré avec succès.")
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = 'inline; filename="produit_disponible.pdf"'
+            return response
+        else:
+            print("Erreur pisa : PDF non généré")
+            return HttpResponse("Erreur lors de la génération du PDF", status=500)
+    except Exception as e:
+        print(f"Erreur de génération PDF : {e}")
+        traceback.print_exc()
+        return HttpResponse(f"Erreur lors de la conversion en PDF : {e}", status=500)
+
 
 
 
@@ -2431,4 +2538,87 @@ def pdf_etat_versementGerant(request):
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementGerant.html", context)
 
+    return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+
+
+#--------------------------liste des Versement des client -----------------------
+# Exemple d'utilisation
+def pdf_etat_situation_vente(request):
+    try:
+        if request.method =="POST":
+            idProduit = request.POST.get('idProduit')
+            dateDebut = request.POST.get("dateDebut")
+            dateFin = request.POST.get("dateFin")
+
+            # Récupérer les ventes
+            produits_infos = []
+
+            if idProduit != "":
+                try:
+                    produit = Produit.objects.get(id=idProduit)
+
+                    # Calculer quantités pour ce produit
+                    entree = LivraisonProduit.objects.filter(produit=produit)
+                    sortie = CommandeProduit.objects.filter(produit=produit)
+
+                    if dateDebut:
+                        entree = entree.filter(livraison__date__gte=dateDebut)
+                        sortie = sortie.filter(date__gte=dateDebut)
+                    if dateFin:
+                        entree = entree.filter(livraison__date__lte=dateFin)
+                        sortie = sortie.filter(date__lte=dateFin)
+
+                    quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
+                    quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
+                    stock = produit.quantite or 0
+
+                    produits_infos.append({
+                        "id": produit.id,
+                        "libelle": produit.libelle,
+                        "quantite_entree": quantite_entree,
+                        "quantite_sortie": quantite_sortie,
+                        "stock": stock
+                    })
+
+                except Produit.DoesNotExist:
+                    return JsonResponse({"error": "Produit introuvable"}, status=404)
+
+            else:
+                # Parcourir tous les produits
+                produits = Produit.objects.all()
+                for produit in produits:
+                    entree = LivraisonProduit.objects.filter(produit=produit)
+                    sortie = CommandeProduit.objects.filter(produit=produit)
+
+                    if dateDebut:
+                        entree = entree.filter(livraison__date__gte=dateDebut)
+                        sortie = sortie.filter(date__gte=dateDebut)
+                    if dateFin:
+                        entree = entree.filter(livraison__date__lte=dateFin)
+                        sortie = sortie.filter(date__lte=dateFin)
+
+                    quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
+                    quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
+                    stock = produit.quantite or 0
+
+                    produits_infos.append({
+                        "id": produit.id,
+                        "libelle": produit.libelle,
+                        "quantite_entree": quantite_entree,
+                        "quantite_sortie": quantite_sortie,
+                        "stock": stock
+                    })
+
+            infoBoutique=InfoBoutique.objects.first()
+            context = {'listes': produits_infos, 'boutique':infoBoutique}
+            return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationVente.html", context)
+    except Exception as e:
+        print("Erreur ", e)
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+        
     return HttpResponse("Méthode non autorisée", status=405)

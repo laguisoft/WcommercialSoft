@@ -26,7 +26,7 @@
                   <div class="card-header">
                     <h3 class="card-title">Recheche</h3>
                   </div>
-                  <form role="form" action="{% url 'commerce_listeDepense' %}" id="form-depense" method="post">
+                  <form role="form" action="{% url 'situationVente' %}" id="form-depense" method="post">
                     {% if messages %}
                       <div>
                       {% for message in messages %}
@@ -38,15 +38,27 @@
                     {% endif %}
                     {% csrf_token %}
                     <div class="card-body">
-                      <div class="row justify-content-center">
+                      <div class="row justify-content-center align-items-end">
+                        
                         <div class="col-md-3">
                             <div class="form-group">
-                              <label>Categorie</label>
+                                <label for="produit">Produit</label>
+                                <select class="form-control select2bs4" id="produit" style="width: 100%;">
+                                  <option value="">--------</option>
+                                  {% if listes %}
+                                    {% for liste in listes %}
+                                     <option value="{{liste.id}}">{{liste.libelle}} </option>
+                                    {% endfor %}
+                                {% else %}
+                                <option >Aucun utilisateur trouve</option>
+                                {% endif %}
+                                </select>
                             </div>
                         </div>
+
                         <div class="col-md-3">
                           <div class="form-group">
-                            <label for="intitule">Date debut</label>
+                            <label for="dateDebut">Date debut</label>
                             <input type="date" class="form-control" id="dateDebut"> 
                           </div>
                         </div>
@@ -56,12 +68,15 @@
                             <input type="date" class="form-control" id="dateFin"> 
                           </div>
                         </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                                <a type="submit" href="{% url 'pdfSituationVente' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
+                            </div>
+                        </div>
                       </div>
                     </div>
-                    <div class="card-footer text-center">
-                        <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
-                        <a type="submit" href="{% url 'commerce_etatDepense' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
-                      </div>
                   </form>
                 </div>
               </div>
@@ -74,27 +89,27 @@
       <div class="col-md-12">
         <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">Liste des depenses</h3>
+              <h3 class="card-title">Liste des produits</h3>
             </div>
             <!-- /.card-header -->
             <div class="card-body">
-              <table class="table table-bordered table-hover table-striped">
-                <thead>                  
-                  <tr>
-                    <th style="width: 10px" class="text-center">#</th>
-                    <th class="text-center">Intitule</th>
-                    <th class="text-center">Quantite</th>
-                    <th class="text-center">Prix</th>
-                    <th class="text-center">Montant</th>
-                    <th class="text-center">Date</th>
-                    <th class="text-center">Categorie</th>
-                    <th style="width: 40px" class="text-center">#</th>
-                  </tr>
-                </thead>
-                <tbody id="liste-categorie">
-
-                </tbody>
-              </table>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped table-sm" style="table-layout: auto;">
+                      <thead>                   
+                        <tr>
+                          <th style="width: 10px;" class="text-center">N°</th>
+                          <th class="">Libelle</th>
+                          <th class="text-center">Qté entrée</th>
+                          <th class="text-center">Qté sortie</th>
+                          <th class="text-center">Qté en stock</th>
+                        </tr>
+                      </thead>
+                      <tbody id="liste-vente">
+                        <!-- Les données du tableau seront ajoutées ici dynamiquement -->
+                      </tbody>
+                    </table>
+                  </div>
+                  
             </div>
             <!-- /.card-body -->
             <div class="card-footer clearfix">
@@ -119,6 +134,7 @@
             </div>
           </div>
       </div>
+
     </div>
     <!-- /.row -->
   </div><!-- /.container-fluid -->
@@ -180,66 +196,40 @@
 
       const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
-      const categorieId = $('#idCategorie').val();  // ID de l'examen sélectionné
+      const produitId = $('#produit').val();  // ID de l'examen sélectionné
       const dateDebut = $('#dateDebut').val();  // ID de la consultation
       const dateFin = $('#dateFin').val();  // ID de la consultation
 
-      var montantDepense=0;
-      $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
-
       $.ajax({
-        url: "{% url 'commerce_rechercheDepense' %}",
+        url: "{% url 'rechercheSituationVente' %}",
         type: "POST",
         data: {
-            idCategorie: categorieId,
+            idProduit: produitId,
             dateDebut: dateDebut,
-            dateFin:dateFin,
+            dateFin: dateFin,
             csrfmiddlewaretoken: csrfToken
         },
         success: function (response) {
-          const patientsTable = $('#liste-categorie');
+          const patientsTable = $('#liste-vente');
           patientsTable.empty();
-          if (response.patients && response.patients.length > 0) {
-            response.patients.forEach(data => {
-                
-              const supUrl = "{% url 'commerce_supDepense' 0 %}".replace("0", data.id);
-              const modUrl = "{% url 'commerce_modDepense' 0 %}".replace("0", data.id);
+          if (response.vente && response.vente.length > 0) {
+            response.vente.forEach(data => {
               patientsTable.append(`
-                <tr>
+                <tr class="vente_row" data-id="${data.id}">
                         <td class="text-center">${data.id}</td>
-                        <td>${data.intitule}</td>
-                        <td class="text-center">${data.quantite}</td>
-                        <td class="text-center">${data.prix}</td>
-                        <td class="text-center">${data.montant}</td>
-                        <td class="text-center">${data.date}</td>
-                        <td >${data.categorie}</td>
-                        <td class="text-center">
-                          <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                              <i class="fas fa-cogs"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="${modUrl}" title="Modifier">
-                                <i class="fas fa-edit text-warning"></i> Modifier
-                              </a>
-                              <a class="dropdown-item" href="${supUrl}"
-                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
-                                <i class="fas fa-times-circle text-danger"></i> Supprimer
-                              </a>
-                            </div>
-                          </div>
-                        </td>
+                        <td>${data.libelle}</td>
+                        <td class="text-center">${data.quantite_entree}</td>
+                        <td class="text-center">${data.quantite_sortie}</td>
+                        <td class="text-center">${data.stock}</td>
                     </tr>
               `);
-              montantDepense +=data.prix*data.quantite;
             });
-            $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
           } else {
-            patientsTable.append('<tr><td colspan="14" class="text-center">Aucun ligne trouvée.</td></tr>');
+            patientsTable.append('<tr><td colspan="6" class="text-center">Aucun ligne trouvée.</td></tr>');
           }
         },
-        error: function () {
-          alert('Une erreur est survenue. Veuillez réessayer.');
+        error: function (xhr, status, error) {
+          alert('Une erreur est survenue. Veuillez réessayer. '+error);
         }
       });
     });
@@ -247,18 +237,16 @@
 
 
 
-
-
-
-
   
+
+
   $(document).ready(function () {
     $('#idImprimer').on('click', function (e) {
         e.preventDefault();
 
         const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
-
-        const categorieId = $('#idCategorie').val();  // ID de l'examen sélectionné
+        
+        const produitId = $('#produit').val();  // ID de l'examen sélectionné
         const dateDebut = $('#dateDebut').val();  // ID de la consultation
         const dateFin = $('#dateFin').val();  // ID de la consultation
 
@@ -266,12 +254,12 @@
         let pdfWindow = window.open("", "_blank");
 
         $.ajax({
-            url: "{% url 'commerce_etatDepense' %}",
+            url: "{% url 'pdfSituationVente' %}",
             type: "POST",
             data: {
-                idCategorie: categorieId,
+                idProduit: produitId,
                 dateDebut: dateDebut,
-                dateFin:dateFin,
+                dateFin: dateFin,
                 csrfmiddlewaretoken: csrfToken
             },
             xhrFields: {
@@ -288,7 +276,6 @@
         });
     });
 });
-
 
 
 

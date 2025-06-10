@@ -45,8 +45,11 @@ urlpatterns=[
     path('vente/commande/suppression/', views.commandeP_delete,name="commerce_commandePDelete"),
     path('vente/recu/<int:pk>/', views.recu,name="commerce_recu"),
     path('vente/produitVendu', views.produit_vendu, name="commerce_produitVendu"),
-    path('produit/recherche/vente', views.recherche_vente,name="rechercheVente"),
+    path('vente/recherche/vente', views.recherche_vente,name="rechercheVente"),
     path('vente/produitParVente', views.produit_par_vente, name="produitParVente"),
+    path('vente/situation', views.situation_vente,name="situationVente"),
+    path('vente/recherche/situation', views.recherche_situation_vente,name="rechercheSituationVente"),
+    path('vente/situation/etat', views.pdf_etat_situation_vente,name="pdfSituationVente"),
     
     #--
     path('commerce/depense', views.depense_list_create,name="commerce_depense"),

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recette de Prestation</title>
+    <style>
+        /* Reset some basic styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 20px;
+            width: 80mm; /* Largeur d'un ticket standard (80mm) */
+            font-size: 12px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        /* HEADER FLEXBOX */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center; /* Centrer le texte dans chaque colonne */
+            margin-bottom: 20px;
+        }
+
+        .header {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Aligner verticalement les éléments */
+        }
+
+        .gauche, .droite {
+            width: 50%; /* Assurer une répartition égale */
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            max-width: 150px;
+            height: auto;
+        }
+
+        .details {
+            margin-bottom: 30px;
+        }
+
+        .details p {
+            font-size: 18px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        .table-container {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .table-container th, .table-container td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .table-container th {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 18px;
+        }
+
+        .table-container tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .table-container td {
+            font-size: 16px;
+            color: #555;
+        }
+
+        .table-container tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+            margin-top: 50px;
+        }
+
+        .footer p {
+            margin: 5px;
+        }
+
+        .note {
+            font-size: 14px;
+            color: #555;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .note p {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <div class="header">
+            <table style="width: 100%; font-size: 14pt; border: none;">
+                <tr>
+                    <!-- Colonne de gauche -->
+                    <td style="width: 50%; text-align: left; padding: 5px; border: none;">
+                        <strong style="font-size: 14pt;">{{ boutique.nom }}</strong><br>
+                        {{ boutique.telephone }}
+                    </td>
+            
+                    <!-- Colonne de droite -->
+                    <td style="width: 50%; text-align: right; padding: 5px; border: none;">
+                        <strong style="font-size: 14pt;">{{ boutique.ville }}</strong><br>
+                        {{ boutique.emplacement }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        
+        
+        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Situation du stock</h1>
+
+        <div class="details">
+            <table style="border: solid 1px; width: 100%;">
+                <thead>
+                    <th style="width: 9%; text-align: center;">N°</th>
+                    <th style="width: 40%; text-align: center;">Libelle</th>
+                    <th style="width: 17%; text-align: center;">Qte entrée</th>
+                    <th style="width: 17%; text-align: center;">Qte sortie</th>
+                    <th style="width: 17%; text-align: center;">Stock</th>
+                </thead>
+                <tbody>
+                    {% if listes %}
+                    {% for liste in listes %}
+                      <tr>
+                        <td style="text-align: center;">{{ liste.id }}</td>
+                        <td >{{ liste.libelle }}</td>
+                        <td style="text-align: center;">{{ liste.quantite_entree }}</td>
+                        <td style="text-align: center;">{{ liste.quantite_sortie }}</td>
+                        <td style="text-align: center;">{{ liste.stock }}</td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="6">Aucune depense disponible pour le moment.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</body>
+</html>
