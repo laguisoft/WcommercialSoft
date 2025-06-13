@@ -26,7 +26,7 @@
                   <div class="card-header">
                     <h3 class="card-title">Recheche</h3>
                   </div>
-                  <form role="form" action="{% url 'commerce_listeDepense' %}" id="form-depense" method="post">
+                  <form role="form" action="{% url 'detailVente' %}" id="form-depense" method="post">
                     {% if messages %}
                       <div>
                       {% for message in messages %}
@@ -38,16 +38,27 @@
                     {% endif %}
                     {% csrf_token %}
                     <div class="card-body">
-                      <div class="row justify-content-center">
+                      <div class="row justify-content-center align-items-end">
+                        
                         <div class="col-md-3">
                             <div class="form-group">
-                              <label>Categorie</label>
-                              {{form.categorie}}
+                                <label for="utilisateur">Utilisateur</label>
+                                <select class="form-control select2bs4" id="utilisateur" style="width: 100%;">
+                                  <option value="0">--------</option>
+                                  {% if users %}
+                                    {% for user in users %}
+                                     <option value="{{user.id}}">{{user.first_name}} {{user.last_name}}</option>
+                                    {% endfor %}
+                                {% else %}
+                                <option >Aucun utilisateur trouve</option>
+                                {% endif %}
+                                </select>
                             </div>
                         </div>
+
                         <div class="col-md-3">
                           <div class="form-group">
-                            <label for="intitule">Date debut</label>
+                            <label for="dateDebut">Date debut</label>
                             <input type="date" class="form-control" id="dateDebut"> 
                           </div>
                         </div>
@@ -57,12 +68,14 @@
                             <input type="date" class="form-control" id="dateFin"> 
                           </div>
                         </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                            </div>
+                        </div>
                       </div>
                     </div>
-                    <div class="card-footer text-center">
-                        <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
-                        <a type="submit" href="{% url 'commerce_etatDepense' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
-                      </div>
                   </form>
                 </div>
               </div>
@@ -72,27 +85,27 @@
       <h4 class="text-danger" id="montantDepense">Total : </h4>
     </div>
     <div class="row">
+
       <div class="col-md-12">
         <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">Liste des depenses</h3>
+              <h3 class="card-title">Liste des produits</h3>
             </div>
             <!-- /.card-header -->
             <div class="card-body">
-              <table class="table table-bordered table-hover table-striped">
+              <table class="table table-bordered table-hover table-striped table-sm">
                 <thead>                  
                   <tr>
-                    <th style="width: 10px" class="text-center">#</th>
-                    <th class="text-center">Intitule</th>
-                    <th class="text-center">Quantite</th>
+                    <th style="width: 10px" class="text-center">N°</th>
+                    <th class="text-center">Libelle</th>
                     <th class="text-center">Prix</th>
+                    <th class="text-center">Quantite</th>
                     <th class="text-center">Montant</th>
                     <th class="text-center">Date</th>
-                    <th class="text-center">Categorie</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
-                <tbody id="liste-categorie">
+                <tbody id="liste-produit">
 
                 </tbody>
               </table>
@@ -181,98 +194,73 @@
 
       const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
-      const categorieId = $('#idCategorie').val();  // ID de l'examen sélectionné
+      const userId = $('#utilisateur').val();  // ID de l'examen sélectionné
       const dateDebut = $('#dateDebut').val();  // ID de la consultation
       const dateFin = $('#dateFin').val();  // ID de la consultation
 
       var montantDepense=0;
       $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
 
-      $.ajax({
-        url: "{% url 'commerce_rechercheDepense' %}",
-        type: "POST",
-        data: {
-            idCategorie: categorieId,
-            dateDebut: dateDebut,
-            dateFin:dateFin,
-            csrfmiddlewaretoken: csrfToken
-        },
-        success: function (response) {
-          const patientsTable = $('#liste-categorie');
-          patientsTable.empty();
-          if (response.patients && response.patients.length > 0) {
-            response.patients.forEach(data => {
+        $.ajax({
+            url: "{% url 'rechercheDetailVente' %}",  // URL Django pour récupérer les produits
+            type: 'GET',
+            data: {
+                'userId': userId,  // Envoyer l'ID de l'utilisateur
+                'dateDebut': dateDebut,  // Envoyer la date de début
+                'dateFin': dateFin,  // Envoyer la date de fin
+            },
+            success: function(response) {
+                var patientsTable = $('#liste-produit');
+                patientsTable.empty();  // Vider le tableau des produits
                 
-              const supUrl = "{% url 'commerce_supDepense' 0 %}".replace("0", data.id);
-              const modUrl = "{% url 'commerce_modDepense' 0 %}".replace("0", data.id);
-              patientsTable.append(`
-                <tr>
-                        <td class="text-center">${data.id}</td>
-                        <td>${data.intitule}</td>
-                        <td class="text-center">${data.quantite}</td>
-                        <td class="text-center">${data.prix}</td>
-                        <td class="text-center">${data.montant}</td>
-                        <td class="text-center">${data.date}</td>
-                        <td >${data.categorie}</td>
-                        <td class="text-center">
-                          <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                              <i class="fas fa-cogs"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="${modUrl}" title="Modifier">
-                                <i class="fas fa-edit text-warning"></i> Modifier
-                              </a>
-                              <a class="dropdown-item" href="${supUrl}"
-                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
-                                <i class="fas fa-times-circle text-danger"></i> Supprimer
-                              </a>
-                            </div>
-                          </div>
-                        </td>
-                    </tr>
-              `);
-              montantDepense +=data.prix*data.quantite;
-            });
-            $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
-          } else {
-            patientsTable.append('<tr><td colspan="14" class="text-center">Aucun ligne trouvée.</td></tr>');
-          }
-        },
-        error: function () {
-          alert('Une erreur est survenue. Veuillez réessayer.');
-        }
-      });
+                if (response.listes && response.listes.length > 0) {
+                    response.listes.forEach(data => {
+                    patientsTable.append(`
+                        <tr class="produit_row" id="produit-${data.id}" data-id="${data.id}">
+                            <td class="text-center">${data.id}</td>
+                            <td>${data.produit}</td>
+                            <td class="text-center">${data.prix}</td>
+                            <td class="text-center">${data.quantite}</td>
+                            <td class="text-center">${data.montant}</td>
+                            <td class="text-center">${data.date}</td>
+                            <td>
+                                <button class="btn btn-danger prod"  data-id="${data.id}">sup</button>
+                            </td>
+                        </tr>
+                    `);
+                    montantDepense += parseFloat(data.montant);  // Ajouter le montant de chaque produit
+                    });
+                    $('#montantDepense').html("Total : " + montantDepense.toLocaleString());  // Mettre à jour le total
+                } else {
+                    patientsTable.append('<tr><td colspan="6" class="text-center">Aucun ligne trouvée.</td></tr>');
+                }
+            }
+        });
     });
   });
 
 
 
-
-
-
-
   
+
+
   $(document).ready(function () {
     $('#idImprimer').on('click', function (e) {
         e.preventDefault();
 
         const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
-
-        const categorieId = $('#idCategorie').val();  // ID de l'examen sélectionné
-        const dateDebut = $('#dateDebut').val();  // ID de la consultation
-        const dateFin = $('#dateFin').val();  // ID de la consultation
+        const categorieId = $('#categorie').val();
+        const produitId = $('#produit').val();
 
         // Ouvrir une nouvelle fenêtre où le PDF sera affiché
         let pdfWindow = window.open("", "_blank");
 
         $.ajax({
-            url: "{% url 'commerce_etatDepense' %}",
+            url: "{% url 'pdfProduitDisponible' %}",
             type: "POST",
             data: {
                 idCategorie: categorieId,
-                dateDebut: dateDebut,
-                dateFin:dateFin,
+                produitId: produitId,
                 csrfmiddlewaretoken: csrfToken
             },
             xhrFields: {
@@ -289,6 +277,49 @@
         });
     });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+$(document).ready(function() {
+    $('#liste-produit').on('click', '.prod', function() {
+        var myid = $(this).data("id");  // Récupérer l'ID du produit à supprimer
+        var deleteUrl = "{% url 'commerce_commandePDelete' %}";
+
+        if (confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
+            $.ajax({
+                url: deleteUrl,
+                type: 'POST',  // Utilisation de POST au lieu de GET
+                data: {
+                    id:myid,
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()  // Protection CSRF
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $("#produit-" + myid).fadeOut(300, function() { $(this).remove(); });  // Supprimer l'élément du DOM
+                        alert("Suppression réussie !");
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert("Une erreur s'est produite !");
+                }
+            });
+        }
+    });
+});
+
+
+
 
 
 

@@ -271,6 +271,17 @@ def produit_list(request):
 
 
 
+ # Example for Patient Views
+@login_required
+def inventaire(request):
+    categorie=Categorie.objects.all()
+    produit=Produit.objects.all()
+    return render(request, 'CommercialSoft/inventaire.html',{'listesCat':categorie,'listes':produit})
+
+
+
+
+
 @login_required
 def produit_perime(request):
     aujourdhui = timezone.now().date()
@@ -297,6 +308,13 @@ def produit_livrer(request):
 def produit_vendu(request):
     users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
+
+
+
+@login_required
+def detail_vente(request):
+    users = User.objects.all()  # Récupérer tous les utilisateurs
+    return render(request, 'CommercialSoft/detailVente.html', {'users': users})
 
 
 
@@ -429,6 +447,54 @@ def produit_livrer_delete(request, pk):
 
 
 
+@login_required
+def reception_par_produit(request):
+    produit = Produit.objects.all()  # Récupérer tous les utilisateurs
+    fournisseur=Fournisseur.objects.all()
+    return render(request, 'CommercialSoft/receptionParProduit.html', {'listes': produit,'listesFour':fournisseur})
+
+
+
+
+@login_required
+def recherche_reception_produit(request):
+    if request.method == "POST":
+        idFournisseur = request.POST.get('idFournisseur')
+        idProduit = request.POST.get('idProduit')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        # Préparation de la requête avec select_related pour optimiser
+        livraisons_produits = LivraisonProduit.objects.select_related('livraison', 'produit', 'livraison__fournisseur')
+
+        # Application des filtres si fournis
+        if dateDebut:
+            livraisons_produits = livraisons_produits.filter(livraison__date__gte=dateDebut)
+        if dateFin:
+            livraisons_produits = livraisons_produits.filter(livraison__date__lte=dateFin)
+        if idFournisseur:
+            livraisons_produits = livraisons_produits.filter(livraison__fournisseur__id=idFournisseur)
+        if idProduit:
+            livraisons_produits = livraisons_produits.filter(produit__id=idProduit)
+
+        # Construction de la réponse
+        resultats = []
+        for lp in livraisons_produits:
+            resultats.append({
+                "id": lp.produit.id,
+                "fournisseur": lp.livraison.fournisseur.nom,
+                "produit": lp.produit.libelle,
+                "quantite": lp.quantite,
+                "prix": lp.prix,
+                "date_livraison": lp.livraison.date.strftime("%Y-%m-%d"),
+            })
+
+        return JsonResponse({"livraisons": resultats})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
 
 @login_required
 def get_produit_details(request):
@@ -463,7 +529,7 @@ def recherche_produit(request):
         produits = Produit.objects.all()  # Récupérer tous les produits par défaut
 
         # Filtrer par catégorie si elle est fournie
-        if categorieId:
+        if categorieId and categorieId != "0":
             try:
                 cat = Categorie.objects.get(id=categorieId)
                 produits = produits.filter(categorie=cat)
@@ -471,7 +537,7 @@ def recherche_produit(request):
                 return JsonResponse({"error": "Catégorie introuvable"}, status=404)
 
         # Filtrer par produit si fourni
-        if produitId:
+        if produitId and produitId != "0":
             try:
                 produits = produits.filter(id=produitId)
             except Produit.DoesNotExist:
@@ -781,6 +847,52 @@ def produit_par_vente(request):
 
 
 
+
+@login_required
+def recherche_detail_vente(request):
+    if request.method == "GET":
+        idUser = request.GET.get('idUser')
+        dateDebut = request.GET.get("dateDebut")
+        dateFin = request.GET.get("dateFin")
+
+        filtre = {}
+
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+
+        if idUser and idUser != "0":
+            try:
+                user = User.objects.get(id=idUser)
+                filtre["user"] = user
+            except User.DoesNotExist:
+                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+
+        commandes = Commande.objects.filter(**filtre)
+        produits_data = []
+
+        for commande in commandes:
+            commandesP = CommandeProduit.objects.filter(commande=commande).order_by('id')
+            for commandeP in commandesP:
+                produits_data.append({
+                    "id": commandeP.id,
+                    "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
+                    "quantite": commandeP.quantite,
+                    "prix" : commandeP.prix,
+                    "date" : commandeP.date,
+                    "montant" : commandeP.prix*commandeP.quantite,
+                })
+
+        return JsonResponse({"listes": produits_data}, safe=False)
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+
+
 @user_passes_test(est_administrateur, est_gestionnaire)
 @login_required
 def vente_delete(request, pk):
@@ -846,6 +958,30 @@ def produit_edit(request, pk):
         form = ProduitForm(instance=produit)
     
     return render(request, 'CommercialSoft/modification.html', {'form': form})
+
+
+
+
+
+
+@login_required
+def modifier_commande(request, pk):
+    commande = get_object_or_404(Commande, pk=pk)
+    if request.method == "POST":
+        form = CommandeForm(request.POST, instance=commande)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Vente modifiée avec succès!")
+            return redirect('commerce_produitVendu')
+        else:
+            messages.error(request, "Erreur lors de la mise à jour de la produit.")
+    else:
+        form = CommandeForm(instance=commande)
+    
+    return render(request, 'CommercialSoft/modification.html', {'form': form})
+
+
+
 
 
  # Example for Patient Views
@@ -1979,6 +2115,50 @@ def pdf_Produit_disponible(request):
 
 
 
+# -------------------------- Vue PDF des produits disponibles -----------------------
+def pdf_inventaire(request):
+    if request.method == "POST":
+        categorieId = request.POST.get('idCategorie')
+        produitId = request.POST.get("produitId")
+
+        produits = Produit.objects.all()
+
+        # Filtrer par catégorie si valide
+        if categorieId and categorieId != "0":
+            try:
+                produits = produits.filter(categorie__id=int(categorieId))
+            except (ValueError, Categorie.DoesNotExist):
+                return JsonResponse({"error": "Catégorie invalide ou introuvable"}, status=400)
+
+        # Filtrer par produit si valide
+        if produitId and produitId != "0":
+            try:
+                produits = produits.filter(id=int(produitId))
+            except (ValueError, Produit.DoesNotExist):
+                return JsonResponse({"error": "Produit invalide ou introuvable"}, status=400)
+
+        # Construire les données
+        produits_data = [
+            {
+                "id": produit.id,
+                "code": produit.codebare,
+                "libelle": produit.libelle,
+                "quantite": produit.quantite,
+            }
+            for produit in produits
+        ]
+
+        
+        infoBoutique=InfoBoutique.objects.first()
+        context = {'listes': produits_data,'boutique':infoBoutique}
+        return generate_pdf_response_vrais("CommercialSoft/pdfInventaire.html", context)
+
+    return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+
 
 
 
@@ -2621,4 +2801,52 @@ def pdf_etat_situation_vente(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
         
+    return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+def pdf_etat_reception_produit(request):
+    if request.method == "POST":
+        try:
+            idFournisseur = request.POST.get('idFournisseur')
+            idProduit = request.POST.get('idProduit')
+            dateDebut = request.POST.get("dateDebut")
+            dateFin = request.POST.get("dateFin")
+
+            # Préparation de la requête avec select_related pour optimiser
+            livraisons_produits = LivraisonProduit.objects.select_related('livraison', 'produit', 'livraison__fournisseur')
+
+            # Application des filtres si fournis
+            if dateDebut:
+                livraisons_produits = livraisons_produits.filter(livraison__date__gte=dateDebut)
+            if dateFin:
+                livraisons_produits = livraisons_produits.filter(livraison__date__lte=dateFin)
+            if idFournisseur:
+                livraisons_produits = livraisons_produits.filter(livraison__fournisseur__id=idFournisseur)
+            if idProduit:
+                livraisons_produits = livraisons_produits.filter(produit__id=idProduit)
+
+            # Construction de la réponse
+            resultats = []
+            for lp in livraisons_produits:
+                resultats.append({
+                    "id": lp.produit.id,
+                    "fournisseur": lp.livraison.fournisseur.nom,
+                    "produit": lp.produit.libelle,
+                    "quantite": lp.quantite,
+                    "prix": lp.prix,
+                    "montant":lp.prix*lp.quantite,
+                    "date_livraison": lp.livraison.date.strftime("%Y-%m-%d"),
+                })
+
+            infoBoutique=InfoBoutique.objects.first()
+            context = {'listes': resultats, 'boutique':infoBoutique}
+            return generate_pdf_response_vrais("CommercialSoft/pdfReceptionProduit.html", context)
+
+        except Exception as e:
+            print("Erreur ", e)
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
     return HttpResponse("Méthode non autorisée", status=405)

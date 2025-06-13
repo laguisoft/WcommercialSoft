@@ -42,6 +42,7 @@ urlpatterns=[
     path('vente/', views.vente_create,name="commerce_vente"),    
     path('vente/modification/<int:pk>/', views.produit_edit,name="commerce_venteEdit"),
     path('vente/suppression/<int:pk>/', views.vente_delete,name="commerce_venteDelete"),
+    path('vente/commande/modification/<int:pk>/', views.modifier_commande,name="commerce_modVente"),
     path('vente/commande/suppression/', views.commandeP_delete,name="commerce_commandePDelete"),
     path('vente/recu/<int:pk>/', views.recu,name="commerce_recu"),
     path('vente/produitVendu', views.produit_vendu, name="commerce_produitVendu"),
@@ -50,7 +51,9 @@ urlpatterns=[
     path('vente/situation', views.situation_vente,name="situationVente"),
     path('vente/recherche/situation', views.recherche_situation_vente,name="rechercheSituationVente"),
     path('vente/situation/etat', views.pdf_etat_situation_vente,name="pdfSituationVente"),
-    
+    path('vente/detail/vente', views.detail_vente,name="detailVente"),
+    path('vente/recherche/detail/vente', views.recherche_detail_vente,name="rechercheDetailVente"),
+
     #--
     path('commerce/depense', views.depense_list_create,name="commerce_depense"),
     path('commerce/depense/modification/<int:pk>/', views.depense_edit,name="commerce_modDepense"),
@@ -118,4 +121,14 @@ urlpatterns=[
     path('commerce/versementGerant/liste', views.versementGerant_list,name="commerce_listeVersementGerant"),
     path('commerce/versementGerant/recherche', views.recherche_versementGerant,name="commerce_rechercheVersementGerant"),
     path('commerce/versementGerant/etat', views.pdf_etat_versementGerant,name="commerce_etatVersementGerant"),
+    #-- inventaire
+    path('commerce/inventaire', views.inventaire,name="inventaire"),
+    path('commerce/inventaire/etat', views.pdf_inventaire,name="etatInventaire"),
+    #-- Reception par produit
+    path('commerce/reception/produit', views.reception_par_produit,name="receptionParProduit"),
+    path('commerce/reception/produit/recheche', views.recherche_reception_produit, name="rechercheReceptionParProduit"),
+    path('commerce/reception/produit/etat', views.pdf_etat_reception_produit, name="pdfReceptionParProduit"),
+
+
+
 ]

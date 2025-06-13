@@ -267,6 +267,7 @@
             response.vente.forEach(data => {
               const supUrl = "{% url 'commerce_venteDelete' 0 %}".replace("0", data.id);
               const recuUrl = "{% url 'commerce_recu' 0 %}".replace("0", data.id);
+              const modUrl = "{% url 'commerce_modVente' 0 %}".replace("0", data.id);
               patientsTable.append(`
                 <tr class="vente_row" data-id="${data.id}">
                         <td class="text-center">${data.id}</td>
@@ -284,12 +285,15 @@
                               <i class="fas fa-cogs"></i>
                             </button>
                             <div class="dropdown-menu">
-                              <a class="dropdown-item" href="${recuUrl} " title="Modifier">
-                                <i class="fas fa-edit text-warning"></i> imprimer
+                              <a class="dropdown-item" href="${recuUrl} " title="imprimer">
+                                <i class="fas fa-print text-warning"></i> imprimer
                               </a>
                               <a class="dropdown-item" href="${supUrl}"
                                 onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
                                 <i class="fas fa-times-circle text-danger"></i> Supprimer
+                              </a>
+                              <a class="dropdown-item" href="${modUrl}" title="Modifier">
+                                <i class="fas fa-times-edit text-info"></i> Modifier
                               </a>
                             </div>
                           </div>

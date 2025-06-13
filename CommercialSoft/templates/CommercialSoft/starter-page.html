@@ -93,7 +93,7 @@
                   <ul>
                     <li><a href="{% url 'commerce_reception' %}">Nouvelle reception</a></li>
                     <li><a href="{% url 'produitLivrer' %}">Liste des reception</a></li>
-                    <li><a href="#">Reception par produits</a></li>
+                    <li><a href="{% url 'receptionParProduit' %}">Reception par produits</a></li>
                   </ul>
                 </li>
                 <li><a href="{% url 'commerce_produitPerime' %}">Produits perime</a></li>
@@ -108,6 +108,7 @@
                   <ul>
                     <li><a href="{% url 'commerce_produitVendu' %}">Produits vendus</a></li>
                     <li><a href="{% url 'situationVente' %}">Situation vente</a></li>
+                    <li><a href="{% url 'detailVente' %}">Detail vente</a></li>
                   </ul>
                 </li>
                 <li><a href="{% url 'commerce_beneficeSurVente' %}">Benefice sur vente</a></li>
@@ -163,7 +164,7 @@
                     <li><a href="{% url 'commerce_situationBoutique' %}">Situation boutique</a></li>
                   </ul>
                 </li>
-                <li><a href="#">Inventaire</a></li>
+                <li><a href="{% url 'inventaire' %}">Inventaire</a></li>
                 <li class="dropdown"><a href="#"><span>Parametrage</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
                     <li><a href="#">Utilisateur</a></li>
