@@ -53,6 +53,12 @@ urlpatterns=[
     path('vente/situation/etat', views.pdf_etat_situation_vente,name="pdfSituationVente"),
     path('vente/detail/vente', views.detail_vente,name="detailVente"),
     path('vente/recherche/detail/vente', views.recherche_detail_vente,name="rechercheDetailVente"),
+    path('vente/client', views.vente_par_client, name="commerce_venteParClient"),
+    path('vente/recherche/vente/client', views.recherche_vente_client,name="rechercheVenteClient"),
+    path('vente/recherche/vente/payement', views.recherche_vente_payement,name="rechercheVentePayement"),
+    path('vente/payement', views.vente_par_payement, name="commerce_venteParPayement"),
+    path('vente/recherche/vente/type', views.recherche_vente_type,name="rechercheVenteType"),
+    path('vente/type', views.vente_par_type, name="commerce_venteParType"),
 
     #--
     path('commerce/depense', views.depense_list_create,name="commerce_depense"),

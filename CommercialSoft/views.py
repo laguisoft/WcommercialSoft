@@ -317,6 +317,25 @@ def produit_vendu(request):
 
 
 @login_required
+def vente_par_client(request):
+    client = Client.objects.all()  # Récupérer tous les utilisateurs
+    return render(request, 'CommercialSoft/venteParClient.html', {'clients': client})
+
+
+@login_required
+def vente_par_payement(request):
+    return render(request, 'CommercialSoft/venteParPayement.html')
+
+
+
+
+@login_required
+def vente_par_type(request):
+    return render(request, 'CommercialSoft/venteParTypeVente.html')
+
+
+
+@login_required
 def detail_vente(request):
     users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/detailVente.html', {'users': users})
@@ -660,6 +679,10 @@ def vente_create(request):
                         pret.montant=commande.montant
                         pret.date=commande.date
                         pret.save()
+
+                        
+                        commande.client=pret.client
+                        commande.save()
                     
                     messages.success(request,"Enregistrement reussi")
 
@@ -672,7 +695,7 @@ def vente_create(request):
                     # Handle exceptions (log error, notify user, etc.)
                     messages.error(request,f"Erreur d'enregistrement: {e}")
         else:
-            messages.error(request,"commande form errors : ", commande_form.errors)
+            messages.error(request, f"Erreurs dans le formulaire de commande : {commande_form.errors}")
             for error in formset.errors:
                 if error:  # Vérifie si l'erreur existe
                     messages.error(request, f"Erreur dans un formulaire : {error}")
@@ -740,6 +763,161 @@ def recherche_vente(request):
         return JsonResponse({"vente": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+
+
+@login_required
+def recherche_vente_client(request):
+    if request.method == "POST":
+        idClient = request.POST.get('idClient')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        # Construire le filtre dynamique
+        filtre = {}
+
+        # Ajouter les filtres pour les dates si elles sont fournies
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+
+        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+        if idClient and idClient != "0":
+            try:
+                client = Client.objects.get(id=idClient)
+                filtre["client"] = client
+            except Client.DoesNotExist:
+                return JsonResponse({"error": "Client introuvable"}, status=404)
+
+        # Appliquer le filtre à la requête
+        ventes = Commande.objects.filter(**filtre)
+
+        # Construire la réponse JSON
+        produits_data = [
+            {
+                "id": vente.id,
+                "montant": vente.montant,
+                "remise": vente.remise,
+                "net": vente.montant - vente.remise,
+                "date": vente.date,
+                "type": vente.typeVente,
+                "payement": vente.typePayement,
+                "client": vente.client.nom if vente.client else "",
+                "montantAchat":vente.montantAchat,
+            }
+            for vente in ventes
+        ]
+
+        return JsonResponse({"vente": produits_data})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+
+@login_required
+def recherche_vente_payement(request):
+    if request.method == "POST":
+        payement = request.POST.get('payement')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        # Construire le filtre dynamique
+        filtre = {}
+
+        # Ajouter les filtres pour les dates si elles sont fournies
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+
+        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+        if payement and payement != "0":
+            try:
+                filtre["typePayement"] = payement
+            except :
+                return JsonResponse({"error": "Payement introuvable"}, status=404)
+
+        # Appliquer le filtre à la requête
+        ventes = Commande.objects.filter(**filtre)
+
+        # Construire la réponse JSON
+        produits_data = [
+            {
+                "id": vente.id,
+                "montant": vente.montant,
+                "remise": vente.remise,
+                "net": vente.montant - vente.remise,
+                "date": vente.date,
+                "type": vente.typeVente,
+                "payement": vente.typePayement,
+                "client": vente.client.nom if vente.client else "",
+                "montantAchat":vente.montantAchat,
+            }
+            for vente in ventes
+        ]
+
+        return JsonResponse({"vente": produits_data})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+
+
+@login_required
+def recherche_vente_type(request):
+    if request.method == "POST":
+        type = request.POST.get('type')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        # Construire le filtre dynamique
+        filtre = {}
+
+        # Ajouter les filtres pour les dates si elles sont fournies
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+
+        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+        if type and type != "0":
+            try:
+                filtre["typeVente"] = type
+            except :
+                return JsonResponse({"error": "Type introuvable"}, status=404)
+
+        # Appliquer le filtre à la requête
+        ventes = Commande.objects.filter(**filtre)
+
+        # Construire la réponse JSON
+        produits_data = [
+            {
+                "id": vente.id,
+                "montant": vente.montant,
+                "remise": vente.remise,
+                "net": vente.montant - vente.remise,
+                "date": vente.date,
+                "type": vente.typeVente,
+                "payement": vente.typePayement,
+                "client": vente.client.nom if vente.client else "",
+                "montantAchat":vente.montantAchat,
+            }
+            for vente in ventes
+        ]
+
+        return JsonResponse({"vente": produits_data})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
 
 
 
@@ -990,7 +1168,7 @@ def modifier_commande(request, pk):
 
 
  # Example for Patient Views
-@user_passes_test(est_administrateur,est_gestionnaire)
+@user_passes_test(est_administrateur,est_gestionnaire, est_utilisateur)
 @login_required
 def produit_delete(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
