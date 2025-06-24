@@ -77,7 +77,6 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-"""
 
 DATABASES = {
     'default': {
@@ -100,7 +99,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 
 

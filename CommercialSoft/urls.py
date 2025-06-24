@@ -86,6 +86,7 @@ urlpatterns=[
     path('commerce/pret/client/suppression/<int:pk>/', views.pretClient_delete,name="commerce_supPretClient"),
     path('commerce/pret/client/liste', views.pretClient_list,name="commerce_listePretClient"),
     path('commerce/pret/client/recherche', views.recherche_pretClient,name="commerce_recherchePretClient"),
+    path('commerce/pret/detail/<int:pk>/', views.detail_pret_client,name="commerce_detailClient"),
     path('commerce/pret/client/etat', views.pdf_etat_pretClient,name="commerce_etatPretClient"),
     #-- fournisseur
     path('commerce/fournisseur', views.fournisseur_list_create,name="commerce_fournisseur"),
@@ -128,7 +129,8 @@ urlpatterns=[
     path('commerce/reception/produit', views.reception_par_produit,name="receptionParProduit"),
     path('commerce/reception/produit/recheche', views.recherche_reception_produit, name="rechercheReceptionParProduit"),
     path('commerce/reception/produit/etat', views.pdf_etat_reception_produit, name="pdfReceptionParProduit"),
-
+    #-- Caisse 
+    path('commerce/caisse', views.caisse, name="caisse"),
 
 
 ]

@@ -32,6 +32,11 @@ def est_comptable(user):
     return user.groups.filter(name='Comptable').exists()
 
 
+#separateur de milieu
+def separateur(valeur):
+    return f"{valeur:,}".replace(",", " ")
+
+
 
 
 # Create your views here.
@@ -1404,6 +1409,18 @@ def pretClient_list(request):
     return render(request, 'CommercialSoft/listePretClient.html',{'form':client})
 
 
+@login_required
+def detail_pret_client(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    dette=PretClient.objects.filter(client=client)
+    payement=VersementClient.objects.filter(client=client)
+
+    total_dette=PretClient.objects.aggregate(total=Sum('montant'))['total'] or 0
+    total_payement=VersementClient.objects.aggregate(total=Sum('montant'))['total'] or 0
+
+    return render(request, 'CommercialSoft/detailPretClient.html', {'dettes': dette,'payements':payement,'total_dette': separateur(total_dette), 'total_payement': separateur(total_payement),'client':client})
+
+
 
 
 
@@ -1413,11 +1430,21 @@ def recherche_pretClient(request):
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
-        if numero :  # Si un numéro est saisi
+
+        filtre = {}
+
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+        if numero:
             client = Client.objects.get(id=numero)
-            pretClients=PretClient.objects.filter(client=client,date__gte=dateDebut, date__lte=dateFin)
+            filtre["client"]=client
+        if numero :  # Si un numéro est saisi
+            
+            pretClients=PretClient.objects.filter(**filtre)
         else:  # Sinon, afficher les patients du jour
-            pretClients=PretClient.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+            pretClients=PretClient.objects.filter(**filtre)
             
         # Construire une réponse JSON
         patients_data = [
@@ -1702,6 +1729,7 @@ def recherche_client(request):
     if request.method == "POST":
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
+        
         clients = Client.objects.filter(id=numero) if numero else Client.objects.all()
         
         print(f"Valeur de numero : '{numero}'")  # Debugging
@@ -2850,3 +2878,43 @@ def pdf_etat_reception_produit(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+
+@login_required
+def caisse(request):
+    # solde fournisseur
+    dette_fournisseur = DetteFournisseur.objects.aggregate(total=Sum('montant'))['total'] or 0
+    payement_fournisseur=VersementFournisseur.objects.aggregate(total=Sum('montant'))['total'] or 0
+    solde_fournisseur=dette_fournisseur-payement_fournisseur
+
+    # solde client
+    pret_client=PretClient.objects.aggregate(total=Sum('montant'))['total'] or 0
+    versement_client=VersementClient.objects.aggregate(total=Sum('montant'))['total'] or 0
+    solde_client=pret_client-versement_client
+
+    # depense
+    depense=Depense.objects.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+
+    #versement gerant
+    versement_gerant=VersementGerant.objects.aggregate(total=Sum('montant'))['total'] or 0
+
+    # stock
+    valeur_stock = Produit.objects.aggregate(total=Sum(F('quantite') * F('prixAchat')))['total'] or 0
+
+    # total client et stock
+    client_stock=valeur_stock + solde_client
+    solde_general=client_stock+versement_gerant
+    solde_pdg=solde_general-solde_fournisseur
+
+    return render(request, 'CommercialSoft/caisse.html',{
+        'stock': separateur(valeur_stock),
+        'dette_client': separateur(solde_client),
+        'client_stock': separateur(client_stock),
+        'banque': separateur(versement_gerant),
+        'solde_general':separateur(solde_general),
+        'solde_fournisseur': separateur(solde_fournisseur),
+        'solde_pdg': separateur(solde_pdg)
+    })

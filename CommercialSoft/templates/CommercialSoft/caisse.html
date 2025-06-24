@@ -19,181 +19,116 @@
 {% block corp %}
 <section class="content pt-0">
   <div class="container-fluid">
-    
-            <div class="row">
-              <div class="col-md-12">
-                <div class="card card-primary">
-                  <div class="card-header">
-                    <h3 class="card-title">Recheche</h3>
-                  </div>
-                  <form role="form" action="{% url 'commerce_produitVendu' %}" id="form-depense" method="post">
-                    {% if messages %}
-                      <div>
-                      {% for message in messages %}
-                        {% if message.tags == "success" %}
-                            <div class="alert alert-success text-center">
-                                {{ message }}
-                            </div>
-                            {% elif message.tags == "error" %}
-                            <div class="alert alert-danger text-center">
-                                {{ message }}
-                            </div>
-                            {% elif message.tags == "warning" %}
-                            <div class="alert alert-warning text-center">
-                                {{ message }}
-                            </div>
-                        {% endif %}
-                      {% endfor %}
-                      </div>
-                    {% endif %}
-                    {% csrf_token %}
-                    <div class="card-body">
-                      <div class="row justify-content-center align-items-end">
-                        
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="utilisateur">Utilisateur</label>
-                                <select class="form-control select2bs4" id="utilisateur" style="width: 100%;">
-                                  <option value="0">--------</option>
-                                  {% if users %}
-                                    {% for user in users %}
-                                     <option value="{{user.id}}">{{user.first_name}} {{user.last_name}}</option>
-                                    {% endfor %}
-                                {% else %}
-                                <option >Aucun utilisateur trouve</option>
-                                {% endif %}
-                                </select>
-                            </div>
-                        </div>
+    <div class="row">
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-info">
+              <div class="inner">
+                <h3>{{stock}} <sup style="font-size: 20px"> GNF</sup></h3>
 
-                        <div class="col-md-3">
-                          <div class="form-group">
-                            <label for="dateDebut">Date debut</label>
-                            <input type="date" class="form-control" id="dateDebut"> 
-                          </div>
-                        </div>
-                        <div class="col-md-3">
-                          <div class="form-group">
-                            <label for="quantite">Date Fin</label>
-                            <input type="date" class="form-control" id="dateFin"> 
-                          </div>
-                        </div>
-
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
-                            </div>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-                </div>
+                <p>Total stock</p>
               </div>
+              <div class="icon">
+                <i class="fas fa-boxes"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h3>{{dette_client}} <sup style="font-size: 20px"> GNF</sup></h3>
 
-    <div class="row text-center">
-      <h4 class="text-danger" id="montantDepense">Total : </h4>
+                <p>Dettes clients</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-hand-holding-usd"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h3>{{client_stock}} <sup style="font-size: 20px"> GNF</sup></h3>
+
+                <p>Stock + dettes clients</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-danger">
+              <div class="inner">
+                <h3>{{banque}} <sup style="font-size: 20px"> GNF</sup></h3>
+
+                <p>Espece/Banque</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
     </div>
     <div class="row">
-      <div class="col-md-6">
-        <div class="card card-primary">
-            <div class="card-header">
-              <h3 class="card-title">Liste des ventes</h3>
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover table-striped table-sm" style="table-layout: auto;">
-                      <thead>                   
-                        <tr>
-                          <th style="width: 10px;" class="text-center">N°</th>
-                          <th class="text-center">Montant</th>
-                          <th class="text-center">Remise</th>
-                          <th class="text-center">Net</th>
-                          <th class="text-center">Date</th>
-                          <th class="text-center">Type</th>
-                          <th class="text-center">Payement</th>
-                          <th class="text-center">Client</th>
-                          <th class="text-center">Montant Achat</th>
-                          <th style="width: 40px;" class="text-center">#</th>
-                        </tr>
-                      </thead>
-                      <tbody id="liste-vente">
-                        <!-- Les données du tableau seront ajoutées ici dynamiquement -->
-                      </tbody>
-                    </table>
-                  </div>
-                  
-            </div>
-            <!-- /.card-body -->
-            <div class="card-footer clearfix">
-              <ul class="pagination pagination-sm m-0 justify-content-center">
-                <li class="page-item">
-                  {% if listes.has_previous %}
-                    <a class="page-link" href="?page={{ listes.previous_page_number }}">«</a>
-                  {% endif %}
-                  {% for num in listes.paginator.page_range %}
-                    {% if listes.number == num %}
-                      <li class="page-item"><a class="page-link" href="">{{ num }}</a></li>
-                    {% else %}
-                      <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                    {% endif %}
-                  {% endfor %}
-    
-                  {% if listes.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ listes.next_page_number }}">»</a></li>
-                  {% endif %}
-                
-              </ul>
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-dark">
+              <div class="inner">
+                <h3>{{solde_general}} <sup style="font-size: 20px"> GNF</sup></h3>
+
+                <p>Solde général</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
-      </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-primary">
+              <div class="inner">
+                <h3>{{solde_fournisseur}} <sup style="font-size: 20px"> GNF</sup></h3>
 
-      <div class="col-md-6">
-        <div class="card card-primary">
-            <div class="card-header">
-              <h3 class="card-title">Liste des produit</h3>
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body">
-              <table class="table table-bordered table-hover table-striped table-sm">
-                <thead>                  
-                  <tr>
-                    <th style="width: 10px" class="text-center">N°</th>
-                    <th class="text-center">Libelle</th>
-                    <th class="text-center">Quantite</th>
-                    <th style="width: 40px" class="text-center">#</th>
-                  </tr>
-                </thead>
-                <tbody id="liste-produit">
-
-                </tbody>
-              </table>
-            </div>
-            <!-- /.card-body -->
-            <div class="card-footer clearfix">
-              <ul class="pagination pagination-sm m-0 justify-content-center">
-                <li class="page-item">
-                  {% if listes.has_previous %}
-                    <a class="page-link" href="?page={{ listes.previous_page_number }}">«</a>
-                  {% endif %}
-                  {% for num in listes.paginator.page_range %}
-                    {% if listes.number == num %}
-                      <li class="page-item"><a class="page-link" href="">{{ num }}</a></li>
-                    {% else %}
-                      <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                    {% endif %}
-                  {% endfor %}
-    
-                  {% if listes.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ listes.next_page_number }}">»</a></li>
-                  {% endif %}
-                
-              </ul>
+                <p>Solde fournisseur</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-piggy-bank"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
-      </div>
+          <!-- ./col -->
+          <div class="col-lg-3 col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-secondary">
+              <div class="inner">
+                <h3>{{solde_pdg}} <sup style="font-size: 20px"> GNF</sup></h3>
+
+                <p>Solde PDG</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-briefcase"></i>
+              </div>
+              <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <!-- ./col -->
     </div>
+
     <!-- /.row -->
   </div><!-- /.container-fluid -->
 </section>
@@ -257,12 +192,21 @@
       const userId = $('#utilisateur').val();  // ID de l'examen sélectionné
       const dateDebut = $('#dateDebut').val();  // ID de la consultation
       const dateFin = $('#dateFin').val();  // ID de la consultation
+      
+      var idTotalVente=0;
+      var idPretReclame=0;
+      var idTotalPret=0;
+      var idTotalDepense=0;
+      var idCaisse=0;
 
-      var montantDepense=0;
-      $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
+      $('#idTotalVente').html(idTotalVente.toLocaleString());
+      $('#idPretReclame').html(idPretReclame.toLocaleString());
+      $('#idTotalPret').html(idTotalPret.toLocaleString());
+      $('#idTotalDepense').html(idTotalDepense.toLocaleString());
+      $('#idCaisse').html(idCaisse.toLocaleString());
 
       $.ajax({
-        url: "{% url 'rechercheVente' %}",
+        url: "{% url 'rechercheBilan' %}",
         type: "POST",
         data: {
             idUser: userId,
@@ -271,51 +215,18 @@
             csrfmiddlewaretoken: csrfToken
         },
         success: function (response) {
-          const patientsTable = $('#liste-vente');
-          patientsTable.empty();
-          if (response.vente && response.vente.length > 0) {
-            response.vente.forEach(data => {
-              const supUrl = "{% url 'commerce_venteDelete' 0 %}".replace("0", data.id);
-              const recuUrl = "{% url 'commerce_recu' 0 %}".replace("0", data.id);
-              const modUrl = "{% url 'commerce_modVente' 0 %}".replace("0", data.id);
-              patientsTable.append(`
-                <tr class="vente_row" data-id="${data.id}">
-                  <td class="text-center">${data.id}</td>
-                  <td>${data.montant}</td>
-                  <td class="text-center">${data.remise}</td>
-                  <td class="text-center">${data.net}</td>
-                  <td class="text-center">${data.date}</td>
-                  <td class="text-center">${data.type}</td>
-                  <td class="text-center">${data.payement}</td>
-                  <td class="text-center">${data.client}</td>
-                  <td class="text-center">${data.montantAchat}</td>
-                  <td class="text-center">
-                    <div class="btn-group">
-                      <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-cogs"></i>
-                      </button>
-                      <div class="dropdown-menu">
-                        <a class="dropdown-item" href="${recuUrl} " title="imprimer">
-                          <i class="fas fa-print text-warning"></i> imprimer
-                        </a>
-                        <a class="dropdown-item" href="${supUrl}"
-                          onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
-                          <i class="fas fa-times-circle text-danger"></i> Supprimer
-                        </a>
-                        <a class="dropdown-item" href="${modUrl}" title="Modifier">
-                          <i class="fas fa-edit text-info"></i> Modifier
-                        </a>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              `);
-              montantDepense +=data.montant-data.remise;
-            });
-            $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
-          } else {
-            patientsTable.append('<tr><td colspan="14" class="text-center">Aucune ligne trouvée.</td></tr>');
-          }
+            var idTotalVente=response.totalVente;
+            var idPretReclame=response.totalPretReclame;
+            var idTotalPret=response.totalPret;
+            var idTotalDepense=response.totalDepense;
+            var idCaisse=response.caisse;
+
+            $('#idTotalVente').html(idTotalVente.toLocaleString());
+            $('#idPretReclame').html(idPretReclame.toLocaleString());
+            $('#idTotalPret').html(idTotalPret.toLocaleString());
+            $('#idTotalDepense').html(idTotalDepense.toLocaleString());
+            $('#idCaisse').html(idCaisse.toLocaleString());
+          
         },
         error: function (xhr, status, error) {
           alert('Une erreur est survenue. Veuillez réessayer. '+error);

@@ -18,14 +18,24 @@
 <section class="content pt-0">
   <div class="container-fluid">
     {% if messages %}
-              <div>
-              {% for message in messages %}
-                <div class="bg-{{message.tags}} text-center h-15">
-                  {{ message }}
-                </div>
-              {% endfor %}
-                </div>
-            {% endif %}
+      <div>
+      {% for message in messages %}
+        {% if message.tags == "success" %}
+            <div class="alert alert-success text-center">
+                {{ message }}
+            </div>
+            {% elif message.tags == "error" %}
+            <div class="alert alert-danger text-center">
+                {{ message }}
+            </div>
+            {% elif message.tags == "warning" %}
+            <div class="alert alert-warning text-center">
+                {{ message }}
+            </div>
+        {% endif %}
+      {% endfor %}
+      </div>
+    {% endif %}
     <div class="row">
       <div class="col-md-4">
         <div class="card card-primary">
