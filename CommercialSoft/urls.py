@@ -138,5 +138,13 @@ urlpatterns=[
     #-- Caisse 
     path('commerce/caisse', views.caisse, name="caisse"),
 
+    
+    path('retours', views.retours, name='retours'),
+    path('retours/ajouter/', views.enregistrer_retours, name='ajouter_retours'),
+    path('retours/recherche', views.recherche_retours,name="rechercheRetours"),
+    path('retours/delete/<int:pk>/', views.retour_delete,name="deleteRetours"),
+
+
+
 
 ]

@@ -2,8 +2,8 @@ import traceback
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
-from .forms import LoginForm, FournisseurForm, CategorieForm, ProduitForm, LivraisonForm, LivraisonProduitFormSet, CommandeForm, CommandeProduitFormSet, LivraisonProduitForm, CategorieDepenseForm, DepenseForm, VersementClientForm, pretClientForm, clientForm, societeForm, DetteFournisseurForm, VersementFournisseurForm, detteClientForm, VersementGerantForm
-from .models import Fournisseur, Categorie, Produit, Livraison, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, DetteFournisseur, VersementFournisseur, VersementGerant, InfoBoutique
+from .forms import *
+from .models import *
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -12,8 +12,9 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField
 from django.contrib.auth import get_user_model
+import json
 User = get_user_model()
 
 # Create your views here.
@@ -742,7 +743,13 @@ def recherche_vente(request):
 
         # Appliquer le filtre à la requête
         ventes = Commande.objects.filter(**filtre)
-
+        
+        montantRetour = (
+                            Retour.objects
+                            .filter(**filtre)
+                            .annotate(montant=ExpressionWrapper(F('prix') * F('quantite'), output_field=IntegerField()))
+                            .aggregate(total=Sum('montant'))['total'] or 0
+                        )
         # Construire la réponse JSON
         produits_data = [
             {
@@ -760,7 +767,7 @@ def recherche_vente(request):
             for vente in ventes
         ]
 
-        return JsonResponse({"vente": produits_data})
+        return JsonResponse({"vente": produits_data,"montantRetour": montantRetour})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
@@ -2049,6 +2056,7 @@ def recherche_bilan(request):
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
+        retour=Retour.objects.filter(**filtre)
         ventes = Commande.objects.filter(**filtre)
         pret=PretClient.objects.filter(**filtre)
         
@@ -2062,7 +2070,9 @@ def recherche_bilan(request):
         
         total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
 
-        caisse=total_net_vente+total_pretReclamer-total_pret-total_depense or 0
+        total_retour = retour.aggregate(total=Sum(F('quantite')* F('prix')))['total'] or 0
+
+        caisse=total_net_vente+total_pretReclamer-total_pret-total_depense-total_retour or 0
 
         # Retourner la réponse JSON
         return JsonResponse({
@@ -2070,6 +2080,7 @@ def recherche_bilan(request):
             "totalPretReclame": total_pretReclamer,
             "totalPret": total_pret,
             "totalDepense":total_depense,
+            "totalRetour":total_retour,
             "caisse":caisse
         })
 
@@ -3096,3 +3107,98 @@ def caisse(request):
         'solde_fournisseur': separateur(solde_fournisseur),
         'solde_pdg': separateur(solde_pdg)
     })
+
+
+
+
+
+
+@csrf_exempt
+@login_required
+def enregistrer_retours(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            with transaction.atomic():
+                for item in data['retours']:
+                    produit = Produit.objects.select_for_update().get(id=item['produit_id'])
+                    
+                    # Mise à jour du stock
+                    produit.quantite += item['quantite']
+                    produit.save()
+
+                    # Création du retour
+                    Retour.objects.create(
+                        produit=produit,
+                        quantite=item['quantite'],
+                        date=timezone.now().date(),
+                        user=request.user,
+                        prix=item['prix']
+                    )
+
+            messages.success(request, "Retours enregistrés avec succès.")
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+
+    return JsonResponse({'success': False, 'message': 'Méthode non autorisée'})
+
+
+
+
+
+@login_required
+def recherche_retours(request):
+    if request.method == "POST":
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        retours=Retour.objects.all()
+
+        if dateDebut and dateFin:
+            retours = Retour.objects.filter(date__gte=dateDebut, date__lte=dateFin)  # Récupérer tous les produits par défaut
+
+       
+        # Construire la réponse JSON
+        produits_data = [
+            {
+                "id":retour.id,
+                "produit": retour.produit.libelle,
+                "quantite": retour.quantite,
+                "prix": retour.prix,
+                "date": retour.date,
+                "montant": retour.prix * retour.quantite,
+                "user": f"{retour.user.first_name} {retour.user.last_name}",
+            }
+            for retour in retours
+        ]
+        
+        return JsonResponse({"livraison": produits_data})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+ # Example for Patient Views
+@login_required
+def retour_delete(request, pk):
+    retour = get_object_or_404(Retour, pk=pk)
+    try:
+        with transaction.atomic():
+            produit=retour.produit
+            produit.quantite +=retour.quantite
+            produit.save()
+            retour.delete()
+        messages.success(request, "Retour supprimé avec succès!")
+    except IntegrityError:
+        messages.error(request, "Erreur: Ce retour est liée à d'autres entités et ne peut pas être supprimée.")
+    return redirect('retours')
+
+
+
+
+@login_required
+def retours(request):
+    users = User.objects.all()
+    return render(request, 'CommercialSoft/listeRetour.html',{'users':users})

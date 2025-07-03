@@ -255,6 +255,7 @@
             
             <div class="col-md-3 d-flex justify-content-end align-items-center" id="">
               <div class="form-group ml-auto">
+                <button type="button" class="btn bg-fuchsia btn-md border" id="btnRetour">Retour</button>
                 <button type="submit" class="btn btn-primary btn-md border" target="_blank" form="LivraisonForm" >valider la vente</button>
               </div>
             </div>
@@ -550,14 +551,14 @@
           formsetContainer.append(newForm);
 
           let newRow = `
-            <tr>
-              <td>${formCount}</td>
-              <td>${produitNom}</td>
-              <td class='text-center'>${quantite}</td>
-              <td class='text-center'>${prixDetail}</td>
-              <td class='text-center' montant='${montant}'>${montant}</td>
-              <td><button type="button" class="btn btn-danger btn-sm btn-remove">Supprimer</button></td>
-            </tr>`;
+              <tr data-produit-id="${produitId}">
+                <td>${formCount}</td>
+                <td>${produitNom}</td>
+                <td class='text-center'>${quantite}</td>
+                <td class='text-center'>${prixDetail}</td>
+                <td class='text-center' montant='${montant}'>${montant}</td>
+                <td><button type="button" class="btn btn-danger btn-sm btn-remove">Supprimer</button></td>
+              </tr>`;
 
           $("#livraison-produits").append(newRow);
 
@@ -667,6 +668,64 @@ $(document).ready(function(){
     }
   });
 });
+
+
+
+
+// Retour des produits
+$("#btnRetour").on("click", function () {
+  let lignes = [];
+  let userConfirmed = confirm("Confirmez-vous le retour des produits ?");
+
+  if (!userConfirmed) return;
+
+  $("#livraison-produits tr").each(function () {
+    let produitNom = $(this).find("td:eq(1)").text().trim();
+    let quantite = parseInt($(this).find("td:eq(2)").text().trim());
+    let prix = parseInt($(this).find("td:eq(3)").text().trim());
+
+    // Tu dois avoir un mapping produitNom -> produit_id, sinon tu peux stocker l'ID dans un attribut <tr data-produit-id="xx">
+    let produitId = $(this).data("produit-id");
+
+    if (!produitId) {
+      toastr.error("Produit ID manquant pour " + produitNom);
+      return;
+    }
+
+    lignes.push({
+      produit_id: produitId,
+      quantite: quantite,
+      prix: prix
+    });
+  });
+
+  if (lignes.length === 0) {
+    toastr.warning("Aucun produit à retourner.");
+    return;
+  }
+
+  $.ajax({
+    url: "{% url 'ajouter_retours' %}",
+    type: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    data: JSON.stringify({ retours: lignes }),
+    contentType: "application/json",
+    success: function (response) {
+      if (response.success) {
+        toastr.success("Produits retournés avec succès !");
+        location.reload(); // Recharge la page pour mettre à jour l'état
+      } else {
+        toastr.error("Erreur: " + response.message);
+      }
+    },
+    error: function (xhr) {
+      toastr.error("Erreur serveur.");
+    }
+  });
+});
+
 
 
 

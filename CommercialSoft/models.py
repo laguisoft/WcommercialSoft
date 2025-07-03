@@ -185,3 +185,15 @@ class InfoBoutique(models.Model):
 
     def __str__(self):
         return self.nom
+    
+
+
+class Retour(models.Model):
+    produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
+    quantite=models.PositiveIntegerField()
+    date=models.DateField(default=timezone.now)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    prix=models.PositiveBigIntegerField()
+
+    def __str__(self):
+        return f"{self.produit.libelle} - {self.quantite} - {self.date}"

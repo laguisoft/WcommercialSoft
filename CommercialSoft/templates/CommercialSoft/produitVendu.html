@@ -91,8 +91,16 @@
               </div>
             </div>
 
-    <div class="row text-center">
-      <h4 class="text-danger" id="montantDepense">Total : </h4>
+    <div class="row">
+      <div class="col-md-4">
+        <h4 class="text-info" id="montantDepense">Total : </h4>
+      </div>
+      <div class="col-md-4">
+        <h4 class="text-danger" id="montantRetour">Retour : </h4>
+      </div>
+      <div class="col-md-4">
+        <h4 class="text-success" id="montantNet">Net : </h4>
+      </div>
     </div>
     <div class="row">
       <div class="col-md-6">
@@ -259,7 +267,11 @@
       const dateFin = $('#dateFin').val();  // ID de la consultation
 
       var montantDepense=0;
+      var montantRetour=0;
+      var montantNet=0;
       $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
+      $('#montantRetour').html("Total : "+ montantRetour.toLocaleString());
+      $('#montantNet').html("Total : "+ montantNet.toLocaleString());
 
       $.ajax({
         url: "{% url 'rechercheVente' %}",
@@ -273,6 +285,7 @@
         success: function (response) {
           const patientsTable = $('#liste-vente');
           patientsTable.empty();
+          montantRetour=response.montantRetour;
           if (response.vente && response.vente.length > 0) {
             response.vente.forEach(data => {
               const supUrl = "{% url 'commerce_venteDelete' 0 %}".replace("0", data.id);
@@ -312,7 +325,10 @@
               `);
               montantDepense +=data.montant-data.remise;
             });
+            montantNet = montantDepense - montantRetour;
+            $('#montantNet').html("Net : "+ montantNet.toLocaleString());
             $('#montantDepense').html("Total : "+ montantDepense.toLocaleString());
+            $('#montantRetour').html("Retour : "+ montantRetour.toLocaleString());
           } else {
             patientsTable.append('<tr><td colspan="14" class="text-center">Aucune ligne trouvée.</td></tr>');
           }

@@ -87,7 +87,7 @@ DATABASES = {
 
 
 
-"""
+# client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -102,7 +102,6 @@ DATABASES = {
 
 
 
-"""
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
     'default': {
@@ -116,6 +115,21 @@ DATABASES = {
     }
 }
 """
+
+
+
+# client Grand sidiki lofeba (quinquailerie)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'keitaetfrere$wcommercialSoft',  # Remplacez par le nom de votre base
+        'USER': 'keitaetfrere',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        'HOST': 'keitaetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        #'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
 
 
 
