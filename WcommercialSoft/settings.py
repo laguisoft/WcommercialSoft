@@ -114,7 +114,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 
@@ -130,7 +130,20 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
+"""
 
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'commercialSoft$laguisoft',  # Remplacez par le nom de votre base
+        'USER': 'commercialSoft',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        'HOST': 'commercialSoft.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        #'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
 
 
 # Password validation
