@@ -100,7 +100,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
@@ -131,7 +131,7 @@ DATABASES = {
     }
 }
 
-
+"""
 
 DATABASES = {
     'default': {
