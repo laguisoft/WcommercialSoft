@@ -652,10 +652,15 @@ def vente_create(request):
                     for form in formset:
                         if not (form.cleaned_data.get('produit') and form.cleaned_data.get('quantite')) or form.cleaned_data.get('DELETE'):
                             continue
+                        
                         commande_produit = form.save(commit=False)
                         commande_produit.commande = commande
 
                         produit = commande_produit.produit
+                        if form.cleaned_data.get('quantite') <= 0 or form.cleaned_data.get('quantite') > produit.quantite:
+                            messages.error(request, "La quantité doit être suffisante et supérieure à zéro.")
+                            continue
+
                         produit.quantite -= commande_produit.quantite
 
                         produit.save()
@@ -3202,3 +3207,31 @@ def retour_delete(request, pk):
 def retours(request):
     users = User.objects.all()
     return render(request, 'CommercialSoft/listeRetour.html',{'users':users})
+
+
+
+
+
+
+
+@csrf_exempt
+def pdf_facture_proforma(request):
+    if request.method == "POST":
+        try:
+            data_json = request.POST.get('data')
+            donnees = json.loads(data_json)
+
+            infoBoutique = InfoBoutique.objects.first()
+
+            context = {
+                'listes': donnees,
+                'boutique': infoBoutique
+            }
+
+            return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
+
+        except Exception as e:
+            print("Erreur", e)
+            return HttpResponse("Erreur serveur : " + str(e), status=500)
+
+    return HttpResponse("Méthode non autorisée", status=405)

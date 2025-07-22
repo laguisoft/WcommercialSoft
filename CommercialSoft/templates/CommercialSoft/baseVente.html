@@ -198,7 +198,7 @@
             </div>
             <div class="col-md-7">
               <div class="card card-primary" style="height: 67vh; overflow: hidden;">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between">
                   <h3 class="card-title mb-0">Liste des produits</h3>
                 </div>
                 <!-- /.card-header -->
@@ -253,8 +253,9 @@
               </div>
             </div>
             
-            <div class="col-md-3 d-flex justify-content-end align-items-center" id="">
+            <div class="col-md-5 d-flex justify-content-end align-items-center" id="">
               <div class="form-group ml-auto">
+                  <button type="button" id="btnExportPDF" class="btn btn-info">Proforma</button>
                 <button type="button" class="btn bg-fuchsia btn-md border" id="btnRetour">Retour</button>
                 <button type="submit" class="btn btn-primary btn-md border" target="_blank" form="LivraisonForm" >valider la vente</button>
               </div>
@@ -266,6 +267,12 @@
       <!-- /.content -->
 
     </main>
+  </form>
+
+  
+  <form id="formExportPDF" method="post" action="{% url 'pdf_facture_proforma' %}" target="_blank">
+    {% csrf_token %}
+    <input type="hidden" name="data" id="jsonDataInput">
   </form>
 
   <footer id="footer" class="footer light-background">
@@ -726,6 +733,37 @@ $("#btnRetour").on("click", function () {
   });
 });
 
+
+
+
+
+$("#btnExportPDF").on("click", function (event) {
+  event.preventDefault();
+    let donnees = [];
+
+    $("#livraison-produits tr").each(function () {
+        let tds = $(this).find("td");
+
+        // Skip rows without enough data (e.g., header or empty row)
+        if (tds.length < 5) return;
+
+        let produit = {
+            id: $(this).data("produit-id"),
+            produit: tds.eq(1).text().trim(),
+            quantite: parseFloat(tds.eq(2).text().trim()) || 0,
+            prix: parseFloat(tds.eq(3).text().trim()) || 0,
+            montant: parseFloat(tds.eq(4).text().trim()) || 0,
+        };
+
+        donnees.push(produit);
+    });
+
+    // Convertir les données en JSON et les mettre dans le champ caché
+    $("#jsonDataInput").val(JSON.stringify(donnees));
+
+    // Soumettre le formulaire
+    $("#formExportPDF").submit();
+});
 
 
 
