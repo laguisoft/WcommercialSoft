@@ -12,7 +12,7 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField
 from django.contrib.auth import get_user_model
 import json
 User = get_user_model()
@@ -534,7 +534,15 @@ def get_produit_details(request):
             "stock": produit.quantite,  # Remplacez par le champ réel
         }
     except Produit.DoesNotExist:
-        data = {"success": False}
+        data = {
+            "success": False,
+            "error": f"Produit avec l'ID {produit_id} introuvable."
+        }
+    except Exception as e:
+        data = {
+            "success": False,
+            "error": str(e)
+        }
     
     return JsonResponse(data)
 
@@ -752,9 +760,10 @@ def recherche_vente(request):
         montantRetour = (
                             Retour.objects
                             .filter(**filtre)
-                            .annotate(montant=ExpressionWrapper(F('prix') * F('quantite'), output_field=IntegerField()))
+                            .annotate(montant=ExpressionWrapper(F('prix') * F('quantite'), output_field=DecimalField(max_digits=38, decimal_places=2)))
                             .aggregate(total=Sum('montant'))['total'] or 0
                         )
+        
         # Construire la réponse JSON
         produits_data = [
             {
@@ -3090,13 +3099,22 @@ def caisse(request):
     solde_client=pret_client-versement_client
 
     # depense
-    depense=Depense.objects.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+    #depense=Depense.objects.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
 
     #versement gerant
     versement_gerant=VersementGerant.objects.aggregate(total=Sum('montant'))['total'] or 0
 
     # stock
-    valeur_stock = Produit.objects.aggregate(total=Sum(F('quantite') * F('prixAchat')))['total'] or 0
+    # valeur_stock = Produit.objects.aggregate(total=Sum(F('quantite') * F('prixAchat')))['total'] or 0
+    valeur_stock = Produit.objects.aggregate(
+        total=Sum(
+            ExpressionWrapper(
+                F('quantite') * F('prixAchat'),
+                output_field=DecimalField(max_digits=38, decimal_places=2)
+            )
+        )
+    )['total'] or 0
+
 
     # total client et stock
     client_stock=valeur_stock + solde_client

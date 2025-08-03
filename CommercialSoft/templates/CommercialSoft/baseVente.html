@@ -395,7 +395,8 @@
                           toastr.error("Erreur lors de la récupération des prix du produit.");
                       }
                   },
-                  error: function () {
+                  error: function (xhr, status, error) {
+                      console.error("Erreur AJAX :", error);
                       toastr.error("Erreur lors de la requête AJAX.");
                   }
               });
@@ -657,7 +658,7 @@ $(document).ready(function(){
 
 
 
-    $(document).ready(function() {
+  $(document).ready(function() {
   let enterPressed = false;
 
   // Quand une touche est pressée dans le champ
@@ -929,7 +930,7 @@ $(function() {
 <script type="text/javascript">
   $(function(){
     {% if recu_url %}
-      if (confirm("Voulez-vous imprimer le reçu ?")) {
+      if (confirm("Voulez-vous imprimer la facture ?")) {
         window.open("{% url 'commerce_recu' pk=venteId %}", "_blank");
       }
     {% endif %}
