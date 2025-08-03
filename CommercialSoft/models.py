@@ -17,7 +17,7 @@ class Fournisseur(models.Model):
     
 
 class Categorie(models.Model):
-    nom=models.CharField(max_length=30, unique=True)
+    nom=models.CharField(max_length=40, unique=True)
 
     def __str__(self):
         return self.nom
