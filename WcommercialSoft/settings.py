@@ -84,9 +84,9 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
 """
+
+
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -99,9 +99,9 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
+
+
 """
-
-
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
     'default': {
