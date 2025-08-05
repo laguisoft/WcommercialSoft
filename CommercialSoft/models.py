@@ -176,12 +176,12 @@ class VersementGerant(models.Model):
 
 
 class InfoBoutique(models.Model):
-    nom=models.CharField(max_length=30, unique=True)
-    emplacement=models.CharField(max_length=30, null=True, blank=True)
+    nom=models.CharField(max_length=100, unique=True)
+    emplacement=models.CharField(max_length=50, null=True, blank=True)
     ville=models.CharField(max_length=30)
     telephone=models.CharField(max_length=20, null=True, blank=True)
-    email=models.EmailField(max_length=50, null=True, blank=True)
-    proprietaire=models.CharField(max_length=50, null=True, blank=True) 
+    email=models.EmailField(max_length=70, null=True, blank=True)
+    proprietaire=models.CharField(max_length=100, null=True, blank=True) 
 
     def __str__(self):
         return self.nom
