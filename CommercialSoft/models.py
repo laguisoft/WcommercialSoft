@@ -8,7 +8,7 @@ from django.conf import settings
 
 
 class Fournisseur(models.Model):
-    nom=models.CharField(max_length=30, unique=True)
+    nom=models.CharField(max_length=100, unique=True)
     adresse=models.CharField(max_length=30)
     telephone=models.CharField(max_length=20)
 
@@ -24,13 +24,13 @@ class Categorie(models.Model):
 
 
 class Produit(models.Model):
-    codebare=models.CharField(max_length=100, unique=True)
+    codebare=models.CharField(max_length=100, unique=True, null=True, blank=True)
     categorie=models.ForeignKey(Categorie, on_delete=models.SET_NULL, null=True, blank=True)
     libelle=models.CharField(max_length=60, unique=True)
     quantite=models.IntegerField()
     prixAchat=models.PositiveBigIntegerField()
-    prixDetail=models.PositiveBigIntegerField()
     prixEnGros=models.PositiveBigIntegerField()
+    prixDetail=models.PositiveBigIntegerField()
     date=models.DateField(default=timezone.now)
     datePeremption=models.DateField(default=timezone.now)
     seuil=models.PositiveIntegerField(default=0)
@@ -45,7 +45,7 @@ class Livraison(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE)
     date=models.DateField(default=timezone.now)
     montant=models.BigIntegerField()
-    numeroFacture=models.CharField(max_length=20, unique=True)
+    numeroFacture=models.CharField(max_length=20, unique=True, blank=True)
 
     def __str__(self):
         return self.fournisseur.nom
@@ -61,8 +61,8 @@ class LivraisonProduit(models.Model):
 
 
 class Societe(models.Model):
-    nom=models.CharField(max_length=30, unique=True)
-    adresse=models.CharField(max_length=30, null=True, blank=True)
+    nom=models.CharField(max_length=100, unique=True)
+    adresse=models.CharField(max_length=100, null=True, blank=True)
     telephone=models.CharField(max_length=20)
 
     def __str__(self):
@@ -112,7 +112,7 @@ class CommandeProduit(models.Model):
 
  
 class Categorie_Depense(models.Model):
-    nom=models.CharField(max_length=30)
+    nom=models.CharField(max_length=50)
     description=models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
@@ -122,7 +122,7 @@ class Categorie_Depense(models.Model):
 
 
 class Depense(models.Model):
-    intitule=models.CharField(max_length=60)
+    intitule=models.CharField(max_length=100)
     quantite=models.PositiveIntegerField()
     prix=models.PositiveIntegerField()
     date=models.DateField(default=timezone.now)
