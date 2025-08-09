@@ -3248,7 +3248,8 @@ def pdf_facture_proforma(request):
             context = {
                 'listes': donnees,
                 'boutique': infoBoutique,
-                'total': total_formate
+                'total': total_formate,
+                'date': timezone.now().strftime("%Y-%m-%d"),
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)

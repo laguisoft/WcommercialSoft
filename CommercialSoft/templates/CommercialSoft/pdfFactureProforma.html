@@ -166,10 +166,10 @@
 
         
         
-        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture proforma N°</h1>
+        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture proforma N°____</h1>
         <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Nom client : _______________________________</h2>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Date : {{ date }}</h2>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Contact : _______________</h2>
+        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Telephone  : _______________________________</h2>
+        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Date       : {{ date }}</h2>
 
         <div class="details">
             <table style="border: solid 1px; width: 100%;">
@@ -177,7 +177,7 @@
                     <th style="width: 10%; text-align: center;">N°</th>
                     <th style="width: 40%; text-align: center;">Produit</th>
                     <th style="width: 12%; text-align: center;">Quantite</th>
-                    <th style="width: 18%; text-align: center;">Prix unitaire</th>
+                    <th style="width: 18%; text-align: center;">P unitaire</th>
                     <th style="width: 20%; text-align: center;">Montant</th>
                 </thead>
                 <tbody>
@@ -185,7 +185,7 @@
                     {% for liste in listes %}
                       <tr>
                         <td style="text-align: center;">{{ forloop.counter }}</td>
-                        <td style="">{{ liste.produit }}</td>
+                        <td >{{ liste.produit }}</td>
                         <td style="text-align: center;">{{ liste.quantite }}</td>
                         <td style="text-align: center;">{{ liste.prix }}</td>
                         <td style="text-align: center;">{{ liste.montant }}</td>
@@ -202,7 +202,7 @@
         
         <table style="border: none; margin-top: 40px;">
             <td style="border: none;">
-                <h1>Total : {{total}}</h1>
+                <h1>Total : {{total}} GNF</h1>
             </td>
         </table>
 
