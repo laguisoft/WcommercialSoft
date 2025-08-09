@@ -168,8 +168,8 @@
         
         <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture proforma N°____</h1>
         <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Nom client : _______________________________</h2>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Telephone  : _______________________________</h2>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Date       : {{ date }}</h2>
+        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;"> Telephone : _______________________________</h2>
+        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">      Date : {{ date }}</h2>
 
         <div class="details">
             <table style="border: solid 1px; width: 100%;">
@@ -183,7 +183,7 @@
                 <tbody>
                     {% if listes %}
                     {% for liste in listes %}
-                      <tr>
+                      <tr style="font-size: 12px;">
                         <td style="text-align: center;">{{ forloop.counter }}</td>
                         <td >{{ liste.produit }}</td>
                         <td style="text-align: center;">{{ liste.quantite }}</td>
