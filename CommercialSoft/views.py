@@ -3243,11 +3243,12 @@ def pdf_facture_proforma(request):
 
             # Calcul du total
             total = sum(item.get("montant", 0) for item in donnees)
+            total_formate = "{:,}".format(total).replace(",", " ")
 
             context = {
                 'listes': donnees,
                 'boutique': infoBoutique,
-                'total': total
+                'total': total_formate
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
