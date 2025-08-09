@@ -142,7 +142,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 
 DATABASES = {
@@ -156,9 +156,9 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
+
+
 """
-
-
 
 DATABASES = {
     'default': {
@@ -171,7 +171,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 
 # Password validation
