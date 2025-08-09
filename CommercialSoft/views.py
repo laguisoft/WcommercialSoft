@@ -3241,9 +3241,13 @@ def pdf_facture_proforma(request):
 
             infoBoutique = InfoBoutique.objects.first()
 
+            # Calcul du total
+            total = sum(item.get("montant", 0) for item in donnees)
+
             context = {
                 'listes': donnees,
-                'boutique': infoBoutique
+                'boutique': infoBoutique,
+                'total': total
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
