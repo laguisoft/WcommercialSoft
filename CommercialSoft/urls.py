@@ -39,7 +39,7 @@ urlpatterns=[
     path('reception/suppression/<int:pk>/', views.reception_delete,name="commerce_receptionDelete"),
     path('reception/supLivraisonProduit/<int:pk>/', views.produit_livrer_delete,name="commerce_deleteReception"),
     #-------------------Vente-------------------------
-    path('vente/', views.vente_create,name="commerce_vente"),    
+    path('vente/', views.vente_creates,name="commerce_vente"),    
     path('vente/modification/<int:pk>/', views.produit_edit,name="commerce_venteEdit"),
     path('vente/suppression/<int:pk>/', views.vente_delete,name="commerce_venteDelete"),
     path('vente/commande/modification/<int:pk>/', views.modifier_commande,name="commerce_modVente"),

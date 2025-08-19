@@ -107,7 +107,7 @@ class CommandeForm(forms.ModelForm):
         widgets = {
             'montant': forms.TextInput(attrs={'class': 'form-control','id':'netPayer',"hidden":"true",'readonly':'true'}),
             'remise': forms.NumberInput(attrs={'class': 'form-control','placeholder':'Remise','id':'remise'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idEcheance'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idCommande'}),
             'typeVente': forms.Select(attrs={'class': 'form-control', 'id':'typeVente'}),
             'typePayement': forms.Select(attrs={'class': 'form-control','id':'typePayement'}),
         }
@@ -186,17 +186,14 @@ class pretClientForm(forms.ModelForm):
     class Meta:
         model = PretClient
         fields = ['client', 'dateEcheance']
-        # Ajouter des widgets pour personnaliser l'apparence des champs
-    client = forms.ModelChoiceField(
-        queryset=Client.objects.all(),
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-control select2bs4', 'id': 'clientid'})
-    )
-    dateEcheance = forms.DateField(
-        required=False,
-        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id': 'dateEch'})
-    )
-
+        widgets = {
+            'client': forms.Select(attrs={'class': 'form-control select2bs4', 'id': 'clientid'}),
+            'dateEcheance': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id': 'dateEch'}),
+        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['client'].required = False
+        self.fields['dateEcheance'].required = False
 
 
 

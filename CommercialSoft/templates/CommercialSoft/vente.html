@@ -1,19 +1,782 @@
-{% extends "CommercialSoft/baseVente.html" %}
-
 {% load static %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block css %}
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>commercial Soft</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Favicons -->
+  <link href="{% static 'clinique/assets/img/favicon.png' %}" rel="icon">
+  <link href="{% static 'clinique/assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+
+  <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+    <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+  <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+
+  
+
+  <!-- =======================================================
+  * Template Name: Medilab
+  * Template URL: https://bootstrapmade.com/medilab-free-medical-bootstrap-theme/
+  * Updated: Aug 07 2024 with Bootstrap v5.3.3
+  * Author: BootstrapMade.com
+  * License: https://bootstrapmade.com/license/
+  ======================================================== -->
+</head>
+
+<body class="starter-page-page vh-100">
+  <form role="form" action="{% url 'commerce_vente' %}" id="LivraisonForm" method="post">
+  {% csrf_token %}
+    <header id="header" class="header sticky-top">
+      
+      <div class="topbar d-flex align-items-center">
+        <div class="container d-flex justify-content-center justify-content-md-between">
+          <div class="contact-info d-flex align-items-center">
+            <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
+            
+          </div>
+          <div class="social-links d-none d-md-flex align-items-center">
+            <a href="#" class="twitter"><i class="bi bi-twitter-x"></i></a>
+            <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
+            <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
+            <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div><!-- End Top Bar -->
+
+      <div class="branding d-flex align-items-center">
+        <div class="col-md-2 col-lg-2 d-none d-sm-block">
+          <div class="form-group">
+            {{ commande_form.date }}
+          </div>
+        </div>
+
+        <div class="container position-relative d-flex align-items-center justify-content-end">
+          
+
+          <nav id="navmenu" class="navmenu">
+            <i class="mobile-nav-toggle"></i>
+          </nav>
+
+          <a href="#" class="col-sm-10 ms-auto">
+            <!-- Uncomment the line below if you also wish to use an image logo -->
+            <!-- <img src="assets/img/logo.png" alt=""> -->
+            <h1 class="sitename" >
+              <div class="form-group">
+                {{ commande_form.montant }}
+                <input type="text" readonly="true" class="form-control fw-bold  text-center fs-3" id="montantVente">
+              </div>
+            </h1>
+          </a>
+          <div class="col-md-2 col-lg-2 col-sm-2 ms-auto">
+            <div class="form-group">
+              {{ commande_form.remise }}
+            </div>
+          </div>
+
+
+        </div>
+
+      </div>
+
+    </header>
+
+    <main class="main">
+
+      <section class="content pt-0">
+        <div class="container-fluid h-100 d-flex flex-column">
+          <div class="row">
+            {% if messages %}
+                <div>
+                    {% for message in messages %}
+                        {% if message.tags == "success" %}
+                            <div class="bg-{{ message.tags }} text-center h-15" id="messageErreur">
+                                {{ message }}
+                            </div>
+                        {% else %}
+                            <div class="bg-danger text-center h-15" id="messageErreur">
+                                {{ message }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if commande_form.errors %}
+                <div class="bg-danger">{{ commande_form.errors }}</div>
+            {% endif %}
+        </div>
+        
+          <div class="row">
+            <div class="col-md-5">
+              <div class="card card-primary" style="height: 67vh; overflow: hidden;">
+                <div class="card-header">
+                  <h3 class="card-title">Nouvelle vente</h3>
+                </div>
+                  <div style="height: calc(67vh - 56px); overflow-y: auto;">
+                    <div class="card-body">
+                    
+                      <div class="row" id="formset-container">
+                          <div class="formset-item">
+                            <div class="row">
+                              <div class="col-md-12">
+                                <div class="form-group">
+                                  <label>Produit</label>
+                                  <select class="form-control select2bs4" id="idProduit" style="width: 100%;">
+                                    <option value="0">--------</option>
+                                    {% if listes %}
+                                      {% for prod in listes %}
+                                      <option value="{{prod.id}}">{{prod.libelle}}</option>
+                                      {% endfor %}
+                                    {% else %}
+                                    <option >Aucun ligne trouvé</option>
+                                    {% endif %}
+                                  </select>
+                                </div>
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-group">
+                                  <label>Quantité</label>
+                                  <input type="number" class="form-control" id="quantite" value="1" min="0"> 
+                                </div>
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-group">
+                                  <label>Prix unitaire</label>
+                                  <input type="number" class="form-control" id="prixDetail" value="1" min="0"> 
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                      </div>
+
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label>Stock</label>
+                            <input type="number" disabled="true" class="form-control" id="stock">
+                          </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label>Type vente</label>
+                            {{ commande_form.typeVente }}
+                          </div>
+                        </div>
+                      </div>
+                  </div>
+                  <div class="card-footer clearfix text-center">
+                    <button class="btn btn-primary" id="idAjouter">Ajouter</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <div class="card card-primary" style="height: 67vh; overflow: hidden;">
+                <div class="card-header d-flex justify-content-between">
+                  <h3 class="card-title mb-0">Liste des produits</h3>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body p-0" style="height: calc(100% - 50px); overflow-y: auto;">
+                  <div >
+                    <table class="table table-bordered table-hover table-striped table-sm mb-0">
+                      <thead>
+                        <tr>
+                          <th style="width: 10px" class="text-center">#</th>
+                          <th class="text-center">Libelle produits</th>
+                          <th class="text-center">Quantité</th>
+                          <th class="text-center">P unitaire</th>
+                          <th class="text-center">Montant</th>
+                          <th style="width: 40px" class="text-center">#</th>
+                        </tr>
+                      </thead>
+                      <tbody id="livraison-produits">
+                        <!-- tes lignes dynamiques ici -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /.row -->
+           <div class="row d-flex justify-content-between align-items-center">
+            <div class="col-md-2">
+              <div class="form-group d-flex align-items-center">
+                <label class="mb-0" style="width: 50%;">Payement</label> <!-- Ajuste le width si nécessaire -->
+                <div style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
+                  {{ commande_form.typePayement }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3" id="lgClient">
+              <div class="form-group d-flex align-items-center">
+                <label class="mb-0 col-md-3" >Client</label> <!-- Ajuste le width si nécessaire -->
+                <div class="col-md-9" style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
+                  {{ pret_form.client }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3" id="lgEcheance">
+              <div class="form-group d-flex align-items-center">
+                <label class="mb-0 col-md-5" >Echeance</label> <!-- Ajuste le width si nécessaire -->
+                <div style="flex-grow: 1;" class="col-md-7"> <!-- Cette div prendra l'espace restant -->
+                  {{ pret_form.dateEcheance }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4 d-flex justify-content-end align-items-center" id="">
+              <div class="form-group ml-auto">
+                <button type="button" id="btnExportPDF" class="btn btn-info">Facture</button>
+                <button type="button" class="btn bg-fuchsia btn-md border" id="btnRetour">Retour</button>
+                <button type="submit" class="btn btn-primary btn-md border" form="LivraisonForm" >valider la vente</button>
+              </div>
+            </div>
+          </div>
+            
+        </div><!-- /.container-fluid -->
+      </section>
+      <!-- /.content -->
+      
+    <input type="hidden" name="jsonDataInput" id="jsonDataInput">
+    </main>
+  </form>
+
+  
+  <form id="formExportPDF" method="post" action="{% url 'pdf_facture_proforma' %}" target="_blank">
+    {% csrf_token %}
+    <input type="hidden" name="data" id="jsonDataInputPdf">
+  </form>
+
+  <footer id="footer" class="footer light-background">
+
+
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright 2025</span> <strong class="px-1 sitename">Laguisoft Technologie</strong> <span>Tous droit reservé</span></p>
+    </div>
+
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'clinique/assets/vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'clinique/assets/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'clinique/assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'clinique/assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'clinique/assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'clinique/assets/js/main.js' %}"></script>
+  <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+  <!-- Bootstrap 4 -->
+  <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <!-- bs-custom-file-input -->
+  <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+  <!-- AdminLTE App -->
+  <script src="{% static 'autre/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js' %}"></script>
+  <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+  <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
+  <!-- AdminLTE for demo purposes -->
+  <script src="{% static 'autre/plugins/moment/moment.min.js' %}"></script>
+  <script src="{% static 'autre/plugins/inputmask/min/jquery.inputmask.bundle.min.js' %}"></script>
+  <script src="{% static 'autre/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+  <!-- Bootstrap Switch -->
+  <script src="{% static 'autre/plugins/bootstrap-switch/js/bootstrap-switch.min.js' %}"></script>
+  <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
+  <!-- AdminLTE for demo purposes -->
+  <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+  <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+  <script type="text/javascript">
+  $(document).ready(function () {
+    bsCustomFileInput.init();
+  });
+
+  $(document).ready(function () {
+      bsCustomFileInput.init();
+
+      //Initialize Select2 Elements
+      $('.select2').select2()
+
+      //Initialize Select2 Elements
+      $('.select2bs4').select2({
+        theme: 'bootstrap4'
+      })
+    })
+
+
+
+
+
+     
+$(document).ready(function () {
+    bsCustomFileInput.init();
+
+    // Variables
+    let produitsListe = [];
+
+    // Vérifie que les touches sont numériques pour la remise
+    $('#remise').on('keypress', function (e) {
+        if (!/[0-9]/.test(e.key)) e.preventDefault();
+    });
+
+    // Calcul du montant après remise
+    $('#remise').on('input', function () {
+        updateMontants();
+    });
+
+
+
+    // Récupération des détails du produit via AJAX
+    var dernierProduitData = null;
+    $('#idProduit').on('change', function () {
+        var produitId = $(this).val();
+        if (!produitId) {
+            $('#stock').val('');
+            $('#prixDetail').val('');
+            dernierProduitData = null;
+            return;
+        }
+        $.ajax({
+            url: "{% url 'get_produit_details' %}",
+            data: { produit_id: produitId },
+            success: function (data) {
+                if (data.success) {
+                    $('#stock').val(data.stock);
+                    $('#quantite').val(1);
+                    dernierProduitData = data;
+                    mettreAJourPrix();
+                } else {
+                    toastr.error("Erreur lors de la récupération des prix du produit.");
+                }
+            }
+        });
+    });
+
+    $('#typeVente').on('change', function () {
+        mettreAJourPrix();
+    });
+
+    function mettreAJourPrix() {
+        if (dernierProduitData) {
+            var typeVente = $('#typeVente').val();
+            $('#prixDetail').val(typeVente === 'detail' ? dernierProduitData.prix_detail : dernierProduitData.prix_en_gros);
+        }
+    }
+
+    // Ajouter un produit au tableau
+    $("#idAjouter, #btnAjouter").on("click", function (event) {
+        event.preventDefault();
+        let produitId = $("#idProduit").val();
+        let produitNom = $("#idProduit option:selected").text();
+        let quantite = Number($("#quantite").val());
+        let prixDetail = Number($("#prixDetail").val());
+
+        if (!produitId || !quantite || !prixDetail) {
+            toastr.error("Veuillez remplir tous les champs !");
+            return;
+        }
+
+        let exist = produitsListe.find(p => p.id == produitId);
+        if (exist) {
+            exist.quantite += quantite;
+        } else {
+            produitsListe.push({ id: produitId, nom: produitNom, quantite: quantite, prix: prixDetail });
+        }
+
+        refreshTable();
+
+        // Reset champs
+        $("#quantite").val('');
+        $("#prixDetail").val('');
+        $('#idProduit').val('').trigger('change');
+        $('#idProduit').select2('open');
+    });
+
+    // Supprimer un produit du tableau
+    $(document).on("click", ".btn-remove", function () {
+        let row = $(this).closest("tr");
+        let produitId = row.data("produit-id");
+        produitsListe = produitsListe.filter(p => p.id != produitId);
+        refreshTable();
+    });
+
+    function refreshTable() {
+        let tbody = $("#livraison-produits");
+        tbody.empty();
+        let total = 0;
+        produitsListe.forEach((item, index) => {
+            let montant = item.quantite * item.prix;
+            total += montant;
+            tbody.append(`
+                <tr data-produit-id="${item.id}">
+                    <td>${index + 1}</td>
+                    <td>${item.nom}</td>
+                    <td class="text-center">${item.quantite}</td>
+                    <td class="text-center">${item.prix}</td>
+                    <td class="text-center" montant="${montant}">${montant}</td>
+                    <td><button type="button" class="btn btn-danger btn-sm btn-remove">Supprimer</button></td>
+                </tr>
+            `);
+        });
+        // Mettre à jour le champ caché JSON si nécessaire pour le formulaire
+        $("#jsonDataInput").val(JSON.stringify(produitsListe));
+
+        updateMontants();
+    }
+
+    function updateMontants() {
+        let total = produitsListe.reduce((acc, p) => acc + (p.prix * p.quantite), 0);
+        $("#netPayer").val(total);
+        let remise = Number($("#remise").val()) || 0;
+        $("#montantVente").val((total - remise).toLocaleString('fr-FR'));
+    }
+
+    // Afficher/Masquer champs Pret
+    const typePayement = document.getElementById('typePayement');
+    const lgClient = document.getElementById('lgClient');
+    const lgEcheance = document.getElementById('lgEcheance');
+
+    function togglePret() {
+        if (typePayement.value === 'Pret') {
+            lgClient.style.display = 'flex';
+            lgEcheance.style.display = 'flex';
+        } else {
+            lgClient.style.display = 'none';
+            lgEcheance.style.display = 'none';
+        }
+    }
+    typePayement.addEventListener('change', togglePret);
+    togglePret();
+
+    // Ajout via Enter
+    let enterPressed = false;
+    $("#idProduit").on("keydown", function(e) {
+        if(e.key === "Enter") enterPressed = true;
+    });
+    $("#idProduit").on("blur", function() {
+        if(enterPressed) { $("#btnAjouter").trigger("click"); enterPressed = false; }
+    });
+
+    // Empêcher double soumission
+    $("form").on("submit", function(e){
+        let submitBtn = $(this).find(":submit");
+        if(submitBtn.prop("disabled")) { e.preventDefault(); return false; }
+        submitBtn.prop("disabled", true).text("Enregistrement...");
+    });
+
+
+
+
+
+
+
     
-{% endblock %}
+  $("#btnExportPDF").on("click", function (event) {
+    event.preventDefault();
+      let donnees = [];
+      $("#livraison-produits tr").each(function () {
+          let tds = $(this).find("td");
 
-{% block corp %}
+          // Skip rows without enough data (e.g., header or empty row)
+          if (tds.length < 5) return;
 
- 
+          let produit = {
+              id: $(this).data("produit-id"),
+              produit: tds.eq(1).text().trim(),
+              quantite: parseFloat(tds.eq(2).text().trim()) || 0,
+              prix: parseFloat(tds.eq(3).text().trim()) || 0,
+              montant: parseFloat(tds.eq(4).text().trim()) || 0,
+          };
 
- 
+          donnees.push(produit);
+      });
 
-    <!-- jQuery -->
-   
+      // Convertir les données en JSON et les mettre dans le champ caché
+      $("#jsonDataInputPdf").val(JSON.stringify(donnees));
+
+      // Soumettre le formulaire
+      $("#formExportPDF").submit();
+  });
 
 
-  {% endblock %}
+
+
+
+  
+// Retour des produits
+$("#btnRetour").on("click", function () {
+  let lignes = [];
+  let userConfirmed = confirm("Confirmez-vous le retour des produits ?");
+
+  if (!userConfirmed) return;
+
+  $("#livraison-produits tr").each(function () {
+    let produitNom = $(this).find("td:eq(1)").text().trim();
+    let quantite = parseInt($(this).find("td:eq(2)").text().trim());
+    let prix = parseInt($(this).find("td:eq(3)").text().trim());
+
+    // Tu dois avoir un mapping produitNom -> produit_id, sinon tu peux stocker l'ID dans un attribut <tr data-produit-id="xx">
+    let produitId = $(this).data("produit-id");
+
+    if (!produitId) {
+      toastr.error("Produit ID manquant pour " + produitNom);
+      return;
+    }
+
+    lignes.push({
+      produit_id: produitId,
+      quantite: quantite,
+      prix: prix
+    });
+  });
+
+  if (lignes.length === 0) {
+    toastr.warning("Aucun produit à retourner.");
+    return;
+  }
+
+  $.ajax({
+    url: "{% url 'ajouter_retours' %}",
+    type: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    data: JSON.stringify({ retours: lignes }),
+    contentType: "application/json",
+    success: function (response) {
+      if (response.success) {
+        toastr.success("Produits retournés avec succès !");
+        location.reload(); // Recharge la page pour mettre à jour l'état
+      } else {
+        toastr.error("Erreur: " + response.message);
+      }
+    },
+    error: function (xhr) {
+      toastr.error("Erreur serveur.");
+    }
+  });
+});
+
+
+
+
+
+
+});
+
+
+
+
+
+
+
+
+
+
+$(function() {
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000
+  });
+
+  $('.swalDefaultSuccess').click(function() {
+    Toast.fire({
+      icon: 'success',
+      title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.swalDefaultInfo').click(function() {
+    Toast.fire({
+      icon: 'info',
+      title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.swalDefaultError').click(function() {
+    Toast.fire({
+      icon: 'error',
+      title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.swalDefaultWarning').click(function() {
+    Toast.fire({
+      icon: 'warning',
+      title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.swalDefaultQuestion').click(function() {
+    Toast.fire({
+      icon: 'question',
+      title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+
+  $('.toastrDefaultSuccess').click(function() {
+    toastr.success('Enregistrement reussi.')
+  });
+  $('.toastrDefaultInfo').click(function() {
+    toastr.info('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
+  });
+  $('.toastrDefaultError').click(function() {
+    toastr.error('Operation non effectuée.')
+  });
+  $('.toastrDefaultWarning').click(function() {
+    toastr.warning('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
+  });
+
+  $('.toastsDefaultDefault').click(function() {
+    $(document).Toasts('create', {
+      title: 'Toast Title',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultTopLeft').click(function() {
+    $(document).Toasts('create', {
+      title: 'Toast Title',
+      position: 'topLeft',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultBottomRight').click(function() {
+    $(document).Toasts('create', {
+      title: 'Toast Title',
+      position: 'bottomRight',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultBottomLeft').click(function() {
+    $(document).Toasts('create', {
+      title: 'Toast Title',
+      position: 'bottomLeft',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultAutohide').click(function() {
+    $(document).Toasts('create', {
+      title: 'Toast Title',
+      autohide: true,
+      delay: 750,
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultNotFixed').click(function() {
+    $(document).Toasts('create', {
+      title: 'Toast Title',
+      fixed: false,
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultFull').click(function() {
+    $(document).Toasts('create', {
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      icon: 'fas fa-envelope fa-lg',
+    })
+  });
+  $('.toastsDefaultFullImage').click(function() {
+    $(document).Toasts('create', {
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      image: '../../dist/img/user3-128x128.jpg',
+      imageAlt: 'User Picture',
+    })
+  });
+  $('.toastsDefaultSuccess').click(function() {
+    $(document).Toasts('create', {
+      class: 'bg-success', 
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultInfo').click(function() {
+    $(document).Toasts('create', {
+      class: 'bg-info', 
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultWarning').click(function() {
+    $(document).Toasts('create', {
+      class: 'bg-warning', 
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultDanger').click(function() {
+    $(document).Toasts('create', {
+      class: 'bg-danger', 
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+  $('.toastsDefaultMaroon').click(function() {
+    $(document).Toasts('create', {
+      class: 'bg-maroon', 
+      title: 'Toast Title',
+      subtitle: 'Subtitle',
+      body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+    })
+  });
+});
+
+</script>
+
+
+<script type="text/javascript">
+  $(function(){
+    {% if recu_url %}
+      if (confirm("Voulez-vous imprimer la facture ?")) {
+        window.open("{% url 'commerce_recu' pk=venteId %}", "_blank");
+      }
+    {% endif %}
+  });
+</script>
+
+
+
+</body>
+
+</html>

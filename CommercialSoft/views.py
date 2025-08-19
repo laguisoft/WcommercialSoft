@@ -130,6 +130,7 @@ def fournisseur_edit(request, pk):
 
 
  # Example for Patient Views
+@user_passes_test(est_administrateur)
 @login_required
 def fournisseur_delete(request, pk):
     fournisseur = get_object_or_404(Fournisseur, pk=pk)
@@ -639,7 +640,7 @@ def recherche_produit_livrer(request):
 
 
 
-
+"""
 @login_required
 def vente_create(request):
     if request.method == 'POST':
@@ -725,6 +726,118 @@ def vente_create(request):
         'pret_form':pret_form,
         'listes': produits,
     })
+"""
+
+
+
+
+
+
+@login_required
+def vente_creates(request):
+    if request.method == 'POST':
+        commande_form = CommandeForm(request.POST)
+        pret_form = pretClientForm(request.POST)
+        produits_json = request.POST.get('jsonDataInput', '[]')  # JSON envoyé depuis JS
+        try:
+            produits_data = json.loads(produits_json)
+        except json.JSONDecodeError:
+            produits_data = []
+
+        if commande_form.is_valid() and (not produits_data == []):
+            with transaction.atomic():
+                try:
+                    # Création de la commande
+                    commande = commande_form.save(commit=False)
+                    commande.user = request.user
+                    commande.montantAchat = 0
+                    commande.save()
+
+                    montantAchat = 0
+                    montantTotal = 0
+
+                    for item in produits_data:
+                        produit_id = item.get('id')
+                        quantite = int(item.get('quantite', 0))
+                        prix = int(item.get('prix', 0))
+
+                        if not produit_id or quantite <= 0:
+                            continue
+
+                        produit = Produit.objects.get(id=produit_id)
+
+                        if quantite > produit.quantite:
+                            messages.error(request, f"La quantité de {produit.libelle} est insuffisante.")
+                            continue
+
+                        produit.quantite -= quantite
+                        produit.save()
+
+                        CommandeProduit.objects.create(
+                            commande=commande,
+                            produit=produit,
+                            quantite=quantite,
+                            prix=prix
+                        )
+
+                        montantAchat += produit.prixAchat * quantite
+                        montantTotal += prix * quantite
+
+                    commande.montantAchat = montantAchat
+                    commande.montant = montantTotal
+                    commande.save()
+
+                    # Gestion Pret
+                    if commande.typePayement == "Pret":
+                        pret_form.fields['client'].required = True
+                        if pret_form.is_valid():
+                            pret = pret_form.save(commit=False)
+                            pret.commande = commande
+                            pret.user = request.user
+                            pret.montant = commande.montant
+                            pret.date = commande.date
+                            pret.payer = "Non"
+                            pret.save()
+                            commande.client = pret.client
+                            commande.save()
+                        else:
+                            messages.error(request, "Erreur dans le formulaire de Pret.")
+                    else:
+                        pret_form.fields['client'].required = False
+
+                    messages.success(request, "Enregistrement réussi !")
+
+                    # Préparer les formulaires vides pour réaffichage
+                    commande_form = CommandeForm()
+                    pret_form = pretClientForm()
+                    produits = Produit.objects.all()
+                    return render(request, 'CommercialSoft/vente.html', {
+                        'commande_form': commande_form,
+                        'pret_form': pret_form,
+                        'listes': produits,
+                        'recu_url': '/commerce_recu',
+                        'venteId': commande.id
+                    })
+                except Exception as e:
+                    messages.error(request, f"Erreur d'enregistrement: {e}")
+        else:
+            messages.error(request, "Formulaire incomplet ou aucun produit sélectionné.")
+
+    # GET ou formulaire invalide
+    commande_form = CommandeForm()
+    pret_form = pretClientForm()
+    produits = Produit.objects.all()
+    return render(request, 'CommercialSoft/vente.html', {
+        'commande_form': commande_form,
+        'pret_form': pret_form,
+        'listes': produits
+    })
+
+
+
+
+
+
 
 
 
@@ -1123,7 +1236,7 @@ def vente_delete(request, pk):
 
 
 
-
+@user_passes_test(est_administrateur, est_gestionnaire)
 @login_required
 def commandeP_delete(request):
     myid = request.POST.get("id")
@@ -3085,7 +3198,7 @@ def pdf_etat_reception_produit(request):
 
 
 
-
+@user_passes_test(est_administrateur)
 @login_required
 def caisse(request):
     # solde fournisseur

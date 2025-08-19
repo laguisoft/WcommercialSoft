@@ -45,7 +45,7 @@ class Livraison(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE)
     date=models.DateField(default=timezone.now)
     montant=models.BigIntegerField()
-    numeroFacture=models.CharField(max_length=20, unique=True, blank=True)
+    numeroFacture=models.CharField(max_length=20, unique=True, blank=True, null=True)
 
     def __str__(self):
         return self.fournisseur.nom
