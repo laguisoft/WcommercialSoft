@@ -85,7 +85,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+"""
 
 # client gberedoudolar (commercialSoft)
 DATABASES = {
@@ -100,7 +100,7 @@ DATABASES = {
     }
 }
 
-
+"""
 
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
@@ -159,7 +159,7 @@ DATABASES = {
 }
 
 
-"""
+
 
 DATABASES = {
     'default': {
@@ -173,7 +173,7 @@ DATABASES = {
     }
 }
 
-
+"""
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
