@@ -3407,7 +3407,7 @@ def pdf_facture_proforma(request):
             total_formate = "{:,}".format(total).replace(",", " ")
             remise_formate = "{:,}".format(remise).replace(",", " ")
             total_net_formate = "{:,}".format(total_net).replace(",", " ")
-            print("Client ID:", idClient)
+
             context = {
                 'listes': donnees,
                 'boutique': infoBoutique,
@@ -3416,7 +3416,7 @@ def pdf_facture_proforma(request):
                 'total_net': total_net_formate,
                 'date': timezone.now().strftime("%Y-%m-%d"),
                 'client': Client.objects.get(id=idClient).nom if idClient else "",
-                'numero_client': Client.objects.get(id=idClient).matricule if idClient else "",
+                'numero_client': Client.objects.get(id=idClient).telephone if idClient else "",
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
