@@ -3395,7 +3395,7 @@ def pdf_facture_proforma(request):
             # Récupération de la remise (par défaut 0)
             remise = data.get("remise", 0)
 
-            idClient = data.get("clientId", None)
+            idClient = data.get("clientId", 0)
             
 
             # Calcul du total net après remise

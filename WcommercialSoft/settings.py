@@ -143,7 +143,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 
 DATABASES = {
@@ -172,7 +172,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 # Password validation
