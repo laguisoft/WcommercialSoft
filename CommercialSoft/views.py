@@ -3344,7 +3344,7 @@ def retours(request):
 
 
 
-
+"""
 @csrf_exempt
 def pdf_facture_proforma(request):
     if request.method == "POST":
@@ -3363,6 +3363,60 @@ def pdf_facture_proforma(request):
                 'boutique': infoBoutique,
                 'total': total_formate,
                 'date': timezone.now().strftime("%Y-%m-%d"),
+            }
+
+            return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
+
+        except Exception as e:
+            print("Erreur", e)
+            return HttpResponse("Erreur serveur : " + str(e), status=500)
+
+    return HttpResponse("Méthode non autorisée", status=405)
+"""
+
+
+
+
+
+def pdf_facture_proforma(request):
+    if request.method == "POST":
+        try:
+            data_json = request.POST.get('data')
+            data = json.loads(data_json)
+
+            infoBoutique = InfoBoutique.objects.first()
+
+            # Liste des articles
+            donnees = data.get("produits", [])
+
+            # Calcul du total brut
+            total = sum(item.get("montant", 0) for item in donnees)
+
+            # Récupération de la remise (par défaut 0)
+            remise = data.get("remise", 0)
+
+            idClient = data.get("clientId", None)
+            
+
+            # Calcul du total net après remise
+            total_net = total - remise
+            if total_net < 0:
+                total_net = 0  # éviter total négatif
+
+            # Formatage
+            total_formate = "{:,}".format(total).replace(",", " ")
+            remise_formate = "{:,}".format(remise).replace(",", " ")
+            total_net_formate = "{:,}".format(total_net).replace(",", " ")
+            print("Client ID:", idClient)
+            context = {
+                'listes': donnees,
+                'boutique': infoBoutique,
+                'total': total_formate,
+                'remise': remise_formate,
+                'total_net': total_net_formate,
+                'date': timezone.now().strftime("%Y-%m-%d"),
+                'client': Client.objects.get(id=idClient).nom if idClient else "",
+                'numero_client': Client.objects.get(id=idClient).matricule if idClient else "",
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)

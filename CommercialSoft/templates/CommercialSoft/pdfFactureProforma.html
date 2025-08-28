@@ -167,11 +167,16 @@
         
         
         <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture N°____</h1>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">Nom client : _______________________________</h2>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;"> Telephone : _______________________________</h2>
-        <h2 style="color: #2d3e50;font-size: 20px; padding: 0px; margin: 0px;">      Date : {{ date }}</h2>
+        {% if client %}
+        <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Nom client : {{client}}</h3>
+        <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;"> Telephone : {{numero_client}}</h3>
+        {% else %}
+        <h2 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Nom client : ______________________________</h2>
+        <h2 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;"> Telephone : ______________________________</h2>
+        {% endif %}
+        <h2 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">      Date : {{ date }}</h2>
         
-        <h2 style="text-align: center;color: #0c0d0f;font-size: 25px; padding: 0px; margin: 0px;">Liste des produits</h2>
+        <h2 style="text-align: center;color: #0c0d0f;font-size: 18px; padding: 0px; margin: 0px;">Liste des produits</h2>
         <div class="details">
             <table style="border: solid 1px; width: 100%;">
                 <thead>
@@ -184,7 +189,7 @@
                 <tbody>
                     {% if listes %}
                     {% for liste in listes %}
-                      <tr style="font-size: 12px;">
+                      <tr style="font-size: 14px;">
                         <td style="text-align: center;">{{ forloop.counter }}</td>
                         <td >{{ liste.produit }}</td>
                         <td style="text-align: center;">{{ liste.quantite }}</td>
@@ -194,16 +199,16 @@
                     {% endfor %}
                     <tr></tr>
                     <tr style="border: none;">
-                        <td colspan="4" style="text-align: right; border: none; padding: 0px; margin: 0px;"><h2>Total</h2></td>
+                        <td colspan="4" style="text-align: right; border: none;"><h2>Total</h2></td>
                         <td style="border: none; padding: 0px; margin: 0px;"><h2>{{total}} GNF</h2></td>
                     </tr>
                     <tr style="border: none;">
                         <td colspan="4" style="text-align: right; border: none;"><h2>Remise</h2></td>
-                        <td  style="border: none; padding: 0px; margin: 0px;"><h2>{{total}} GNF</h2></td>
+                        <td  style="border: none; padding: 0px; margin: 0px;"><h2>{{remise}} GNF</h2></td>
                     </tr>
-                    <tr style="border: none;">
-                        <td colspan="4" style="text-align: right; border: none;"><h2>Net a payer</h2></td>
-                        <td style="border: none; padding: 0px; margin: 0px;"><h2>100.000.000 GNF</h2></td>
+                    <tr style="border: none; background-color:#ddd; display: flex; align-items: center;">
+                        <td colspan="4" style="text-align: right; border: none; color:forestgreen;"><h2>NET A PAYER</h2></td>
+                        <td style="border: none; padding: 0px; margin: 0px; color: forestgreen"><h2>{{total_net}} GNF</h2></td>
                     </tr>
                   {% else %}
                     <tr>
@@ -215,9 +220,7 @@
         </div>
         
         <table style="border: none; margin-top: 40px;">
-            <td style="border: none;">
-                <h1>Total : {{total}} GNF</h1>
-            </td>
+            
         </table>
 
     </div>

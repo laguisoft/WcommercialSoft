@@ -505,34 +505,38 @@ $(document).ready(function () {
 
 
 
-
-    
-  $("#btnExportPDF").on("click", function (event) {
+$("#btnExportPDF").on("click", function (event) {
     event.preventDefault();
-      let donnees = [];
-      $("#livraison-produits tr").each(function () {
-          let tds = $(this).find("td");
+    let donnees = [];
+    $("#livraison-produits tr").each(function () {
+        let tds = $(this).find("td");
+        if (tds.length < 5) return;
 
-          // Skip rows without enough data (e.g., header or empty row)
-          if (tds.length < 5) return;
+        let produit = {
+            id: $(this).data("produit-id"),
+            produit: tds.eq(1).text().trim(),
+            quantite: parseFloat(tds.eq(2).text().trim()) || 0,
+            prix: parseFloat(tds.eq(3).text().trim()) || 0,
+            montant: parseFloat(tds.eq(4).text().trim()) || 0,
+        };
+        donnees.push(produit);
+    });
 
-          let produit = {
-              id: $(this).data("produit-id"),
-              produit: tds.eq(1).text().trim(),
-              quantite: parseFloat(tds.eq(2).text().trim()) || 0,
-              prix: parseFloat(tds.eq(3).text().trim()) || 0,
-              montant: parseFloat(tds.eq(4).text().trim()) || 0,
-          };
+    let remise = parseFloat($("#remise").val()) || 0;
+    let clientId = 0;
+    if ($("#typePayement").val() === 'Pret') {
+        clientId = $("#clientid").val();
+    }
 
-          donnees.push(produit);
-      });
+    let dataFinale = {
+        produits: donnees,
+        remise: remise,
+        clientId: clientId
+    };
 
-      // Convertir les données en JSON et les mettre dans le champ caché
-      $("#jsonDataInputPdf").val(JSON.stringify(donnees));
-
-      // Soumettre le formulaire
-      $("#formExportPDF").submit();
-  });
+    $("#jsonDataInputPdf").val(JSON.stringify(dataFinale));
+    $("#formExportPDF").submit();
+});
 
 
 
