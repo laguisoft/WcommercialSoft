@@ -82,7 +82,9 @@
                     <li><a href="{% url 'commerce_listeClient' %}">Liste clients</a></li>
                   </ul>
                 </li>
-                <li><a href="{% url 'commerce_societe' %}" >Societe</a></li>
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
+                  <li><a href="{% url 'commerce_societe' %}" >Societe</a></li>
+                {% endif %}
               </ul>
             </li>
             <li class="dropdown"><a href="#"><span>Produit</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
@@ -111,14 +113,17 @@
                     <li><a href="{% url 'detailVente' %}">Detail vente</a></li>
                   </ul>
                 </li>
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                 <li><a href="{% url 'commerce_beneficeSurVente' %}">Benefice sur vente</a></li>
                 <li><a href="{% url 'commerce_venteParClient' %}">Vente par clients</a></li>
                 <li><a href="{% url 'commerce_venteParPayement' %}">Vente par payement</a></li>
                 <li><a href="{% url 'commerce_venteParType' %}">Vente par type vente</a></li>
+                {% endif %}
                 <li><a href="{% url 'retours' %}">Liste des retours</a></li>
                 
               </ul>
             </li>
+            {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
             <li class="dropdown"><a href="#"><span>Fournisseur</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="{% url 'commerce_fournisseur' %}">Nouveau fournisseur</a></li>
@@ -131,6 +136,7 @@
                 </li>
               </ul>
             </li>
+            {% endif %}
             <li class="dropdown"><a href="#"><span>Comptabilité</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li class="dropdown"><a href="#"><span>Versement</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
@@ -141,12 +147,14 @@
                         <li><a href="{% url 'commerce_listeVersementClient' %}">Liste versement</a></li>
                       </ul>
                     </li>
+                    {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                     <li class="dropdown"><a href="#"><span>Versement Gerant</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                       <ul>
                         <li><a href="{% url 'commerce_versementGerant' %}">Versement</a></li>
                         <li><a href="{% url 'commerce_listeVersementGerant' %}">Liste versement</a></li>
                       </ul>
                     </li>
+                    {% endif %}
                   </ul>
                 </li>
                 <li class="dropdown"><a href="#"><span>Depense</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
@@ -165,9 +173,12 @@
                 <li class="dropdown"><a href="#"><span>Situation</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
                     <li><a href="{% url 'commerce_listeClient' %}">Situation Clients</a></li>
+                    {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                     <li><a href="{% url 'commerce_situationBoutique' %}">Situation boutique</a></li>
+                    {% endif %}
                   </ul>
                 </li>
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                 <li><a href="{% url 'inventaire' %}">Inventaire</a></li>
                 <li class="dropdown"><a href="#"><span>Parametrage</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
@@ -175,8 +186,11 @@
                     <li><a href="#">Sauvegarde</a></li>
                   </ul>
                 </li>
+                {% endif %}
                 <li><a href="{% url 'commerce_bilan' %}">Billan</a></li>
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                 <li><a href="{% url 'caisse' %}">Caisse</a></li>
+                {% endif %}
               </ul>
             </li>
           </ul>
