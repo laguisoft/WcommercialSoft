@@ -3426,3 +3426,90 @@ def pdf_facture_proforma(request):
             return HttpResponse("Erreur serveur : " + str(e), status=500)
 
     return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+
+
+
+
+# views.py
+import pandas as pd
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import UploadFileForm
+from .models import Societe, Client, Produit, Categorie
+
+def import_excel_view(request):
+    if request.method == "POST":
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            fichier_excel = request.FILES["fichier"]
+            table = form.cleaned_data["table"]
+
+            try:
+                df = pd.read_excel(fichier_excel)
+
+                if table == "societe":
+                    for _, row in df.iterrows():
+                        Societe.objects.update_or_create(
+                            nom=row["nom"],
+                            defaults={
+                                "adresse": row.get("adresse", None),
+                                "telephone": row.get("telephone", None),
+                            }
+                        )
+
+                elif table == "client":
+                    for _, row in df.iterrows():
+                        societe_obj = None
+                        if "societe" in df.columns and not pd.isna(row["societe"]):
+                            societe_obj, _ = Societe.objects.get_or_create(nom=row["societe"])
+
+                        Client.objects.update_or_create(
+                            nom=row["nom"],
+                            defaults={
+                                "societe": societe_obj,
+                                "telephone": row.get("telephone", None),
+                                "adresse": row.get("adresse", None),
+                                "email": row.get("email", None),
+                                "matricule": row.get("matricule", None),
+                                "pourcentage": row.get("pourcentage", 0),
+                                "detteMaximale": row.get("detteMaximale", 0),
+                            }
+                        )
+
+                elif table == "produit":
+                    for _, row in df.iterrows():
+                        categorie_obj = None
+                        if "categorie" in df.columns and not pd.isna(row["categorie"]):
+                            categorie_obj, _ = Categorie.objects.get_or_create(nom=row["categorie"])
+
+                        Produit.objects.update_or_create(
+                            libelle=row["libelle"],
+                            defaults={
+                                "codebare": row.get("codebare", None),
+                                "categorie": categorie_obj,
+                                "quantite": row.get("quantite", 0),
+                                "prixAchat": row.get("prixAchat", 0),
+                                "prixEnGros": row.get("prixEnGros", 0),
+                                "prixDetail": row.get("prixDetail", 0),
+                                "date": row.get("date", None),
+                                "datePeremption": row.get("datePeremption", None),
+                                "seuil": row.get("seuil", 0),
+                                "commentaire": row.get("commentaire", None),
+                                "quantiteTotal": row.get("quantiteTotal", 0),
+                            }
+                        )
+
+                messages.success(request, f"✅ Import réussi dans la table {table}")
+                return redirect("chargeDonnee")
+
+            except Exception as e:
+                messages.error(request, f"❌ Erreur lors de l’import : {e}")
+
+    else:
+        form = UploadFileForm()
+
+    return render(request, "CommercialSoft/import_excel.html", {"form": form})

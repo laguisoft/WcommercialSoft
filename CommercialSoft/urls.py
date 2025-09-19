@@ -147,5 +147,10 @@ urlpatterns=[
 
 
 
+    
+    path('charge/donnee', views.import_excel_view,name="chargeDonnee"),
+
+
+
 
 ]

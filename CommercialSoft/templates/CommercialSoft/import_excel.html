@@ -1,0 +1,25 @@
+<!-- templates/import_excel.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Import Excel</title>
+</head>
+<body>
+    <h2>Importer un fichier Excel</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p style="color: {% if message.tags == 'success' %}green{% else %}red{% endif %};">
+                {{ message }}
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Importer</button>
+    </form>
+</body>
+</html>

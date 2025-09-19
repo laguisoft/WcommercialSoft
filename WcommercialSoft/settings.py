@@ -85,8 +85,9 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+"""
 
-
+"""
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -114,7 +115,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 
@@ -130,7 +131,7 @@ DATABASES = {
     }
 }
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -174,6 +175,18 @@ DATABASES = {
 }
 
 """
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'etsboboetfrere$dbCommercialSoft',  # Remplacez par le nom de votre base
+        'USER': 'etsboboetfrere',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
+        'HOST': 'etsboboetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        #'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
