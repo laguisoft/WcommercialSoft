@@ -181,7 +181,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'djimafa$db_djimafa',  # Remplacez par le nom de votre base
         'USER': 'djimafa',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
         'HOST': 'djimafa.mysql.pythonanywhere-services.com',  # Hôte MySQL
         #'HOST': 'localhost',  # Hôte MySQL
         'PORT': '3306',  # Port MySQL
