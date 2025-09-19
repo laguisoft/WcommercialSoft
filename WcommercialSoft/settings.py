@@ -179,10 +179,10 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'etsboboetfrere$dbCommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'etsboboetfrere',         # Remplacez par votre nom d'utilisateur
+        'NAME': 'djimafa$db_djimafa',  # Remplacez par le nom de votre base
+        'USER': 'djimafa',         # Remplacez par votre nom d'utilisateur
         'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
-        'HOST': 'etsboboetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'djimafa.mysql.pythonanywhere-services.com',  # Hôte MySQL
         #'HOST': 'localhost',  # Hôte MySQL
         'PORT': '3306',  # Port MySQL
     }
