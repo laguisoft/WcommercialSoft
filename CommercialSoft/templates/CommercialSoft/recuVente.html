@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recette de Prestation</title>
     <style>
+       @media print {
+    body {
+        width: 80mm;        /* Largeur ticket */
+        margin: 0 auto;     /* Centrer le contenu */
+        font-size: 12px;
+    }
+
+    .container {
+        width: 100%;
+        padding: 5px;       /* Réduire marges internes */
+        box-shadow: none;   /* Supprimer les ombres */
+        border-radius: 0;
+    }
+
+   @page {
+    size: 226pt 1000pt;  /* largeur 80mm, hauteur */
+    margin: 5pt;
+}
+
+}
+
+
+
+
         /* Reset some basic styles */
         * {
             margin: 0;
@@ -16,12 +40,7 @@
             font-family: 'Arial', sans-serif;
             background-color: #f5f5f5;
             color: #333;
-            margin: 20px;
-
-
-            width: 80mm; /* Largeur d'un ticket standard (80mm) pour l'imprimante a ticket */
-            margin: 0;
-            padding: 0;
+            width: 80mm; /* Largeur d'un ticket standard (80mm) */
             font-size: 12px;
         }
 
@@ -35,30 +54,24 @@
             border-radius: 8px;
         }
 
+        /* HEADER FLEXBOX */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center; /* Centrer le texte dans chaque colonne */
+            margin-bottom: 10px;
+        }
+
         .header {
-            text-align: center;
-            margin: 0px;
-            padding: 0px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Aligner verticalement les éléments */
         }
 
-        .header h1 {
-            color: #2d3e50;
-            font-size: 36px;
-            margin: 0px;
-        }
-
-        .header h2 {
-            color: #2d3e50;
-            font-size: 25px;
-            margin: 0px;
-            padding: 0px;
-        }
-
-        .header p {
-            color: #7a8b8e;
-            font-size: 15px;
-            margin: 0px;
-            padding: 0px;
+        .gauche, .droite {
+            width: 50%; /* Assurer une répartition égale */
         }
 
         .logo {
@@ -72,17 +85,13 @@
         }
 
         .details {
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
 
         .details p {
             font-size: 18px;
-            color: black;
+            color: #444;
             margin-bottom: 10px;
-        }
-
-        .details strong {
-            color: black;
         }
 
         .table-container {
@@ -92,7 +101,7 @@
         }
 
         .table-container th, .table-container td {
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             border: 1px solid #ddd;
         }
@@ -108,7 +117,7 @@
         }
 
         .table-container td {
-            font-size: 16px;
+            font-size: 14px;
             color: #555;
         }
 
@@ -140,21 +149,20 @@
             border-radius: 5px;
         }
 
-
         table {
-    width: 100%;
-    border-collapse: collapse;
-}
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-th, td {
-    border: 1px solid black;
-    padding: 5px;
-    text-align: left;
-}
+        th, td {
+            border: 1px solid black;
+            padding: 3px;
+            text-align: left;
+        }
 
-th {
-    background-color: #f2f2f2;
-}
+        th {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 <body>
@@ -165,59 +173,67 @@ th {
             <table style="width: 100%; font-size: 14pt; border: none;">
                 <tr>
                     <!-- Colonne de gauche -->
-                    <td style="width: 50%; text-align: left; padding: 5px; border: none;">
-                        <strong style="font-size: 14pt;">{{ boutique.nom }}</strong><br>
-                        {{ boutique.telephone }}
+                    <td style="width: 60%; padding: 0px; border: none; padding-left: 4px;">
+                        <strong style="font-size: 9pt;">
+                            <span style="padding: 0px; margin: 0px;">{{ boutique.nom }}</span>
+                            <span style="padding: 0px; margin: 0px;">{{ boutique.emplacement }}</span>
+                        </strong>
                     </td>
             
                     <!-- Colonne de droite -->
-                    <td style="width: 50%; text-align: right; padding: 5px; border: none;">
-                        <strong style="font-size: 14pt;">{{ boutique.ville }}</strong><br>
-                        {{ boutique.emplacement }}
+                    <td style="width: 40%; text-align: right; padding-top: 5px; border: none; text-align: center;">
+                        <strong style="font-size: 9pt;">{{ boutique.ville }}
+                        {{ boutique.telephone }}</strong>
                     </td>
                 </tr>
             </table>
-            </br>
         </div>
-       
-        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Liste des produits</h1>
+        <h2 style="text-align: center; color: #2d3e50;font-size: 13px; padding: 0px; margin: 0px; margin: 0;">{{ commande.date }}</h2>
+        
+        <h1 style="color: #2d3e50;font-size: 14px; padding: 0px; margin: 0px;">N° : {{commande.id}}</h1>
+        {% if commande.client %}
+        <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Client : {{commande.client}}</h3>
+        {% else %}
+        <h2 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Client : __________________</h2>
+        {% endif %}
+        
+        
+        <h1 style="text-align: center;color: #2d3e50;font-size: 18px; padding: 0px; margin: 0px;">Liste des produits</h1>
 
         <div class="details">
             <table style="border: solid 1px; width: 100%;">
                 <thead>
-                    <th style="width: 10%;">N°</th>
-                    <th style="width: 40%;">Libelle</th>
-                    <th style="width: 15%;">Quanttite</th>
-                    <th style="width: 15%;">Prix U</th>
-                    <th style="width: 20%;">Montant</th>
+                    <th style="text-align: center; width: 48%; padding: 5px; margin: 0px;">Libelle</th>
+                    <th style="text-align: center; width: 12%; padding: 0px; margin: 0px;">Qte</th>
+                    <th style="text-align: center; width: 18%; padding: 0px; margin: 0px;">Prix U</th>
+                    <th style="text-align: center; width: 22%; padding: 0px; margin: 0px;">Montant</th>
                 </thead>
                 <tbody>
                     {% if listes %}
                     {% for liste in listes %}
                       <tr>
-                        <td >{{liste.id}}</td>
-                        <td>{{liste.produit.libelle}}</td>
-                        <td >{{liste.quantite}}</td>
-                        <td >{{liste.prix}}</td>
-                        <td>{{ liste.montant}} </td>
-
+                        <td style="text-align: left; color: black;">{{liste.produit.libelle}}</td>
+                        <td style="text-align: center; color: black;">{{liste.quantite}}</td>
+                        <td style="text-align: center; color: black;">{{liste.prix}}</td>
+                        <td style="text-align: center; color: black;">{{ liste.montant}} </td>
                       </tr>
                     {% endfor %}
-                    <tr>
-                        <td colspan="2" style="font-size: 15px;" ><h2>Total</h2> </td>
-                        <td colspan="3" style="font-size: 15px; text-align: center;"><h2>{{ total}}</h2> </td>
+                    <tr></tr>
+                    <tr style="border: none;">
+                        <td colspan="1" style="font-size: 14px; border: none; text-align: right;" ><h2>Total : </h2> </td>
+                        <td colspan="3" style="font-size: 14px; text-align: left; border: none;"><h2>{{ total}}</h2> </td>
                     </tr>
-                    <tr>
-                        <td colspan="2" style="font-size: 15px;" ><h2>Remise</h2> </td>
-                        <td colspan="3" style="font-size: 15px; text-align: center;"><h2>{{ remise}}</h2> </td>
+                    <tr style="border: none;">
+                        <td colspan="1" style="font-size: 14px; border: none; text-align: right;" ><h2>Remise : </h2> </td>
+                        <td colspan="3" style="font-size: 14px; border: none; text-align: left;"><h2>{{ remise}}</h2> </td>
                     </tr>
-                    <tr>
-                        <td colspan="2" style="font-size: 15px;" ><h2>Net</h2> </td>
-                        <td colspan="3" style="font-size: 15px; text-align: center;"><h2>{{ net}}</h2> </td>
+                    <tr style="border: none;">
+                        <td colspan="1" style="font-size: 15px; border: none; text-align: right;" ><h2>Net : </h2> </td>
+                        <td colspan="3" style="font-size: 15px; text-align: left; border: none;"><h2>{{ net}}</h2> </td>
                     </tr>
                   {% else %}
                     <tr>
-                      <td colspan="5" >Aucune ligne disponible pour le moment.</td>
+                      <td colspan="4" >Aucune ligne disponible.</td>
                     </tr>
                   {% endif %}
                 </tbody>
@@ -226,8 +242,7 @@ th {
         </div>
 
         <div class="footer" style="padding-top: 20px;">
-            <p>Adresse : {{boutique.emplacement}}, {{boutique.ville}}</p>
-            <p>Contact : +224 {{boutique.telephone}}</p>
+            <p style="color: black;">Le Gérant</p>
         </div>
 
         <div class="note">
