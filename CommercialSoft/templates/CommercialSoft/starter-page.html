@@ -73,6 +73,7 @@
         <nav id="navmenu" class="navmenu">
           <ul>
             <li><a href="{% url 'commerce_dashboard' %}">Home<br></a></li>
+            {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
             <li class="dropdown"><a href="#"><span>Nouveau</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="{% url 'accounts:register' %}" target="_blank">Collabarateur</a></li>
@@ -87,10 +88,13 @@
                 {% endif %}
               </ul>
             </li>
+            {% endif %}
             <li class="dropdown"><a href="#"><span>Produit</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
                 <li><a href="{% url 'commerce_produit' %}">Nouveau produit</a></li>
                 <li><a href="{% url 'produitDisponible' %}">Liste des produits</a></li>
+
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                 <li class="dropdown"><a href="#"><span>Reception</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
                     <li><a href="{% url 'commerce_reception' %}">Nouvelle reception</a></li>
@@ -98,6 +102,7 @@
                     <li><a href="{% url 'receptionParProduit' %}">Reception par produits</a></li>
                   </ul>
                 </li>
+                {% endif %}
                 <li><a href="{% url 'commerce_produitPerime' %}">Produits perime</a></li>
                 <li><a href="{% url 'commerce_produitEnRupture' %}">Produits en rupture</a></li>
                 <li><a href="{% url 'commerce_categorie' %}">Categorie</a></li>
@@ -182,7 +187,7 @@
                 <li><a href="{% url 'inventaire' %}">Inventaire</a></li>
                 <li class="dropdown"><a href="#"><span>Parametrage</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
-                    <li><a href="#">Utilisateur</a></li>
+                    <li><a href="{% url 'chargeDonnee' %}">importer</a></li>
                     <li><a href="#">Sauvegarde</a></li>
                   </ul>
                 </li>

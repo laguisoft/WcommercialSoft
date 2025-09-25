@@ -244,9 +244,9 @@
               montantVersement +=data.total_versement;
               montantBalance +=data.balance;
             });
-            $('#montantPret').html("Total : "+ montantPret.toLocaleString());
-            $('#montantVersement').html("Total : "+ montantVersement.toLocaleString());
-            $('#montantBalance').html("Total : "+ montantBalance.toLocaleString());
+            $('#montantPret').html("Total pret : "+ montantPret.toLocaleString());
+            $('#montantVersement').html("Total versement : "+ montantVersement.toLocaleString());
+            $('#montantBalance').html("Total balance : "+ montantBalance.toLocaleString());
           } else {
             patientsTable.append('<tr><td colspan="14" class="text-center">Aucun ligne trouvée.</td></tr>');
           }

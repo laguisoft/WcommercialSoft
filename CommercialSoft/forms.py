@@ -285,3 +285,18 @@ class VersementGerantForm(forms.ModelForm):
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
+
+
+
+
+
+# charger un fichier excel
+CHOIX_TABLES = [
+    ("societe", "Société"),
+    ("client", "Client"),
+    ("produit", "Produit"),
+]
+
+class UploadFileForm(forms.Form):
+    table = forms.ChoiceField(choices=CHOIX_TABLES, label="Table de destination")
+    fichier = forms.FileField(label="Choisir un fichier Excel")

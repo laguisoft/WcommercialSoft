@@ -88,6 +88,7 @@ DATABASES = {
 }
 """
 
+"""
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -174,6 +175,41 @@ DATABASES = {
     }
 }
 
+"""
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'djimafa$db_djimafa',  # Remplacez par le nom de votre base
+        'USER': 'djimafa',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        'HOST': 'djimafa.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        #'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
+
+"""
+if os.getenv("DJANGO_ENV") == "production":
+    # Base en ligne (MySQL sur PythonAnywhere)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': '3306',
+        }
+    }
+else:
+    # Base locale (SQLite)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 """
 
 # Password validation
