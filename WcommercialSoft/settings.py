@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-39-8ml6yoy4+vrl6e$m&i-gbsa(dn4hx*q=1-cqo-g_*7yr82g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'CommercialSoft',
     'accounts',
+    'pwa',
 ]
 
 MIDDLEWARE = [
@@ -78,7 +79,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -100,7 +101,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
@@ -227,3 +228,87 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+
+
+# Configuration du pwa
+PWA_APP_NAME = 'Laguisoft Technologie'
+PWA_APP_SHORT_NAME = 'LST'
+PWA_APP_DESCRIPTION = "Application de gestion commerciale Laguisoft"
+PWA_APP_THEME_COLOR = '#007bff'
+PWA_APP_BACKGROUND_COLOR = '#ffffff'
+PWA_APP_DISPLAY = 'standalone'
+PWA_APP_SCOPE = '/'
+PWA_APP_ORIENTATION = 'any'
+PWA_APP_START_URL = '/'
+PWA_APP_STATUS_BAR_COLOR = 'default'
+PWA_APP_ICONS = [
+    {
+        'src': '/static/images/icone_16x16.png',
+        'sizes': '16x16'
+    },
+    {
+        'src': '/static/images/icone_24x24.png',
+        'sizes': '24x24'
+    },
+    {
+        'src': '/static/images/icone_32x32.png',
+        'sizes': '32x32'
+    },
+    {
+        'src': '/static/images/icone_64x64.png',
+        'sizes': '64x64'
+    },
+    {
+        'src': '/static/images/icone_128x128.png',
+        'sizes': '128x128'
+    },
+    {
+        'src': '/static/images/icone_256x256.png',
+        'sizes': '256x256'
+    },
+    {
+        'src': '/static/images/icone_512x512.png',
+        'sizes': '512x512'
+    }
+]
+PWA_APP_ICONS_APPLE = [
+    {
+        'src': '/static/images/icone_16x16.png',
+        'sizes': '16x16'
+    },
+    {
+        'src': '/static/images/icone_24x24.png',
+        'sizes': '24x24'
+    },
+    {
+        'src': '/static/images/icone_32x32.png',
+        'sizes': '32x32'
+    },
+    {
+        'src': '/static/images/icone_64x64.png',
+        'sizes': '64x64'
+    },
+    {
+        'src': '/static/images/icone_128x128.png',
+        'sizes': '128x128'
+    },
+    {
+        'src': '/static/images/icone_256x256.png',
+        'sizes': '256x256'
+    },
+    {
+        'src': '/static/images/icone_512x512.png',
+        'sizes': '512x512'
+    }
+]
+PWA_APP_SPLASH_SCREEN = [
+    {
+        'src': '/static/images/icone_512x512.png',
+        'sizes': '512x512'
+    }
+]
+PWA_APP_DIR = 'ltr'
+PWA_APP_LANG = 'fr-FR'
+
+PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'CommercialSoft/static/js', 'serviceworker.js')

@@ -24,4 +24,7 @@ urlpatterns = [
     path('login/', include('accounts.urls')),
     path('accounts/', include('accounts.urls')),
     path('commerce/', include('CommercialSoft.urls')),
+    path('', include('pwa.urls')),  # expose manifest.json et serviceworker.js à la racine
+
+
 ]
