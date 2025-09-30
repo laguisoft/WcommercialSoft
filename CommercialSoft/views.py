@@ -51,6 +51,9 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
+
+                
+                request.session['user_connect'] = request.user
                 messages.success(request, 'Connexion réussie.')
                 return redirect('commerce_dashboard')  # Remplacez 'home' par le nom de votre page d'accueil
             else:
@@ -837,10 +840,11 @@ def vente_creates(request):
     commande_form = CommandeForm()
     pret_form = pretClientForm()
     produits = Produit.objects.all()
-    return render(request, 'CommercialSoft/vente.html', {
+    return render(request, 'CommercialSoft/vente2.html', {
         'commande_form': commande_form,
         'pret_form': pret_form,
-        'listes': produits
+        'listes': produits,
+        'user':request.user
     })
 
 
@@ -3550,3 +3554,101 @@ def import_excel_view(request):
         form = UploadFileForm()
 
     return render(request, "CommercialSoft/import_excel.html", {"form": form})
+
+
+
+
+
+
+#---------- Gestion horconnexion ---------------------------
+def api_produits(request):
+    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal"))
+    clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
+    return JsonResponse({
+        "produits": produits,
+        "clients": clients,
+    }, safe=False)
+
+
+
+# ---- Service worker à la racine ----
+# CommercialSoft/views.py
+from django.http import HttpResponse
+from django.template import loader
+
+def service_worker(request):
+    """
+    Retourne le Service Worker à la racine (/serviceworker.js)
+    """
+    template = loader.get_template("CommercialSoft/serviceworker.js")
+    return HttpResponse(template.render(), content_type="application/javascript")
+
+
+
+
+
+def offline(request):
+    return render(request, "CommercialSoft/offline.html")
+
+
+
+
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+import json
+
+@csrf_exempt  # à remplacer plus tard par un décorateur avec authentification/token
+def sync_ventes(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        ventes = data.get("ventes", [])
+        print(request.body)
+        for vente in ventes:
+            # Créer une Commande
+            
+            user_id=int(vente.get("user")) if vente.get("user") else request.user.id
+            client_id = vente.get("client")
+            commande = Commande.objects.create(
+                user=User.objects.get(id=user_id),
+                client = Client.objects.get(id=int(client_id)) if client_id else None,
+                montant=vente.get("montant"),
+                remise=vente.get("remise", 0),
+                date=vente.get("date", timezone.now().date()),
+                typeVente=vente.get("typeVente"),
+                typePayement=vente.get("typePayement", "Espece"),
+                montantAchat=0,
+            )
+            
+            montant_achat = 0
+
+            for item in vente.get("lignes", []):
+                produit = Produit.objects.get(id=int(item["produit_id"]))
+                quantite = int(item["quantite"])
+                prix = int(item["prix"])
+
+                # décrémenter le stock
+                produit.quantite -= quantite
+                produit.save()
+
+                CommandeProduit.objects.create(
+                    commande=commande,
+                    produit=produit,
+                    quantite=quantite,
+                    prix=prix,
+                    date=vente.get("date", timezone.now().date()),
+                )
+
+                montant_achat += produit.prixAchat * quantite
+
+            commande.montantAchat = montant_achat
+            commande.save()
+
+        return JsonResponse({"success": True, "message": "Ventes synchronisées"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)

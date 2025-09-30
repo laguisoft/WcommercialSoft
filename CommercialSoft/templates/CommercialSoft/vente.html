@@ -154,7 +154,9 @@
                                     <option value="0">--------</option>
                                     {% if listes %}
                                       {% for prod in listes %}
-                                      <option value="{{prod.id}}">{{prod.libelle}}</option>
+                                      <option value="{{prod.id}}" data-stock="{{ prod.quantite }}"  data-prix-detail="{{ prod.prixDetail }}" data-prix-engros="{{ prod.prixEngros }}">
+                                        {{prod.libelle}}
+                                      </option>
                                       {% endfor %}
                                     {% else %}
                                     <option >Aucun ligne trouvé</option>
@@ -259,7 +261,7 @@
               <div class="form-group ml-auto">
                 <button type="button" id="btnExportPDF" class="btn btn-info">Facture</button>
                 <button type="button" class="btn bg-fuchsia btn-md border" id="btnRetour">Retour</button>
-                <button type="submit" class="btn btn-primary btn-md border" form="LivraisonForm" >valider la vente</button>
+                <button type="submit" class="btn btn-primary btn-md border" form="LivraisonForm" id="btnValiderVente">valider la vente</button>
               </div>
             </div>
           </div>
@@ -322,6 +324,12 @@
   <!-- AdminLTE for demo purposes -->
   <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
   <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+
+  <script src="{% static 'js/localforage.min.js' %}"></script>
+  <script src="{% static 'js/offline-core.js' %}"></script>
+  <script src="{% static 'js/vente.js' %}"></script>
+
+
   <script type="text/javascript">
   $(document).ready(function () {
     bsCustomFileInput.init();
@@ -363,7 +371,7 @@ $(document).ready(function () {
 
 
     // Récupération des détails du produit via AJAX
-    var dernierProduitData = null;
+    /*var dernierProduitData = null;
     $('#idProduit').on('change', function () {
         var produitId = $(this).val();
         if (!produitId) {
@@ -386,7 +394,41 @@ $(document).ready(function () {
                 }
             }
         });
-    });
+    });*/
+
+
+
+var dernierProduitData = null;
+$('#idProduit').on('change', function () {
+    var selectedOption = $(this).find('option:selected');
+
+    if (!selectedOption.val()) {
+        $('#stock').val('');
+        $('#prixDetail').val('');
+        $('#prixEngros').val('');
+        dernierProduitData = null;
+        return;
+    }
+
+    var data = {
+        stock: selectedOption.data('stock'),
+        prix_detail: selectedOption.data('prix-detail'),
+        prix_en_gros: selectedOption.data('prix-engros')
+    };
+
+    $('#stock').val(data.stock);
+    $('#prixDetail').val(data.prix_detail);
+
+    $('#quantite').val(1);
+
+    dernierProduitData = data;
+    mettreAJourPrix();
+});
+
+
+
+
+
 
     $('#typeVente').on('change', function () {
         mettreAJourPrix();

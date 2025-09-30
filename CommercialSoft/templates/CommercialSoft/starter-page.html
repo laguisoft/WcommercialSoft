@@ -110,7 +110,7 @@
             </li>
             <li class="dropdown"><a href="#"><span>Vente</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
               <ul>
-                <li><a href="{% url 'commerce_vente' %}" target="_blank">Nouvelle vente</a></li>
+                <li><a href="{% url 'commerce_vente' %}">Nouvelle vente</a></li>
                 <li class="dropdown"><a href="#"><span>Liste des ventes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
                     <li><a href="{% url 'commerce_produitVendu' %}">Produits vendus</a></li>
@@ -246,6 +246,17 @@
 
 
   {% block js %}
+
+  <!-- Scripts PWA / Offline -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+  <script src="{% static 'js/register-sw.js' %}"></script>
+  <script src="{% static 'js/offline-core.js' %}"></script>
+
+  <!-- si tu veux logger automatiquement l’utilisateur -->
+  <script>
+    // Stocker l'id utilisateur connecté pour l'utiliser dans vente.js
+    window.USER_ID = "{{ request.user.id|default:0 }}";
+  </script>
 
   {% endblock %}
 

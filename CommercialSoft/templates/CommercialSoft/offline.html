@@ -1,0 +1,15 @@
+<!-- CommercialSoft/templates/CommercialSoft/offline.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mode hors connexion</title>
+  <link rel="stylesheet" href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}">
+</head>
+<body class="text-center p-5">
+  <h1>📴 Vous êtes hors ligne</h1>
+  <p>Pas de connexion internet. Vous pouvez continuer à saisir vos ventes.</p>
+  <a href="{% url 'commerce_vente' %}" class="btn btn-primary">Nouvelle vente</a>
+</body>
+</html>

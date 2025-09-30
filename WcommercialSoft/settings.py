@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-39-8ml6yoy4+vrl6e$m&i-gbsa(dn4hx*q=1-cqo-g_*7yr82g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -79,16 +79,16 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-"""
 
-"""
+
+
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -175,7 +175,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 DATABASES = {
     'default': {
@@ -210,7 +210,7 @@ else:
             'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         }
     }
-"""
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

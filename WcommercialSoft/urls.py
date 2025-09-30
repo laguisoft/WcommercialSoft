@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.urls import path, include
+from CommercialSoft import views as commerce_views
 
 urlpatterns = [
     path('', include('accounts.urls')),
@@ -24,7 +25,12 @@ urlpatterns = [
     path('login/', include('accounts.urls')),
     path('accounts/', include('accounts.urls')),
     path('commerce/', include('CommercialSoft.urls')),
-    path('', include('pwa.urls')),  # expose manifest.json et serviceworker.js à la racine
+    #path('', include('pwa.urls')),  # expose manifest.json et serviceworker.js à la racine
+    
+    # Pour la gestion hors ligne
+    path("serviceworker.js", commerce_views.service_worker, name="serviceworker"),
+    path("offline/", commerce_views.offline, name="offline"),
+
 
 
 ]

@@ -46,6 +46,8 @@ class Livraison(models.Model):
     date=models.DateField(default=timezone.now)
     montant=models.BigIntegerField()
     numeroFacture=models.CharField(max_length=20, unique=True, blank=True, null=True)
+    # pour la gestion hors ligne
+    client_uid = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
     def __str__(self):
         return self.fournisseur.nom
@@ -92,6 +94,8 @@ class Commande(models.Model):
     typeVente=models.CharField(max_length=15, default="detail", choices=[('detail','Detail'),('en gros','En gros')])
     typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret'),('Don','Don')])
     montantAchat=models.PositiveBigIntegerField()
+    # pour la gestion hors ligne
+    client_uid = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
     def __str__(self):
         return str(self.montant)
