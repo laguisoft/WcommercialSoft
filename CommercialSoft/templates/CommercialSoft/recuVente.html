@@ -175,38 +175,38 @@
                     <!-- Colonne de gauche -->
                     <td style="width: 60%; padding: 0px; border: none; padding-left: 4px;">
                         <strong style="font-size: 9pt;">
-                            <span style="padding: 0px; margin: 0px;">{{ boutique.nom }}</span>
-                            <span style="padding: 0px; margin: 0px;">{{ boutique.emplacement }}</span>
+                            <span style="padding: 0px; margin: 0px; color: black;">{{ boutique.nom }}</span>
+                            <span style="padding: 0px; margin: 0px; color: black;">{{ boutique.emplacement }}</span>
                         </strong>
                     </td>
             
                     <!-- Colonne de droite -->
-                    <td style="width: 40%; text-align: right; padding-top: 5px; border: none; text-align: center;">
+                    <td style="width: 40%; text-align: right; padding-top: 5px; border: none; text-align: center; color: black;">
                         <strong style="font-size: 9pt;">{{ boutique.ville }}
                         {{ boutique.telephone }}</strong>
                     </td>
                 </tr>
             </table>
         </div>
-        <h2 style="text-align: center; color: #2d3e50;font-size: 13px; padding: 0px; margin: 0px; margin: 0;">{{ commande.date }}</h2>
+        <h2 style="text-align: center; color: black;font-size: 13px; padding: 0px; margin: 0px; margin: 0; ">{{ commande.date }}</h2>
         
-        <h1 style="color: #2d3e50;font-size: 14px; padding: 0px; margin: 0px;">N° : {{commande.id}}</h1>
+        <h1 style="color: black;font-size: 14px; padding: 0px; margin: 0px;">N° : {{commande.id}}</h1>
         {% if commande.client %}
-        <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Client : {{commande.client}}</h3>
+        <h3 style="color: black;font-size: 15px; padding: 0px; margin: 0px;">Client : {{commande.client}}</h3>
         {% else %}
-        <h2 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Client : __________________</h2>
+        <h2 style="color: black;font-size: 15px; padding: 0px; margin: 0px;">Client : __________________</h2>
         {% endif %}
         
         
-        <h1 style="text-align: center;color: #2d3e50;font-size: 18px; padding: 0px; margin: 0px;">Liste des produits</h1>
+        <h1 style="text-align: center;color: black;font-size: 18px; padding: 0px; margin: 0px;">Liste des produits</h1>
 
         <div class="details">
             <table style="border: solid 1px; width: 100%;">
                 <thead>
-                    <th style="text-align: center; width: 48%; padding: 5px; margin: 0px;">Libelle</th>
-                    <th style="text-align: center; width: 12%; padding: 0px; margin: 0px;">Qte</th>
-                    <th style="text-align: center; width: 18%; padding: 0px; margin: 0px;">Prix U</th>
-                    <th style="text-align: center; width: 22%; padding: 0px; margin: 0px;">Montant</th>
+                    <th style="text-align: center; width: 48%; padding: 5px; margin: 0px; color: black;"><h3>Libelle</h3></th>
+                    <th style="text-align: center; width: 12%; padding: 0px; margin: 0px; color: black;"><h3>Qte</h3></th>
+                    <th style="text-align: center; width: 18%; padding: 0px; margin: 0px; color: black;"><h3>Prix U</h3></th>
+                    <th style="text-align: center; width: 22%; padding: 0px; margin: 0px; color: black;"><h3>Montant</h3></th>
                 </thead>
                 <tbody>
                     {% if listes %}
@@ -220,16 +220,16 @@
                     {% endfor %}
                     <tr></tr>
                     <tr style="border: none;">
-                        <td colspan="1" style="font-size: 14px; border: none; text-align: right;" ><h2>Total : </h2> </td>
-                        <td colspan="3" style="font-size: 14px; text-align: left; border: none;"><h2>{{ total}}</h2> </td>
+                        <td colspan="1" style="font-size: 14px; border: none; text-align: right; color: black;" ><h2>Total : </h2> </td>
+                        <td colspan="3" style="font-size: 14px; text-align: left; border: none; color: black;"><h2>{{ total}}</h2> </td>
                     </tr>
                     <tr style="border: none;">
-                        <td colspan="1" style="font-size: 14px; border: none; text-align: right;" ><h2>Remise : </h2> </td>
-                        <td colspan="3" style="font-size: 14px; border: none; text-align: left;"><h2>{{ remise}}</h2> </td>
+                        <td colspan="1" style="font-size: 14px; border: none; text-align: right; color: black;" ><h2>Remise : </h2> </td>
+                        <td colspan="3" style="font-size: 14px; border: none; text-align: left; color: black;"><h2>{{ remise}}</h2> </td>
                     </tr>
                     <tr style="border: none;">
-                        <td colspan="1" style="font-size: 15px; border: none; text-align: right;" ><h2>Net : </h2> </td>
-                        <td colspan="3" style="font-size: 15px; text-align: left; border: none;"><h2>{{ net}}</h2> </td>
+                        <td colspan="1" style="font-size: 15px; border: none; text-align: right; color: black;" ><h2>Net : </h2> </td>
+                        <td colspan="3" style="font-size: 15px; text-align: left; border: none; color: black;"><h2>{{ net}}</h2> </td>
                     </tr>
                   {% else %}
                     <tr>
@@ -242,7 +242,7 @@
         </div>
 
         <div class="footer" style="padding-top: 20px;">
-            <p style="color: black;">Le Gérant</p>
+            <p style="color: black;"><h3>Le Gérant</h3></p>
         </div>
 
         <div class="note">
