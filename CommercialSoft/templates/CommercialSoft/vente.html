@@ -526,6 +526,7 @@ $('#idProduit').on('change', function () {
     typePayement.addEventListener('change', togglePret);
     togglePret();
 
+    
     // Ajout via Enter
     let enterPressed = false;
     $("#idProduit").on("keydown", function(e) {
@@ -550,7 +551,7 @@ $('#idProduit').on('change', function () {
 $("#btnExportPDF").on("click", function (event) {
     event.preventDefault();
     let donnees = [];
-    $("#livraison-produits tr").each(function () {
+    $("#panier tr").each(function () {
         let tds = $(this).find("td");
         if (tds.length < 5) return;
 

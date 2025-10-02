@@ -45,6 +45,7 @@ urlpatterns=[
     path('vente/commande/modification/<int:pk>/', views.modifier_commande,name="commerce_modVente"),
     path('vente/commande/suppression/', views.commandeP_delete,name="commerce_commandePDelete"),
     path('vente/recu/<int:pk>/', views.recu,name="commerce_recu"),
+    path("recu-offline/", views.recu_offline, name="recu_offline"),
     path('vente/produitVendu', views.produit_vendu, name="commerce_produitVendu"),
     path('vente/recherche/vente', views.recherche_vente,name="rechercheVente"),
     path('vente/produitParVente', views.produit_par_vente, name="produitParVente"),

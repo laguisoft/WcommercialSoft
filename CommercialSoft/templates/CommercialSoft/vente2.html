@@ -54,6 +54,36 @@
   * Author: BootstrapMade.com
   * License: https://bootstrapmade.com/license/
   ======================================================== -->
+  <style>
+    .suggestions {
+  border: 1px solid #ccc;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  position: absolute;
+  background: white;
+  width: 100%;
+  z-index: 1000;
+}
+
+.suggestions li {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.suggestions li:hover {
+  background: #eee;
+}
+
+.suggestions li.active-suggestion {
+  background-color: #007bff;
+  color: white;
+}
+
+
+  </style>
 </head>
 
 <body class="starter-page-page vh-100">
@@ -64,7 +94,7 @@
       <div class="topbar d-flex align-items-center">
         <div class="container d-flex justify-content-center justify-content-md-between">
           <div class="contact-info d-flex align-items-center">
-            <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil2</a></i>
+            <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
             
           </div>
           <div class="social-links d-none d-md-flex align-items-center">
@@ -148,6 +178,13 @@
                       <div class="row" id="formset-container">
                           <div class="formset-item">
                             <div class="row">
+                              <div class="form-group position-relative">
+                                <label>Produit</label>
+                                <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
+                                <ul id="suggestions" class="suggestions" style="width: 100%;"></ul>
+                              </div>
+                            </div>
+                            <div class="row">
                               <div class="col-md-12">
                                 <div class="form-group">
                                   <label>Produit</label>
@@ -193,7 +230,7 @@
                       </div>
                   </div>
                   <div class="card-footer clearfix text-center">
-                    <button onclick="ajouterAuPanier()"  class="btn btn-primary" id="ajoutBouton">Ajouter</button>
+                    <button class="btn btn-primary" id="ajoutBouton">Ajouter</button>
                   </div>
                 </div>
               </div>
@@ -277,6 +314,13 @@
     <input type="hidden" name="data" id="jsonDataInputPdf">
   </form>
 
+
+  <form id="formExportPDFRecu" method="post" action="{% url 'recu_offline' %}" target="_blank">
+    {% csrf_token %}
+    <input type="hidden" name="jsonData" id="jsonDataInputPdfRecu">
+  </form>
+
+
   <footer id="footer" class="footer light-background">
 
 
@@ -327,314 +371,450 @@
   <script src="{% static 'js/vente.js' %}"></script>
 
 
-
 <script>
   localforage.config({ name: "venteApp" });
 
-  let panier = [];
-  // Charger produits depuis l'API Django
-  async function chargerProduits() {
+let panier = [];
+let produitsCache = [];
+let currentFocus = -1;
+let produitSelectionne = null;
+let input = document.getElementById("produitSearch");
+let suggestions = document.getElementById("suggestions");
+
+// --- 🚀 Charger produits & clients ---
+async function chargerProduits() {
+  try {
+    const response = await fetch("/commerce/api/produits/");
+    const data = await response.json();
+    produitsCache = data.produits;
+    await localforage.setItem("produits", produitsCache);
+    await localforage.setItem("clients", data.clients);
+    remplirSelectClients(data.clients);
+    console.log("✅ Produits et clients chargés depuis API");
+  } catch {
+    produitsCache = await localforage.getItem("produits") || [];
+    let clients = await localforage.getItem("clients") || [];
+    remplirSelectClients(clients);
+    console.warn("⚠️ Hors ligne : données locales utilisées");
+  }
+}
+
+function remplirSelectClients(clients) {
+  let select = document.getElementById("id_client");
+  select.innerHTML = '<option value="">---------</option>';
+  clients.forEach(c => {
+    let option = document.createElement("option");
+    option.value = c.id;
+    option.textContent = `${c.nom} - ${c.telephone}`;
+    select.appendChild(option);
+  });
+}
+
+// --- 🔎 Recherche produit ---
+input.addEventListener("input", function () {
+  let query = this.value.toLowerCase();
+  suggestions.innerHTML = "";
+  currentFocus = -1;
+  produitSelectionne = null;
+
+  if (query.length < 1) return;
+
+  let results = produitsCache
+    .filter(p => p.libelle.toLowerCase().includes(query))
+    .slice(0, 100);
+
+  results.forEach((p, index) => {
+    let li = document.createElement("li");
+    li.textContent = p.libelle;
+    li.dataset.index = index;
+    li.onclick = () => {
+      remplirInfosProduit(p);
+      suggestions.innerHTML = "";
+    };
+    suggestions.appendChild(li);
+  });
+});
+
+// --- ⌨ Navigation suggestions ---
+input.addEventListener("keydown", function (e) {
+  let items = suggestions.getElementsByTagName("li");
+  if (!items.length) return;
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    currentFocus++;
+    if (currentFocus >= items.length) currentFocus = 0;
+    activerSuggestion(items);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    currentFocus--;
+    if (currentFocus < 0) currentFocus = items.length - 1;
+    activerSuggestion(items);
+  }
+});
+
+// --- ⏎ Entrée global ---
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    let items = suggestions.getElementsByTagName("li");
+
+    if (currentFocus > -1 && items[currentFocus]) {
+      items[currentFocus].click(); // sélectionne
+    } else if (!produitSelectionne && input.value.trim() !== "") {
+      // Première validation
+      let produit = produitsCache.find(
+        p => p.libelle.toLowerCase() === input.value.toLowerCase()
+      );
+      if (produit) {
+        remplirInfosProduit(produit);
+        suggestions.innerHTML = "";
+      }
+    } else if (produitSelectionne) {
+      // Ajout direct au panier
+      ajouterAuPanier(produitSelectionne);
+    }
+  }
+});
+
+function activerSuggestion(items) {
+  for (let i = 0; i < items.length; i++) {
+    items[i].classList.remove("active-suggestion");
+  }
+  if (currentFocus >= 0) {
+    items[currentFocus].classList.add("active-suggestion");
+    items[currentFocus].scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+function remplirInfosProduit(produit) {
+  produitSelectionne = produit;
+  input.value = produit.libelle;
+  let typeVente = document.getElementById("typeVente").value;
+  let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+  document.getElementById("prixDetail").value = prix;
+  document.getElementById("stock").value = produit.quantite;
+}
+
+// --- 🛒 Ajouter au panier ---
+function ajouterAuPanier(produit = null) {
+  if (!produit) {
+    produit = produitSelectionne;
+  }
+
+  if (!produit) {
+    toastr.error("Veuillez sélectionner un produit avant d'ajouter !");
+    return;
+  }
+
+  let quantite = parseInt(document.getElementById("quantite").value) || 1;
+  let typeVente = document.getElementById("typeVente").value;
+  let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+
+  let produitExistant = panier.find(item => item.produit_id === produit.id);
+  if (produitExistant) {
+    produitExistant.quantite += quantite;
+    produitExistant.total = produitExistant.quantite * produitExistant.prix;
+  } else {
+    panier.push({
+      produit_id: produit.id,
+      nom: produit.libelle,
+      quantite,
+      prix,
+      total: prix * quantite
+    });
+  }
+
+  afficherPanier();
+  mettreAJourTotal();
+
+  // reset champs
+  document.getElementById("quantite").value = 1;
+  document.getElementById("prixDetail").value = "";
+  document.getElementById("stock").value = "";
+
+  input.value = "";
+  produitSelectionne = null;
+  input.focus();
+}
+
+// --- 🖼️ Affichage panier ---
+function afficherPanier() {
+  let tbody = document.getElementById("livraison-produits");
+  tbody.innerHTML = "";
+  let num = 1;
+  panier.forEach((item, index) => {
+    let tr = document.createElement("tr");
+     tr.setAttribute("data-produit-id", item.produit_id); // ✅ on stocke l’ID ici
+    tr.innerHTML = `
+      <td class="text-center">${num}</td>
+      <td>${item.nom}</td>
+      <td class="text-center">${item.quantite}</td>
+      <td class="text-center">${item.prix.toLocaleString("fr-FR")}</td>
+      <td class="text-center">${(item.quantite * item.prix).toLocaleString("fr-FR")}</td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-danger" onclick="supprimerDuPanier(${index})">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+    num++;
+  });
+  mettreAJourTotal();
+}
+
+function supprimerDuPanier(index) {
+  panier.splice(index, 1);
+  afficherPanier();
+}
+
+function mettreAJourTotal() {
+  let total = panier.reduce((acc, item) => acc + item.total, 0);
+  let remise = parseFloat(document.getElementById("remise").value) || 0;
+  let totalFinal = Math.max(total - remise, 0);
+  document.getElementById("montantTotal").value = totalFinal.toLocaleString("fr-FR");
+}
+
+// --- 🎯 Gestion Remise ---
+document.getElementById("remise").addEventListener("keypress", function (e) {
+  if (!/[0-9]/.test(e.key)) e.preventDefault();
+});
+document.getElementById("remise").addEventListener("input", mettreAJourTotal);
+
+// --- 🏷️ Type vente ---
+$('#typeVente').on('change', function () {
+  let typeVente = $(this).val();
+
+  // Recalculer prix panier
+  panier.forEach(item => {
+    let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
+    if (produit) {
+      item.prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+      item.total = item.quantite * item.prix;
+    }
+  });
+
+  // Mettre à jour champ prix si produit sélectionné
+  if (produitSelectionne) {
+    let nouveauPrix = (typeVente === "en gros") ? produitSelectionne.prixEnGros : produitSelectionne.prixDetail;
+    $("#prixDetail").val(nouveauPrix);
+  }
+
+  afficherPanier();
+  mettreAJourTotal();
+});
+
+// --- 👥 Affichage Client/Echéance si Pret ---
+const typePayement = document.getElementById('typePayement');
+const lgClient = document.getElementById('lgClient');
+const lgEcheance = document.getElementById('lgEcheance');
+function togglePret() {
+  if (typePayement.value === 'Pret') {
+    lgClient.style.display = 'flex';
+    lgEcheance.style.display = 'flex';
+  } else {
+    lgClient.style.display = 'none';
+    lgEcheance.style.display = 'none';
+  }
+}
+typePayement.addEventListener('change', togglePret);
+togglePret();
+
+// --- 🖱️ Clic sur bouton Ajouter ---
+$(document).ready(function () {
+  $('#ajoutBouton').on('click', function (e) {
+    e.preventDefault();
+    ajouterAuPanier();
+  });
+});
+
+// --- 💾 Validation vente (offline) ---
+async function validerVente() {
+  let ventes = await localforage.getItem("ventes") || [];
+  let remise = parseFloat(document.getElementById("remise").value) || 0;
+  let client = parseInt(document.getElementById("id_client").value) || null;
+  let typeVente = document.getElementById("typeVente").value;
+  let typePayementVal = document.getElementById("typePayement").value;
+  let user = parseInt(document.getElementById("user_id").value);
+  let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
+  let dateEcheance = document.getElementById("dateEch").value;
+  if (typePayementVal === "Pret" && !client) {
+    alert("Veuillez sélectionner un client pour un prêt !");
+    return;
+  }
+
+  montant = parseInt(montant, 10) || 0;
+
+  if (panier.length === 0) {
+    alert("Le panier est vide !");
+    return;
+  }
+
+
+    let venteData = {
+    lignes: panier,
+    date: document.getElementById("idCommande").value,
+    remise,
+    montant,
+    typeVente,
+    typePayement: typePayementVal,
+    client,
+    user,
+    dateEcheance: dateEcheance,
+  };
+
+  ventes.push(venteData);
+
+  await localforage.setItem("ventes", ventes);
+  panier = [];
+
+    // ✅ Réinitialiser les champs après validation
+  document.getElementById("remise").value = 0;
+  document.getElementById("typePayement").value = "Espece";
+  document.getElementById("id_client").value = "";   // reset client
+  document.getElementById("dateEch").value = "";     // reset échéance
+  togglePret();
+
+  afficherPanier();
+  //alert("✅ Vente enregistrée localement !");
+
+
+  // Préparer données pour imprimer le reçu
+  if (confirm("Voulez-vous imprimer le reçu ?")) {
+  let jsonDataInput = document.getElementById("jsonDataInputPdfRecu");
+  jsonDataInput.value = JSON.stringify(venteData); // 🔥 remplir correctement
+  console.log("Données envoyées pour reçu :", jsonDataInput.value); // debug
+  document.getElementById("formExportPDFRecu").submit();
+}
+
+input.focus();
+  
+}
+
+
+
+// --- 🌐 Sync ventes ---
+async function syncVentes() {
+  let ventes = await localforage.getItem("ventes");
+  if (ventes && ventes.length > 0) {
     try {
-        const response = await fetch("/commerce/api/produits/");
-        const data = await response.json();
-
-        // on sépare les deux
-        const produits = data.produits;
-        const clients = data.clients;
-
-        // on stocke dans localforage
-        await localforage.setItem("produits", produits);
-        await localforage.setItem("clients", clients);
-
-        // remplir le select avec les produits
-        remplirSelectProduits(produits);
-        remplirSelectClients(clients);
-
-        console.log("✅ Produits et clients chargés depuis le serveur et stockés localement.");
+      let response = await fetch("/commerce/api/sync/ventes/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ventes })
+      });
+      let result = await response.json();
+      if (result.success) {
+        await localforage.removeItem("ventes");
+        console.log("✅ Ventes synchronisées !");
+      }
     } catch (err) {
-        let produits = await localforage.getItem("produits");
-        let clients = await localforage.getItem("clients");
-
-        if (produits && clients) {
-            remplirSelectProduits(produits);
-            remplirSelectClients(clients);
-        console.warn("⚠️ Hors ligne. Produits et clients chargés depuis le stockage local.");
-        } else {
-            console.error("❌ Impossible de charger les données : ni serveur ni stockage local.", err);
-        }
+      console.error("❌ Erreur synchro:", err);
     }
-    }
-
-
-  function remplirSelectProduits(produits) {
-      let select = document.getElementById("produitSelect");
-      select.innerHTML = "";
-      produits.forEach(p => {
-          let option = document.createElement("option");
-          option.value = p.id;
-          option.textContent = `${p.libelle}`;
-          option.dataset.prixDetail = p.prixDetail;
-          option.dataset.prixEnGros = p.prixEnGros;
-          select.appendChild(option);
-      });
   }
+}
+setInterval(syncVentes, 10000);
 
+// --- 🚀 Init ---
+window.onload = chargerProduits;
 
-
-    function remplirSelectClients(clients) {
-        let select = document.getElementById("id_client");
-        select.innerHTML = '<option value="">---------</option>';
-        clients.forEach(c => {
-            let option = document.createElement("option");
-            option.value = c.id;
-            option.textContent = `${c.nom} - ${c.telephone}`;
-            select.appendChild(option);
-        });
-    }
-
-
-
-    // Met à jour le prix et le stock quand un produit est sélectionné
-    $(document).ready(function () {
-      $('#produitSelect').on('change', async function () {
-        let produitId = this.value;
-        let produits = await localforage.getItem("produits");
-        let produit = produits.find(p => p.id == produitId);
-        if (produit) {
-            let typeVente = document.getElementById("typeVente").value;
-            let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
-
-            document.getElementById("prixDetail").value = prix;
-            document.getElementById("stock").value = produit.quantite;
-        } else {
-            document.getElementById("prixDetail").value = "";
-            document.getElementById("stock").value = "";
-        }
-      });
-    });
-
-
-
-    // Met à jour les prix dans le panier quand le type de vente change
-    $(document).ready(function () {
-      $('#typeVente').on('change', async function () {
-        let typeVente = this.value;
-        let produits = await localforage.getItem("produits");
-        if (!produits) return;
-        // 1. Recalculer les prix de tous les produits dans le panier
-        panier.forEach(item => {
-            let produit = produits.find(p => p.id === parseInt(item.produit_id));
-            if (produit) {
-              item.prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
-            }
-        });
-        // 2. Mettre à jour le champ prixDetail si un produit est sélectionné
-        let produitSelect = document.getElementById("produitSelect");
-        let produitId = parseInt(produitSelect.value);
-
-        if (produitId) {
-            let produit = produits.find(p => p.id === produitId);
-            if (produit) {
-                let nouveauPrix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
-                document.getElementById("prixDetail").value = nouveauPrix.toLocaleString("fr-FR");
-            }
-        }
-        // 3. Rafraîchir panier et total
-        afficherPanier();
-        mettreAJourTotal();
-      });
-    });
-
-
-
-
-
-  function ajouterAuPanier() {
-      let select = document.getElementById("produitSelect");
-      let produitId = select.value;
-      if (!produitId) return; // sécurité si aucun produit choisi
-
-      let produitNom = select.options[select.selectedIndex].text;
-      let prix = parseFloat(document.getElementById("prixDetail").value);
-      let quantite = parseInt(document.getElementById("quantite").value);
-
-      // Chercher si le produit est déjà dans le panier
-      let produitExistant = panier.find(item => item.produit_id === produitId);
-
-      if (produitExistant) {
-          // Mettre à jour la quantité et le total
-          produitExistant.quantite += quantite;
-          produitExistant.total = produitExistant.quantite * produitExistant.prix;
-          afficherPanier();
-          document.getElementById("quantite").value = 1; // reset quantité
-          document.getElementById("prixDetail").value="";
-          document.getElementById("stock").value=0
-          return;
-      } else{
-         if (!produitId || !quantite || !prixDetail || quantite <= 0 || prix <= 0 || !produitNom || prix==NaN) {
-            toastr.error("Veuillez remplir tous les champs !");
-            return;
-         }
-        let ligne = { produit_id: parseInt(produitId,0), nom: produitNom, quantite, prix, total: quantite * prix };
-        panier.push(ligne);
-        afficherPanier();
-          document.getElementById("quantite").value = 1; // reset quantité
-          document.getElementById("prixDetail").value="";
-          document.getElementById("stock").value=0
-          document.getElementById("produitSelect").value=0
-      }
-  }
-
-
-
-  function afficherPanier() {
-    let tbody = document.getElementById("livraison-produits"); // ⚠️ utiliser ton vrai <tbody>
-    tbody.innerHTML = "";
-    let num = 1;
-
-    panier.forEach((item, index) => {
-        let tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td class="text-center">${num}</td>
-            <td>${item.nom}</td>
-            <td class="text-center">${item.quantite}</td>
-            <td class="text-center">${item.prix.toLocaleString("fr-FR")}</td>
-            <td class="text-center">${(item.quantite * item.prix).toLocaleString("fr-FR")}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-danger" onclick="supprimerDuPanier(${index})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-        num += 1;
-    });
-    mettreAJourTotal();
-  }
-
-
-
-
-  function supprimerDuPanier(index) {
-      panier.splice(index, 1);
-      afficherPanier();
-      mettreAJourTotal();
-  }
-
-
-
-  function mettreAJourTotal() {
-      let total = panier.reduce((acc, item) => acc + (item.quantite * item.prix), 0);
-      let remise = parseFloat(document.getElementById("remise").value) || 0;
-      let totalFinal = Math.max(total - remise, 0);
-      document.getElementById("montantTotal").value = totalFinal.toLocaleString("fr-FR");
-
-  }
-
-
-
-  // Vérifie que les touches sont numériques pour la remise
-    $('#remise').on('keypress', function (e) {
-        if (!/[0-9]/.test(e.key)) e.preventDefault();
-    });
-
-    // Calcul du montant après remise
-    $('#remise').on('input', function () {
-        mettreAJourTotal();
-    });
-
-
-
-
-
-    
-    // Afficher/Masquer champs Pret
-    const typePayement = document.getElementById('typePayement');
-    const lgClient = document.getElementById('lgClient');
-    const lgEcheance = document.getElementById('lgEcheance');
-
-    function togglePret() {
-        if (typePayement.value === 'Pret') {
-            lgClient.style.display = 'flex';
-            lgEcheance.style.display = 'flex';
-        } else {
-            lgClient.style.display = 'none';
-            lgEcheance.style.display = 'none';
-        }
-    }
-    typePayement.addEventListener('change', togglePret);
-    togglePret();
-
-
-
-
-    
-
-
-
-  async function validerVente() {
-      let ventes = await localforage.getItem("ventes") || [];
-      
-      let typeVente=document.getElementById("typeVente").value;
-      let remise = parseFloat(document.getElementById("remise").value) || 0;
-      let client=parseFloat(document.getElementById("id_client").value);
-      let typePayement=document.getElementById("typePayement").value;
-      let user=parseInt(document.getElementById("user_id").value);
-      let montant =document.getElementById("montantTotal").value.replace(/\s/g, '');
-      montant = parseInt(montant, 10) || 0;
-      if (panier.length === 0) {
-          alert("Le panier est vide !");
-          return;
-      }
-
-      ventes.push({
-          lignes: panier,
-          date: document.getElementById("idCommande").value,
-          remise: remise,
-          montant: montant,
-          typeVente:typeVente,
-          typePayement: typePayement,
-          user:user
-      });
-      await localforage.setItem("ventes", ventes);
-
-      panier = [];
-      afficherPanier();
-      alert("✅ Vente enregistrée localement !");
-  }
-
-
-
-
-  async function syncVentes() {
-      let ventes = await localforage.getItem("ventes");
-      console.log("📤 Données envoyées au serveur :", JSON.stringify(ventes, null, 2));
-
-      if (ventes && ventes.length > 0) {
-          try {
-              let response = await fetch("/commerce/api/sync/ventes/", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ ventes })
-              });
-              let result = await response.json();
-              if (result.success) {
-                  await localforage.removeItem("ventes");
-                  console.log("✅ Ventes synchronisées avec succès !");
-              }
-          } catch (err) {
-              console.error("❌ Erreur de synchro:", err);
-          }
-      }
-  }
-
-  // Vérifier la connexion toutes les 10s
-  setInterval(syncVentes, 10000);
-
-  // Charger les produits au démarrage
-  window.onload = chargerProduits;
 </script>
 
+
+<script>
+  // --- Facture proforma PDF ---
+  $("#btnExportPDF").on("click", function (event) {
+    event.preventDefault();
+    let donnees = [];
+
+    $("#livraison-produits tr").each(function () {
+        let tds = $(this).find("td");
+        if (tds.length < 5) return;
+
+        let produit = {
+            produit: tds.eq(1).text().trim(),                // nom produit
+            quantite: parseFloat(tds.eq(2).text().trim()) || 0,
+            prix: parseFloat(tds.eq(3).text().replace(/\s/g, '')) || 0, // enlève espaces
+            montant: parseFloat(tds.eq(4).text().replace(/\s/g, '')) || 0,
+        };
+        donnees.push(produit);
+    });
+
+    let remise = parseFloat($("#remise").val()) || 0;
+    let clientId = 0;
+    if ($("#typePayement").val() === 'Pret') {
+        clientId = $("#id_client").val();   // ⚠️ ton select client s'appelle #id_client
+    }
+
+    let dataFinale = {
+        produits: donnees,
+        remise: remise,
+        clientId: clientId
+    };
+
+    // envoie dans input caché
+    $("#jsonDataInputPdf").val(JSON.stringify(dataFinale));
+    $("#formExportPDF").submit();
+});
+
+
+
+
+// Retour des produits
+$("#btnRetour").on("click", function () {
+  let lignes = [];
+  let userConfirmed = confirm("Confirmez-vous le retour des produits ?");
+
+  if (!userConfirmed) return;
+
+  $("#livraison-produits tr").each(function () {
+    let produitNom = $(this).find("td:eq(1)").text().trim();
+    let quantite = parseInt($(this).find("td:eq(2)").text().trim());
+    let prix = parseInt($(this).find("td:eq(3)").text().replace(/\s/g, "")); // 🔥 enlever espaces formatés
+
+    let produitId = $(this).data("produit-id"); // ✅ fonctionne maintenant
+
+    if (!produitId) {
+      toastr.error("Produit ID manquant pour " + produitNom);
+      return;
+    }
+
+    lignes.push({
+      produit_id: produitId,
+      quantite: quantite,
+      prix: prix
+    });
+  });
+
+  if (lignes.length === 0) {
+    toastr.warning("Aucun produit à retourner.");
+    return;
+  }
+
+  $.ajax({
+    url: "{% url 'ajouter_retours' %}",
+    type: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    data: JSON.stringify({ retours: lignes }),
+    contentType: "application/json",
+    success: function (response) {
+      if (response.success) {
+        toastr.success("Produits retournés avec succès !");
+        location.reload();
+      } else {
+        toastr.error("Erreur: " + response.message);
+      }
+    },
+    error: function () {
+      toastr.error("Erreur serveur.");
+    }
+  });
+});
+
+
+</script>
 
 
 
@@ -813,15 +993,6 @@
 </script>
 
 
-<script type="text/javascript">
-  $(function(){
-    {% if recu_url %}
-      if (confirm("Voulez-vous imprimer la facture ?")) {
-        window.open("{% url 'commerce_recu' pk=venteId %}", "_blank");
-      }
-    {% endif %}
-  });
-</script>
 
 
 
