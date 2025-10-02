@@ -2354,43 +2354,32 @@ def recherche_benefice_sur_vente(request):
 
 #************************************** Etat **************************************************
 
+from io import BytesIO
 from django.template.loader import get_template
-from django.http import HttpResponse
 from xhtml2pdf import pisa
-import io, json
-from datetime import date
-from django.contrib.humanize.templatetags.humanize import intcomma
-from django.shortcuts import get_object_or_404
+from django.http import HttpResponse, JsonResponse
+import os
 
-
-def convert_html_to_pdf(source_html):
-    """Génère un PDF en mémoire et renvoie le contenu binaire"""
-    result = io.BytesIO()
-    pdf = pisa.CreatePDF(io.BytesIO(source_html.encode("utf-8")), dest=result)
-    if not pdf.err:
-        return result.getvalue()  # retourne le PDF en binaire
-    return None
-
+def convert_html_to_pdf(source_html, output_filename):
+    # Ouvre le fichier de destination pour écrire le PDF
+    with open(output_filename, "w+b") as result_file:
+        # Crée le PDF à partir du contenu HTML
+        pisa_status = pisa.CreatePDF(source_html, dest=result_file)
+    
+    return pisa_status.err
 
 def generate_pdf_from_template(template_name, context, output_filename):
-    """Charge un template, rend en HTML et génère un PDF"""
+    # Charge le fichier HTML à partir du répertoire templates
     template = get_template(template_name)
     html_content = template.render(context)
-    pdf = convert_html_to_pdf(html_content)
-    if pdf:
-        response = HttpResponse(pdf, content_type="application/pdf")
-        response["Content-Disposition"] = f'inline; filename="{output_filename}"'
-        return response
-    else:
-        return HttpResponse("Erreur lors de la génération du PDF", status=500)
-
-
-
+    
+    # Appel de la fonction pour générer le PDF
+    return convert_html_to_pdf(html_content, output_filename)
 
 # Exemple d'utilisation
 def recu(request, pk):
     if pk is None:
-        return render(request, 'commerce/vente2.html', {"message": "Pas d'ID fourni"})
+        return render(request, 'commerce/baseVente.html', {"message": "Pas d'ID fourni"})
     # Données contextuelles pour le template HTML (vous pouvez ajuster cela)
     commande=get_object_or_404(Commande,id=pk)
     produits=CommandeProduit.objects.filter(commande=commande)
@@ -2421,7 +2410,14 @@ def recu(request, pk):
 
 
 
-#************************************** Reçu de vente hors ligne **************************************************
+
+import json
+from django.shortcuts import render
+from django.contrib.humanize.templatetags.humanize import intcomma
+from datetime import date
+
+from CommercialSoft.models import Client, InfoBoutique  # ✅ importer en haut
+
 def recu_offline(request):
     if request.method != "POST":
         return HttpResponse("Méthode non autorisée", status=405)
@@ -2430,7 +2426,7 @@ def recu_offline(request):
         raw_data = request.POST.get("jsonData", "{}")
         data = json.loads(raw_data)
 
-        # Construire produits
+        # Construire produits + totaux
         produits = []
         total = 0
         for item in data.get("lignes", []):
@@ -2451,7 +2447,7 @@ def recu_offline(request):
         net_formatte = intcomma(net).replace(",", ".")
 
         commande = {
-            "id": "_______",
+            "id": "OFFLINE",
             "date": data.get("date", str(date.today())),
             "client": None
         }
@@ -2476,10 +2472,21 @@ def recu_offline(request):
             "commande": commande
         }
 
-        return generate_pdf_from_template("CommercialSoft/recuVente.html", context, "recu_offline.pdf")
+        template_name = 'CommercialSoft/recuVente.html'
+        output_filename = 'recu_offline.pdf'
+
+        # 🔥 Générer le PDF
+        generate_pdf_from_template(template_name, context, output_filename)
+
+        # 🔥 Lire le fichier et le renvoyer comme HttpResponse
+        with open(output_filename, 'rb') as pdf_file:
+            response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{output_filename}"'
+            return response
 
     except Exception as e:
         return HttpResponse(f"Erreur lors de la génération du reçu : {str(e)}", status=400)
+
 
 
 
@@ -3683,9 +3690,9 @@ def sync_ventes(request):
     try:
         data = json.loads(request.body)
         ventes = data.get("ventes", [])
+
         for vente in ventes:
             # Créer une Commande
-            
             user_id=int(vente.get("user")) if vente.get("user") else request.user.id
             client_id = vente.get("client")
             if vente.get("typePayement") == "Pret":
@@ -3694,7 +3701,6 @@ def sync_ventes(request):
                 client = None
             
             montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
-
             commande = Commande.objects.create(
                 user=User.objects.get(id=user_id),
                 client =  client,
@@ -3707,7 +3713,6 @@ def sync_ventes(request):
             )
             
             montant_achat = 0
-            
 
             for item in vente.get("lignes", []):
                 produit = Produit.objects.get(id=int(item["produit_id"]))
@@ -3727,12 +3732,12 @@ def sync_ventes(request):
                 )
 
                 montant_achat += produit.prixAchat * quantite
-
+            
             commande.montantAchat = montant_achat
             commande.save()
 
             
-
+            
             if vente.get("typePayement") == "Pret":
                 montant_pret = vente.get("montant")
                 if montant_pret > 0 and client_id:
@@ -3744,7 +3749,6 @@ def sync_ventes(request):
                         commande=commande,
                         user=User.objects.get(id=user_id),
                     )
-
         return JsonResponse({"success": True, "message": "Ventes synchronisées"})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
