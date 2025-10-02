@@ -175,7 +175,7 @@ DATABASES = {
     }
 }
 
-
+"""
 
 DATABASES = {
     'default': {
@@ -188,7 +188,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 if os.getenv("DJANGO_ENV") == "production":
     # Base en ligne (MySQL sur PythonAnywhere)

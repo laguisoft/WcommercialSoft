@@ -2360,6 +2360,8 @@ from xhtml2pdf import pisa
 import io, json
 from datetime import date
 from django.contrib.humanize.templatetags.humanize import intcomma
+from django.shortcuts import get_object_or_404
+
 
 def convert_html_to_pdf(source_html):
     """Génère un PDF en mémoire et renvoie le contenu binaire"""
@@ -2391,7 +2393,6 @@ def recu(request, pk):
         return render(request, 'commerce/vente2.html', {"message": "Pas d'ID fourni"})
     # Données contextuelles pour le template HTML (vous pouvez ajuster cela)
     commande=get_object_or_404(Commande,id=pk)
-    print(commande.id)
     produits=CommandeProduit.objects.filter(commande=commande)
     total=0
     for produit in produits:
