@@ -571,7 +571,21 @@ function mettreAJourTotal() {
 document.getElementById("remise").addEventListener("keypress", function (e) {
   if (!/[0-9]/.test(e.key)) e.preventDefault();
 });
-document.getElementById("remise").addEventListener("input", mettreAJourTotal);
+
+document.getElementById("remise").addEventListener("input", function () {
+  let total = panier.reduce((acc, item) => acc + item.total, 0);
+
+  let remiseSaisie = parseFloat(this.value) || 0;
+  let remiseMax = Math.floor(total * 0.10); // 🔥 max 10% du total
+
+  if (remiseSaisie > remiseMax) {
+    this.value = remiseMax; // ✅ on force la valeur max
+    toastr.warning("⚠️ La remise ne peut pas dépasser 10% du montant total !");
+  }
+
+  mettreAJourTotal();
+});
+
 
 // --- 🏷️ Type vente ---
 $('#typeVente').on('change', function () {
