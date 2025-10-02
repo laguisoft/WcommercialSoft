@@ -2447,7 +2447,7 @@ def recu_offline(request):
         net_formatte = intcomma(net).replace(",", ".")
 
         commande = {
-            "id": "OFFLINE",
+            "id": "_____",
             "date": data.get("date", str(date.today())),
             "client": None
         }
