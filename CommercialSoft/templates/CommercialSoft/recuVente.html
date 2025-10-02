@@ -212,10 +212,10 @@
                     {% if listes %}
                     {% for liste in listes %}
                       <tr>
-                        <td style="text-align: left; color: black;">{{liste.produit.libelle}}</td>
-                        <td style="text-align: center; color: black;">{{liste.quantite}}</td>
-                        <td style="text-align: center; color: black;">{{liste.prix}}</td>
-                        <td style="text-align: center; color: black;">{{ liste.montant}} </td>
+                        <td style="text-align: left; color: black;"> <h3>{{liste.produit.libelle}}</h3></td>
+                        <td style="text-align: center; color: black;"><h3>{{liste.quantite}}</h3></td>
+                        <td style="text-align: center; color: black;"><h3>{{liste.prix}}</h3></td>
+                        <td style="text-align: center; color: black;"><h3>{{ liste.montant}} </h3></td>
                       </tr>
                     {% endfor %}
                     <tr></tr>
