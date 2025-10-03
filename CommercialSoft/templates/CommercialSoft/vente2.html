@@ -501,7 +501,8 @@ function ajouterAuPanier(produit = null) {
 
   let quantite = parseInt(document.getElementById("quantite").value) || 1;
   let typeVente = document.getElementById("typeVente").value;
-  let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+  //let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+  let prix = parseFloat(document.getElementById("prixDetail").value);
 
   let produitExistant = panier.find(item => item.produit_id === produit.id);
   if (produitExistant) {
@@ -692,10 +693,70 @@ async function validerVente() {
   console.log("Données envoyées pour reçu :", jsonDataInput.value); // debug
   document.getElementById("formExportPDFRecu").submit();
 }
+  //imprimerRecuLocal(venteData); // Impression locale
+  toastr.success("✅ Vente enregistrée localement !");
 
 input.focus();
   
 }
+
+
+
+// --- 🖨️ Impression reçu local ---
+function imprimerRecuLocal(venteData) {
+  let contenu = `
+    <html>
+    <head>
+      <title>Reçu de Vente</title>
+      <style>
+        body { font-family: Arial; font-size: 12px; width: 80mm; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 5px; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <h2 style="text-align:center;">Reçu de Vente</h2>
+      <p>Date : ${venteData.date}</p>
+      <p>Type de vente : ${venteData.typeVente}</p>
+      <p>Type de paiement : ${venteData.typePayement}</p>
+      <table>
+        <thead>
+          <tr><th>Produit</th><th>Qte</th><th>Prix</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+  `;
+
+  venteData.lignes.forEach(item => {
+    contenu += `
+      <tr>
+        <td>${item.nom}</td>
+        <td>${item.quantite}</td>
+        <td>${item.prix}</td>
+        <td>${item.total}</td>
+      </tr>
+    `;
+  });
+
+  contenu += `
+        </tbody>
+      </table>
+      <p>Remise : ${venteData.remise}</p>
+      <p><strong>Montant Net : ${venteData.montant}</strong></p>
+      <p style="text-align:center;">Merci pour votre confiance !</p>
+    </body>
+    </html>
+  `;
+
+  let win = window.open("", "Recu", "width=400,height=600");
+  win.document.write(contenu);
+  win.print();
+  win.close();
+}
+
+
+
+
+
 
 function proforma() {
   if (!panier.length) {
