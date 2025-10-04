@@ -689,16 +689,17 @@ async function validerVente() {
 
 
     let venteData = {
-    lignes: panier,
-    date: document.getElementById("idCommande").value,
-    remise,
-    montant,
-    typeVente,
-    typePayement: typePayementVal,
-    client,
-    user,
-    dateEcheance: dateEcheance,
-  };
+      id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
+      lignes: panier,
+      date: document.getElementById("idCommande").value,
+      remise,
+      montant,
+      typeVente,
+      typePayement: typePayementVal,
+      client,
+      user,
+      dateEcheance: dateEcheance,
+    };
 
   ventes.push(venteData);
 
@@ -969,7 +970,7 @@ async function syncVentes() {
   let ventes = await localforage.getItem("ventes");
   if (!ventes || ventes.length === 0) {
     isSyncing = false;
-    
+
     return;
   }
 

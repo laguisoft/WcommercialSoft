@@ -3774,14 +3774,18 @@ def sync_ventes(request):
     try:
         vente = json.loads(request.body)  # une seule vente envoyée
         if not vente:
-            return JsonResponse({"success": False, "error": "Aucune donnée reçue"}, status=400)
+            return JsonResponse({"success": False, "message": "vente deja synchronisé"}, status=400)
 
         user_id=int(vente.get("user")) if vente.get("user") else request.user.id
+        id_local = vente.get("id_local")
         client_id = vente.get("client")
         if vente.get("typePayement") == "Pret":
             client =Client.objects.get(id=int(client_id))
         else:
             client = None
+
+        if Commande.objects.filter(client_uid=id_local).exists():
+            return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
         
         montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
         commande = Commande.objects.create(
@@ -3793,6 +3797,7 @@ def sync_ventes(request):
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),
             montantAchat=0,
+            client_uid=id_local,  # Stocke l'ID local du client (si nécessaire pour le suivi
         )
         
         montant_achat = 0
