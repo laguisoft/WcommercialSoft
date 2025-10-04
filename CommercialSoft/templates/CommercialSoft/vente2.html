@@ -97,6 +97,9 @@
             <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
             
           </div>
+          <div class="contact-info d-flex align-items-center">
+            <i class="bi  d-flex align-items-center"><a href="#" id="etatSynchro">synchronisation</a></i>
+          </div>
           <div class="social-links d-none d-md-flex align-items-center">
             <a href="#" class="text-white">{{user.first_name}} {{user.last_name}}</a>
             <input type="hidden" id="user_id" value="{{user.id}}">
@@ -427,7 +430,7 @@ input.addEventListener("input", function () {
   });
 });
 
-// --- ⌨ Navigation suggestions ---
+// ---  Navigation suggestions ---
 input.addEventListener("keydown", function (e) {
   let items = suggestions.getElementsByTagName("li");
   if (!items.length) return;
@@ -542,7 +545,14 @@ function afficherPanier() {
     tr.innerHTML = `
       <td class="text-center">${num}</td>
       <td>${item.nom}</td>
-      <td class="text-center">${item.quantite}</td>
+      <td class="text-center">
+        <input type="number" 
+               class="form-control form-control-md text-center qte-input" 
+               value="${item.quantite}" 
+               min="1" 
+               style="width:100%;" 
+               oninput="changerQuantite(${index}, this.value)">
+      </td>
       <td class="text-center">${item.prix.toLocaleString("fr-FR")}</td>
       <td class="text-center">${(item.quantite * item.prix).toLocaleString("fr-FR")}</td>
       <td class="text-center">
@@ -567,6 +577,21 @@ function mettreAJourTotal() {
   let totalFinal = Math.max(total - remise, 0);
   document.getElementById("montantTotal").value = totalFinal.toLocaleString("fr-FR");
 }
+
+
+
+// --- Changer quantité et recalcul les valeur---
+function changerQuantite(index, nouvelleQte) {
+  nouvelleQte = parseInt(nouvelleQte) || 1; // valeur minimum
+  panier[index].quantite = nouvelleQte;
+  panier[index].total = panier[index].prix * nouvelleQte;
+
+  afficherPanier(); // recharge le tableau
+}
+
+
+
+
 
 // --- 🎯 Gestion Remise ---
 document.getElementById("remise").addEventListener("keypress", function (e) {
@@ -616,14 +641,19 @@ const typePayement = document.getElementById('typePayement');
 const lgClient = document.getElementById('lgClient');
 const lgEcheance = document.getElementById('lgEcheance');
 function togglePret() {
-  if (typePayement.value === 'Pret') {
-    lgClient.style.display = 'flex';
-    lgEcheance.style.display = 'flex';
-  } else {
-    lgClient.style.display = 'none';
-    lgEcheance.style.display = 'none';
-  }
+  const isPret = (typePayement.value === 'Pret');
+
+  lgClient.style.display = isPret ? 'flex' : 'none';
+  lgEcheance.style.display = isPret ? 'flex' : 'none';
+
+  // Rendre les champs obligatoires uniquement en cas de prêt
+  const clientEl = document.getElementById('id_client');
+  const echEl = document.getElementById('dateEch') || document.getElementById('id_dateEcheance');
+
+  if (clientEl) clientEl.required = isPret;
+  if (echEl) echEl.required = isPret;
 }
+
 typePayement.addEventListener('change', togglePret);
 togglePret();
 
@@ -645,7 +675,7 @@ async function validerVente() {
   let user = parseInt(document.getElementById("user_id").value);
   let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
   let dateEcheance = document.getElementById("dateEch").value;
-  if (typePayementVal === "Pret" && !client) {
+  if (typePayementVal === "Pret" && (!client || !dateEcheance)) {
     alert("Veuillez sélectionner un client pour un prêt !");
     return;
   }
@@ -686,14 +716,25 @@ async function validerVente() {
   //alert("✅ Vente enregistrée localement !");
 
 
-  // Préparer données pour imprimer le reçu
+  /*/ Préparer données pour imprimer le reçu
   if (confirm("Voulez-vous imprimer le reçu ?")) {
   let jsonDataInput = document.getElementById("jsonDataInputPdfRecu");
   jsonDataInput.value = JSON.stringify(venteData); // 🔥 remplir correctement
   console.log("Données envoyées pour reçu :", jsonDataInput.value); // debug
   document.getElementById("formExportPDFRecu").submit();
-}
-  //imprimerRecuLocal(venteData); // Impression locale
+}*/
+  if (confirm("Voulez-vous imprimer le reçu ?")) {
+    // tu as déjà venteData (panier, total, etc.)
+    // ajoute un objet boutique pour compléter l'entête
+    let boutique = {
+        nom: "Laguisoft Technologie",
+        emplacement: "Quartier Missira",
+        ville: "Kankan",
+        telephone: "620000000"
+    };
+    imprimerRecuLocal(venteData, boutique);
+  }
+
   toastr.success("✅ Vente enregistrée localement !");
 
 input.focus();
@@ -701,58 +742,157 @@ input.focus();
 }
 
 
-
-// --- 🖨️ Impression reçu local ---
-function imprimerRecuLocal(venteData) {
+function imprimerRecuLocal(venteData, boutique) {
   let contenu = `
-    <html>
-    <head>
-      <title>Reçu de Vente</title>
-      <style>
-        body { font-family: Arial; font-size: 12px; width: 80mm; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #000; padding: 5px; text-align: center; }
-      </style>
-    </head>
-    <body>
-      <h2 style="text-align:center;">Reçu de Vente</h2>
-      <p>Date : ${venteData.date}</p>
-      <p>Type de vente : ${venteData.typeVente}</p>
-      <p>Type de paiement : ${venteData.typePayement}</p>
-      <table>
-        <thead>
-          <tr><th>Produit</th><th>Qte</th><th>Prix</th><th>Total</th></tr>
-        </thead>
-        <tbody>
-  `;
+  <!DOCTYPE html>
+  <html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <title>Recette de Prestation</title>
+    <style>
+       @media print {
+          body {
+              width: 80mm;        /* Largeur ticket */
+              margin: 0 auto;     /* Centrer le contenu */
+              font-size: 12px;
+          }
+
+          .container {
+              width: 100%;
+              padding: 5px;       /* Réduire marges internes */
+              box-shadow: none;   /* Supprimer les ombres */
+              border-radius: 0;
+          }
+
+          @page {
+              size: 226pt auto;  /* largeur 80mm, hauteur auto */
+              margin: 5pt;
+          }
+       }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            width: 80mm;
+            font-size: 12px;
+        }
+
+        .container {
+            width: 100%;
+            margin: auto;
+            background-color: #fff;
+            padding: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 3px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        h1,h2,h3 {
+            margin: 2px 0;
+            padding: 0;
+            color: black;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+
+        <div class="header">
+            <table style="width: 100%; font-size: 14pt; border: none;">
+                <tr>
+                    <td style="width: 60%; text-align:left; border: none;">
+                        <strong style="font-size: 9pt;">
+                            ${boutique.nom || ""}<br>
+                            ${boutique.emplacement || ""}
+                        </strong>
+                    </td>
+                    <td style="width: 40%; text-align:right; border: none;">
+                        <strong style="font-size: 9pt;">
+                          ${boutique.ville || ""}<br>
+                          ${boutique.telephone || ""}
+                        </strong>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h3 style="text-align:center;">${venteData.date}</h3>
+        <h2>N° : ${venteData.id || "____"}</h2>
+        <h3 style:"padding:10px">Client : ${venteData.client || "_____________________"}</h3>
+
+        <h2 style="text-align: center; padding: 15px">Liste des produits</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:48%;"><h3>Libellé</h3></th>
+                    <th style="width:12%;"><h3>Qte</h3></th>
+                    <th style="width:18%;"><h3>Prix U</h3></th>
+                    <th style="width:22%;"><h3>Montant</h3></th>
+                </tr>
+            </thead>
+            <tbody>`;
 
   venteData.lignes.forEach(item => {
     contenu += `
-      <tr>
-        <td>${item.nom}</td>
-        <td>${item.quantite}</td>
-        <td>${item.prix}</td>
-        <td>${item.total}</td>
-      </tr>
-    `;
+        <tr>
+          <td style="text-align:left;"><h3>${item.nom}</h3></td>
+          <td><h3>${item.quantite}</h3></td>
+          <td><h3>${item.prix.toLocaleString("fr-FR")}</h3></td>
+          <td><h3>${item.total.toLocaleString("fr-FR")}</h3></td>
+        </tr>`;
   });
 
   contenu += `
-        </tbody>
-      </table>
-      <p>Remise : ${venteData.remise}</p>
-      <p><strong>Montant Net : ${venteData.montant}</strong></p>
-      <p style="text-align:center;">Merci pour votre confiance !</p>
-    </body>
-    </html>
-  `;
+        <tr>
+            <td colspan="2" style="text-align:right;"><strong><h2>Total :</h2></td>
+            <td colspan="2"><h2>${venteData.montant.toLocaleString("fr-FR")}</h2></td>
+        </tr>
+        <tr>
+            <td colspan="2" style="text-align:right;"><h2>Remise :</h2></td>
+            <td colspan="2"><h2>${venteData.remise.toLocaleString("fr-FR")}</h2></td>
+        </tr>
+        <tr>
+            <td colspan="2" style="text-align:right;"><h2>Net :</h2></td>
+            <td colspan="2"><h2>${(venteData.montant - venteData.remise).toLocaleString("fr-FR")}</h2></td>
+        </tr>
+            </tbody>
+        </table>
+
+        <div style="text-align:center; margin-top:20px;">
+            <h3>Le Gérant</h3>
+        </div>
+        <div style="text-align:center; margin-top:10px;">
+            <p><strong> Merci pour votre confiance !</strong></p>
+        </div>
+    </div>
+  </body>
+  </html>`;
 
   let win = window.open("", "Recu", "width=400,height=600");
   win.document.write(contenu);
+  win.document.close();
   win.print();
-  win.close();
 }
-
 
 
 
@@ -797,7 +937,7 @@ function proforma() {
 
 
 // --- 🌐 Sync ventes ---
-async function syncVentes() {
+/*async function syncVentes() {
   let ventes = await localforage.getItem("ventes");
   if (ventes && ventes.length > 0) {
     try {
@@ -815,8 +955,73 @@ async function syncVentes() {
       console.error("❌ Erreur synchro:", err);
     }
   }
+}*/
+
+
+let isSyncing = false; // 🔒 verrou pour éviter plusieurs syncs en même temps
+
+async function syncVentes() {
+  let etatSynchro = document.getElementById("etatSynchro");
+
+  if (isSyncing) return; // ⛔ empêche une deuxième exécution en parallèle
+  isSyncing = true;
+
+  let ventes = await localforage.getItem("ventes");
+  if (!ventes || ventes.length === 0) {
+    isSyncing = false;
+    
+    return;
+  }
+
+  console.log(`🔄 Tentative de synchronisation de ${ventes.length} ventes...`);
+
+  for (let i = 0; i < ventes.length; i++) {
+    let vente = ventes[i];
+    try {
+      let response = await fetch("/commerce/api/sync/ventes/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vente),
+      });
+
+      let result = await response.json();
+      if (result.success) {
+        console.log(`✅ Vente ${i + 1}/${ventes.length} synchronisée !`);
+        ventes.splice(i, 1);
+        i--;
+        await localforage.setItem("ventes", ventes);
+      } else {
+        console.warn(`⚠️ Erreur sur la vente ${i + 1}:`, result.error);
+      }
+    } catch (err) {
+      console.error("❌ Erreur réseau, arrêt de la synchronisation !");
+      break;
+    }
+
+    //affichage du message de synchronisation
+    
+    if (ventes.length > 0) {
+      etatSynchro.innerHTML = `Reste ${ventes.length} ventes à synchroniser...`;
+      etatSynchro.style.color = "orange";
+    } else {
+      etatSynchro.innerHTML = "✅ Toutes les ventes sont synchronisées !";
+      etatSynchro.style.color = "lime";
+    }
+
+
+    await new Promise(resolve => setTimeout(resolve, 500)); // petite pause
+  }
+
+  if (ventes.length === 0) {
+    await localforage.removeItem("ventes");
+    console.log("🎉 Toutes les ventes ont été synchronisées !");
+  }
+
+  isSyncing = false; // 🔓 libère le verrou
 }
+// ⏱️ Relancer toutes les 10 secondes si besoin
 setInterval(syncVentes, 10000);
+
 
 // --- 🚀 Init ---
 window.onload = chargerProduits;

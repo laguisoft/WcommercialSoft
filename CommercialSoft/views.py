@@ -2210,9 +2210,7 @@ def recherche_bilan(request):
         if dateFin:
             filtre["date__lte"] = dateFin
 
-        #pret reclamer
-        pretReclamer = VersementClient.objects.filter(**filtre)
-        depense = Depense.objects.filter(**filtre)
+        
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idUser and idUser != "0":
@@ -2221,6 +2219,10 @@ def recherche_bilan(request):
                 filtre["user"] = user
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+            
+        #pret reclamer
+        pretReclamer = VersementClient.objects.filter(**filtre)
+        depense = Depense.objects.filter(**filtre)
 
         # Appliquer le filtre à la requête
         retour=Retour.objects.filter(**filtre)
@@ -3681,7 +3683,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import json
-
+"""
 @csrf_exempt  # à remplacer plus tard par un décorateur avec authentification/token
 def sync_ventes(request):
     if request.method != "POST":
@@ -3750,5 +3752,88 @@ def sync_ventes(request):
                         user=User.objects.get(id=user_id),
                     )
         return JsonResponse({"success": True, "message": "Ventes synchronisées"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+"""
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+import json
+
+from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, PretClient
+
+User = get_user_model()  # ✅ Récupère ton CustomUser
+
+@csrf_exempt
+def sync_ventes(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
+
+    try:
+        vente = json.loads(request.body)  # une seule vente envoyée
+        if not vente:
+            return JsonResponse({"success": False, "error": "Aucune donnée reçue"}, status=400)
+
+        user_id=int(vente.get("user")) if vente.get("user") else request.user.id
+        client_id = vente.get("client")
+        if vente.get("typePayement") == "Pret":
+            client =Client.objects.get(id=int(client_id))
+        else:
+            client = None
+        
+        montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
+        commande = Commande.objects.create(
+            user=User.objects.get(id=user_id),
+            client =  client,
+            montant=montant_sans_remise,
+            remise=vente.get("remise", 0),
+            date=vente.get("date", timezone.now().date()),
+            typeVente=vente.get("typeVente"),
+            typePayement=vente.get("typePayement", "Espece"),
+            montantAchat=0,
+        )
+        
+        montant_achat = 0
+
+        for item in vente.get("lignes", []):
+            produit = Produit.objects.get(id=int(item["produit_id"]))
+            quantite = int(item["quantite"])
+            prix = int(item["prix"])
+
+            # décrémenter le stock
+            produit.quantite -= quantite
+            produit.save()
+
+            CommandeProduit.objects.create(
+                commande=commande,
+                produit=produit,
+                quantite=quantite,
+                prix=prix,
+                date=vente.get("date", timezone.now().date()),
+            )
+
+            montant_achat += produit.prixAchat * quantite
+        
+        commande.montantAchat = montant_achat
+        commande.save()
+
+        
+        
+        if vente.get("typePayement") == "Pret":
+            montant_pret = vente.get("montant")
+            if montant_pret > 0 and client_id:
+                PretClient.objects.create(
+                    client=client,
+                    montant=montant_pret,
+                    date=vente.get("date", timezone.now().date()),
+                    dateEcheance=vente.get("dateEcheance", timezone.now().date()),
+                    commande=commande,
+                    user=User.objects.get(id=user_id),
+                )
+
+        return JsonResponse({"success": True, "message": "✅ Vente synchronisée avec succès !"})
+
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
