@@ -49,7 +49,7 @@ class LivraisonProduitAdmin(admin.ModelAdmin):
 @admin.register(Commande)
 class CommandeAdmin(admin.ModelAdmin):
     list_display = ('user','client', 'montant','remise','date','typeVente','typePayement',"client_uid")
-    search_fields = ('client', 'typeVente','typePayement')
+    search_fields = ('client__nom', 'typeVente','typePayement')
     list_filter = ('client', 'typeVente','typePayement')
     ordering = ('date',)
 
