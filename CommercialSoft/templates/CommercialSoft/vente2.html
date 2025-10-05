@@ -108,20 +108,18 @@
       </div><!-- End Top Bar -->
 
       <div class="branding d-flex align-items-center">
-        <div class="col-md-2 col-lg-2 d-none d-sm-block">
+        <div class="col-md-2 d-none d-sm-block">
           <div class="form-group">
             {{ commande_form.date }}
           </div>
         </div>
 
         <div class="container position-relative d-flex align-items-center justify-content-end">
-          
-
           <nav id="navmenu" class="navmenu">
             <i class="mobile-nav-toggle"></i>
           </nav>
-
-          <a href="#" class="col-sm-10 ms-auto">
+          
+          <a href="#" class="col-sm-10 col-md-9 ms-auto">
             <!-- Uncomment the line below if you also wish to use an image logo -->
             <!-- <img src="assets/img/logo.png" alt=""> -->
             <h1 class="sitename" >
@@ -131,9 +129,14 @@
               </div>
             </h1>
           </a>
-          <div class="col-md-2 col-lg-2 col-sm-2 ms-auto">
+          <div class="col-md-1 d-none d-sm-block">
             <div class="form-group">
-              <input type="number" class="form-control fw-bold text-center fs-3" id="remise" placeholder="0" min="0">
+              <input type="number" class="form-control fw-bold text-center fs-6" id="remisePourcent" placeholder="%" min="0" max="100">
+            </div>
+          </div>
+          <div class="col-md-2 ms-auto">
+            <div class="form-group">
+              <input type="number" class="form-control fw-bold text-center fs-5" id="remise" placeholder="0" min="0">
             </div>
           </div>
 
@@ -218,6 +221,7 @@
                             <select class="form-control select2bs4" id="typeVente" style="width: 100%;">
                               <option value="detail">Détail</option>
                               <option value="en gros">En gros</option>
+                              <option value="achat">Achat</option>
                             </select>
                           </div>
                         </div>
@@ -613,28 +617,65 @@ document.getElementById("remise").addEventListener("input", function () {
 });
 
 
+
+
+// --- 💯 Gestion de la remise en pourcentage ---
+const champPourcent = document.getElementById("remisePourcent");
+const champRemise = document.getElementById("remise");
+
+champPourcent.addEventListener("input", function () {
+  let total = panier.reduce((acc, item) => acc + item.total, 0);
+  let pourcentage = parseFloat(this.value) || 0;
+
+  if (pourcentage < 0) pourcentage = 0;
+  if (pourcentage > 10) {
+    pourcentage = 10;
+    this.value = 10;
+    toastr.warning("⚠️ La remise ne peut pas dépasser 10% du total !");
+  }
+
+  let remiseCalculee = Math.floor((total * pourcentage) / 100);
+  champRemise.value = remiseCalculee;
+  mettreAJourTotal();
+});
+
+
+
 // --- 🏷️ Type vente ---
 $('#typeVente').on('change', function () {
   let typeVente = $(this).val();
 
-  // Recalculer prix panier
   panier.forEach(item => {
     let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
     if (produit) {
-      item.prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+      if (typeVente === "en gros") {
+        item.prix = produit.prixEnGros;
+      } else if (typeVente === "achat") {
+        item.prix = produit.prixAchat; // 🔥 Prix d’achat
+      } else {
+        item.prix = produit.prixDetail;
+      }
       item.total = item.quantite * item.prix;
     }
   });
 
   // Mettre à jour champ prix si produit sélectionné
   if (produitSelectionne) {
-    let nouveauPrix = (typeVente === "en gros") ? produitSelectionne.prixEnGros : produitSelectionne.prixDetail;
+    let nouveauPrix;
+    if (typeVente === "en gros") {
+      nouveauPrix = produitSelectionne.prixEnGros;
+    } else if (typeVente === "achat") {
+      nouveauPrix = produitSelectionne.prixAchat;
+    } else {
+      nouveauPrix = produitSelectionne.prixDetail;
+    }
     $("#prixDetail").val(nouveauPrix);
   }
 
   afficherPanier();
   mettreAJourTotal();
 });
+
 
 // --- 👥 Affichage Client/Echéance si Pret ---
 const typePayement = document.getElementById('typePayement');
@@ -707,7 +748,8 @@ async function validerVente() {
   panier = [];
 
     // ✅ Réinitialiser les champs après validation
-  document.getElementById("remise").value = 0;
+  document.getElementById("remise").value = "";
+  document.getElementById("remisePourcent").value = "";
   document.getElementById("typePayement").value = "Espece";
   document.getElementById("id_client").value = "";   // reset client
   document.getElementById("dateEch").value = "";     // reset échéance

@@ -89,6 +89,7 @@ DATABASES = {
 
 
 
+
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
