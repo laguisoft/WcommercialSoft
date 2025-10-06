@@ -840,11 +840,13 @@ def vente_creates(request):
     commande_form = CommandeForm()
     pret_form = pretClientForm()
     produits = Produit.objects.all()
+    boutique= InfoBoutique.objects.first()
     return render(request, 'CommercialSoft/vente2.html', {
         'commande_form': commande_form,
         'pret_form': pret_form,
         'listes': produits,
-        'user':request.user
+        'user':request.user,
+        'boutique': boutique,
     })
 
 

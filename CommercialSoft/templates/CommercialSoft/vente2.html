@@ -404,7 +404,7 @@ function remplirSelectClients(clients) {
   clients.forEach(c => {
     let option = document.createElement("option");
     option.value = c.id;
-    option.textContent = `${c.nom} - ${c.telephone}`;
+    option.textContent = `${c.nom}`;
     select.appendChild(option);
   });
 }
@@ -537,6 +537,8 @@ function ajouterAuPanier(produit = null) {
   produitSelectionne = null;
   input.focus();
 }
+
+
 
 // --- 🖼️ Affichage panier ---
 function afficherPanier() {
@@ -864,14 +866,14 @@ function imprimerRecuLocal(venteData, boutique) {
                 <tr>
                     <td style="width: 60%; text-align:left; border: none;">
                         <strong style="font-size: 9pt;">
-                            ${boutique.nom || ""}<br>
-                            ${boutique.emplacement || ""}
+                            {{ boutique.nom }}<br>
+                             ${"{{ boutique.emplacement }}" || ""}
                         </strong>
                     </td>
                     <td style="width: 40%; text-align:right; border: none;">
                         <strong style="font-size: 9pt;">
-                          ${boutique.ville || ""}<br>
-                          ${boutique.telephone || ""}
+                          ${"{{boutique.ville}}" || ""}<br>
+                          ${"{{boutique.telephone}}" || ""}
                         </strong>
                     </td>
                 </tr>
@@ -879,8 +881,8 @@ function imprimerRecuLocal(venteData, boutique) {
         </div>
 
         <h3 style="text-align:center;">${venteData.date}</h3>
-        <h2>N° : ${venteData.id || "____"}</h2>
-        <h3 style:"padding:10px">Client : ${venteData.client || "_____________________"}</h3>
+        <h2 >N° : ${venteData.id || "____"}</h2>
+        <h3 style="padding:10px">Client : ${venteData.clientNom || "_____________________"}</h3>
 
         <h2 style="text-align: center; padding: 15px">Liste des produits</h2>
 
@@ -939,14 +941,18 @@ function imprimerRecuLocal(venteData, boutique) {
 
 
 
-
-
-function proforma() {
+async function proforma() {
   if (!panier.length) {
-    alert("Le panier est vide !");
+    Swal.fire({
+      icon: "warning",
+      title: "Panier vide !",
+      text: "Veuillez ajouter au moins un produit avant de continuer.",
+      confirmButtonText: "OK"
+    });
     return;
   }
 
+  // 🧾 Préparation des données de la vente
   let remise = parseFloat(document.getElementById("remise").value) || 0;
   let client = parseInt(document.getElementById("id_client").value) || null;
   let typeVente = document.getElementById("typeVente").value;
@@ -954,8 +960,19 @@ function proforma() {
   let user = parseInt(document.getElementById("user_id").value);
   let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
   let dateEcheance = document.getElementById("dateEch").value;
+  let select = document.getElementById("id_client");
+  let clientNom = select.options[select.selectedIndex].text;
 
-  let venteData = {
+
+  // 🔹 Nettoyer les produits pour JSON
+  let lignesNettes = panier.map(p => ({
+    produit: p.nom,
+    quantite: p.quantite,
+    prix: p.prix,
+    montant: p.total
+  }));
+
+  let venteDataRecu = {
     lignes: panier,
     date: document.getElementById("idCommande").value,
     remise,
@@ -964,18 +981,70 @@ function proforma() {
     typePayement: typePayementVal,
     client,
     user,
-    dateEcheance
+    dateEcheance,
+    clientNom
   };
 
-  // on remplit l’input caché
-  let jsonDataInput = document.getElementById("jsonDataInputPdfRecu");
-  jsonDataInput.value = JSON.stringify(venteData);
+  let venteData = {
+    produits: panier.map(p => ({
+      produit: p.nom,
+      quantite: p.quantite,
+      prix: p.prix,
+      montant: p.total
+    })),
+    remise: parseFloat(document.getElementById("remise").value) || 0,
+    montant: parseInt(document.getElementById("montantTotal").value.replace(/\s/g, ''), 10) || 0,
+    clientId: parseInt(document.getElementById("id_client").value) || null,
+    dateEcheance: document.getElementById("dateEch").value,
+    typeVente: document.getElementById("typeVente").value,
+    typePayement: document.getElementById("typePayement").value,
+    user: parseInt(document.getElementById("user_id").value)
+  };
 
-  console.log("📤 Données envoyées au backend pour impression :", venteData);
+  // 💬 Boîte SweetAlert2
+ const { value: choix } = await Swal.fire({
+    title: "Choisissez le type de facture",
+    text: "Souhaitez-vous imprimer le reçu en format ticket ou A4 ?",
+    icon: "question",
+    showCancelButton: true,
+    showCloseButton: true,  // ✅ ajoute la croix pour fermer
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "🧾 Imprimer le reçu",
+    cancelButtonText: "📑 Générer le PDF A4"
+  });
 
-  // envoi vers Django
-  document.getElementById("formExportPDFRecu").submit();
+
+  if (choix) {
+    // 🧾 Impression locale du reçu
+    let boutique = {
+      nom: "Laguisoft Technologie",
+      emplacement: "Quartier Missira",
+      ville: "Kankan",
+      telephone: "620000000"
+    };
+    imprimerRecuLocal(venteDataRecu, boutique);
+    Swal.fire({
+      icon: "success",
+      title: "Impression en cours...",
+      timer: 1500,
+      showConfirmButton: false
+    });
+  } else {
+    // 📑 Génération PDF
+    let jsonDataInput = document.getElementById("jsonDataInputPdf");
+    jsonDataInput.value = JSON.stringify(venteData);
+    document.getElementById("formExportPDF").submit();
+
+    Swal.fire({
+      icon: "success",
+      title: "Génération du PDF...",
+      timer: 1500,
+      showConfirmButton: false
+    });
+  }
 }
+
 
 
 
