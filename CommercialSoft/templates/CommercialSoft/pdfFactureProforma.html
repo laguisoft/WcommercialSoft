@@ -166,7 +166,7 @@
 
         
         
-        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture N°____</h1>
+        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture N° {% if id %} {{id}} {% else %}____{% endif %}</h1>
         {% if client %}
         <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Nom client : {{client}}</h3>
         <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;"> Telephone : {{numero_client}}</h3>

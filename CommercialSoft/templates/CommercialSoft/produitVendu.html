@@ -290,6 +290,7 @@
             response.vente.forEach(data => {
               const supUrl = "{% url 'commerce_venteDelete' 0 %}".replace("0", data.id);
               const recuUrl = "{% url 'commerce_recu' 0 %}".replace("0", data.id);
+              const recuA4Url = "{% url 'pdf_facture_proforma_2' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_modVente' 0 %}".replace("0", data.id);
               patientsTable.append(`
                 <tr class="vente_row" data-id="${data.id}">
@@ -309,7 +310,10 @@
                       </button>
                       <div class="dropdown-menu">
                         <a class="dropdown-item" href="${recuUrl} " title="imprimer">
-                          <i class="fas fa-print text-warning"></i> imprimer
+                          <i class="fas fa-print text-warning"></i> Ticket
+                        </a>
+                        <a class="dropdown-item" href="${recuA4Url} " title="imprimer">
+                          <i class="fas fa-print text-warning"></i> Facture A4
                         </a>
                         <a class="dropdown-item" href="${supUrl}"
                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">

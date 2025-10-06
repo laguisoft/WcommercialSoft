@@ -3559,6 +3559,65 @@ def pdf_facture_proforma(request):
 
 
 
+def pdf_facture_proforma_2(request, commande_id):
+    try:
+        # ✅ 1️⃣ Récupération de la commande
+        commande = get_object_or_404(Commande, id=commande_id)
+
+        # ✅ 2️⃣ Informations de la boutique
+        infoBoutique = InfoBoutique.objects.first()
+
+        # ✅ 3️⃣ Liste des lignes de la commande
+        lignes = CommandeProduit.objects.filter(commande=commande)
+
+        # ✅ 4️⃣ Conversion en format utilisable par le template
+        donnees = []
+        for ligne in lignes:
+            donnees.append({
+                "produit": ligne.produit.libelle,
+                "quantite": ligne.quantite,
+                "prix": ligne.prix,
+                "montant": ligne.quantite*ligne.prix
+            })
+
+        # ✅ 5️⃣ Calculs des totaux
+        total = sum(l.quantite*l.prix for l in lignes)
+        remise = commande.remise if hasattr(commande, 'remise') else 0
+        total_net = total - remise if total > remise else 0
+
+        # ✅ 6️⃣ Formatage des montants
+        total_formate = "{:,}".format(total).replace(",", " ")
+        remise_formate = "{:,}".format(remise).replace(",", " ")
+        total_net_formate = "{:,}".format(total_net).replace(",", " ")
+
+        # ✅ 7️⃣ Client
+        client = commande.client if hasattr(commande, 'client') else None
+
+        # ✅ 8️⃣ Contexte pour le template
+        context = {
+            'id':commande.id if commande.id else "",
+            'listes': donnees,
+            'boutique': infoBoutique,
+            'total': total_formate,
+            'remise': remise_formate,
+            'total_net': total_net_formate,
+            'date': commande.date.strftime("%Y-%m-%d") if hasattr(commande, 'date') else timezone.now().strftime("%Y-%m-%d"),
+            'client': client.nom if client else "",
+            'numero_client': client.telephone if client else "",
+        }
+
+        # ✅ 9️⃣ Génération du PDF
+        return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
+
+    except Exception as e:
+        print("❌ Erreur :", e)
+        return HttpResponse("Erreur serveur : " + str(e), status=500)
+
+
+
+
+
+
 
 
 # views.py

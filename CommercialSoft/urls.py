@@ -61,6 +61,7 @@ urlpatterns=[
     path('vente/recherche/vente/type', views.recherche_vente_type,name="rechercheVenteType"),
     path('vente/type', views.vente_par_type, name="commerce_venteParType"),
     path('vente/facture/proforma', views.pdf_facture_proforma, name="pdf_facture_proforma"),
+    path('pdf/facture/<int:commande_id>/', views.pdf_facture_proforma_2, name='pdf_facture_proforma_2'),
 
     #--
     path('commerce/depense', views.depense_list_create,name="commerce_depense"),
