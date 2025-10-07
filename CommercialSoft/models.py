@@ -131,6 +131,7 @@ class Depense(models.Model):
     prix=models.PositiveIntegerField()
     date=models.DateField(default=timezone.now)
     categorie=models.ForeignKey(Categorie_Depense, on_delete=models.CASCADE)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
 
@@ -139,6 +140,7 @@ class VersementClient(models.Model):
     client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='versements')
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
 
 
 

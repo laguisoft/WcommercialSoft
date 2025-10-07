@@ -1345,7 +1345,9 @@ def depense_list_create(request):
     if request.method == "POST":
         form = DepenseForm(request.POST)
         if form.is_valid():
-            form.save()  # Sauvegarder après modification
+            depense= form.save(commit=False)  # Sauvegarder après modification
+            depense.user=request.user
+            depense.save()
             messages.success(request, "Dépense créée avec succès !")
             return redirect('commerce_depense')
         else:
@@ -1506,7 +1508,9 @@ def versementClient_list_create(request):
     if request.method == "POST":
         form = VersementClientForm(request.POST)
         if form.is_valid():
-            form.save()  # Sauvegarder après modification
+            versement= form.save(commit=False)  # Sauvegarder après modification
+            versement.user=request.user
+            versement.save()
             messages.success(request, "Versement créée avec succès !")
             return redirect('commerce_versementClient')
         else:
