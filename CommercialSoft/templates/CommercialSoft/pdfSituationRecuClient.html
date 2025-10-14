@@ -1,0 +1,56 @@
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Situation client</title>
+  <style>
+    body {
+      width: 80mm;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      margin: 0;
+      padding: 5px;
+    }
+    h3, h4{
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .ligne {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .center {
+      text-align: center;
+      margin-top: 10px;
+    }
+    hr {
+      border: none;
+      border-top: 1px dashed #000;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body onload="window.print()">
+
+  <h3>SITUATION CLIENT</h3>
+  <hr>
+  <h4>{{ client.nom }}</h4>
+    <hr>
+
+  <div class="center">
+    <span>Date :</span>
+    <strong>{{ date_impression|date:"d/m/Y H:i" }}</strong>
+  </div>
+
+  <div class="center">
+    <span>Reste à payer :</span>
+    <strong>{{ reste|floatformat:0|localize }} GNF</strong>
+  </div>
+
+  <hr>
+  <div class="center">Merci pour votre confiance</div>
+
+</body>
+</html>

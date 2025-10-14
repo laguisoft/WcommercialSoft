@@ -7,12 +7,9 @@
     <!-- Ionicons -->
     <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
     <!-- Theme style -->
-  <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
     <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
     <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
-    <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
-    <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
-
     <!-- Google Font: Source Sans Pro -->
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
 {% endblock %}
@@ -20,17 +17,16 @@
 {% block corp %}
 <section class="content pt-0">
   <div class="container-fluid">
-    
-            <div class="row">
-              <div class="col-md-12">
-                <div class="card card-primary">
-                  <div class="card-header">
-                    <h3 class="card-title">Nouveau versement</h3>
-                  </div>
-                  <form role="form" action="{% url 'commerce_versementClient' %}" method="post">
-                    {% if messages %}
-                      <div>
-                      {% for message in messages %}
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Modification</h3>
+          </div>
+          <form role="form" action="" class="form-horizontal" method="post">
+            {% if messages %}
+                <div>
+                    {% for message in messages %}
                         {% if message.tags == "success" %}
                             <div class="alert alert-success text-center">
                                 {{ message }}
@@ -44,126 +40,96 @@
                                 {{ message }}
                             </div>
                         {% endif %}
-                      {% endfor %}
-                      </div>
-                    {% endif %}
-                    {% csrf_token %}
-                    <div class="card-body">
-                      <div class="row justify-content-center align-items-end">
-                        <div class="col-md-4">
-                          <div class="form-group">
-                            <label for="client">Client</label>
-                            {{ form.client }}
-                          </div>
-                        </div>
-                        <div class="col-md-2">
-                          <div class="form-group">
-                            <label for="quantite">Montant</label>
-                            {{ form.montant }}
-                          </div>
-                        </div>
-                        <div class="col-md-2">
-                          <div class="form-group">
-                            <label for="prix">Date</label>
-                            {{ form.date }}
-                          </div>
-                        </div>
-                        <div class="col-md-2">
-                          <div class="form-group">
-                            <label for="quantite">Reste a payer</label>
-                            <input type="text" class="form-control" id="reste" readonly>
-                          </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-primary">Enregistrer</button>
-                            </div>
-                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% csrf_token %}
+            
+            <div class="card-body">
+              <div class="row justify-content-center">
+                {# 1) Champs standards sauf 'permissions' #}
+                {% for field in form %}
+                  {% if field.name != 'permissions' %}
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                          <div class="text-danger small">{{ field.errors|join:", " }}</div>
+                        {% endif %}
                       </div>
                     </div>
+                    {% if forloop.counter|divisibleby:4 %}
+                      </div><div class="row">
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </div>
 
-                  </form>
+              {# 2) Bloc permissions par module (cards) #}
+              <div class="row mt-3">
+                <div class="col-12">
+                  <div class="card card-outline card-info">
+                    <div class="card-header">
+                      <h3 class="card-title mb-0">Permissions (CommercialSoft)</h3>
+                    </div>
+                    <div class="card-body">
+
+                      {# valeurs déjà cochées (POST) #}
+                      {% with selected=form.permissions.value|default:form.initial.permissions %}
+                        <div class="row">
+                          {% for module_key, perms in grouped_perms.items %}
+                            <div class="col-lg-4 col-md-6">
+                              <div class="card card-light shadow-sm mb-3" data-module="{{ module_key }}">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                  <strong>{{ module_key|cut:"_"|capfirst }}</strong>
+                                  <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-info btn-check-all" data-target="{{ module_key }}">Tout cocher</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-uncheck-all" data-target="{{ module_key }}">Tout décocher</button>
+                                  </div>
+                                </div>
+                                <div class="card-body pt-2">
+                                  {% for pid, label in perms %}
+                                    {% comment %} id unique par case {% endcomment %}
+                                    {% with cid="perm_"|add:pid|stringformat:"s" %}
+                                      <div class="form-check">
+                                        <input class="form-check-input"
+                                              type="checkbox"
+                                              id="{{ cid }}"
+                                              name="permissions"
+                                              value="{{ pid }}"
+                                              {% if selected and pid|stringformat:"s" in selected %}checked{% endif %}>
+                                        <label class="form-check-label" for="{{ cid }}">
+                                          {{ label|capfirst }}
+                                        </label>
+                                      </div>
+                                    {% endwith %}
+                                  {% endfor %}
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      {% endwith %}
+
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card card-primary">
-            <div class="card-header">
-              <h3 class="card-title">Liste des versement</h3>
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body">
-              <table class="table table-bordered table-hover table-striped">
-                <thead>                  
-                  <tr>
-                    <th style="width: 10px" class="text-center">#</th>
-                    <th class="text-center">Client</th>
-                    <th class="text-center">Montant</th>
-                    <th class="text-center">Date</th>
-                    <th style="width: 40px" class="text-center">#</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if listes %}
-                    {% for liste in listes %}
-                      <tr>
-                        <td class="text-center">{{liste.id}}</td>
-                        <td>{{liste.client}}</td>
-                        <td class="text-center">{{liste.montant}}</td>
-                        <td class="text-center">{{liste.date}}</td>
-                        <td class="text-center">
-                          <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                              <i class="fas fa-cogs"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="{% url 'commerce_modVersementClient' liste.id %}" title="Modifier">
-                                <i class="fas fa-edit text-warning"></i> Modifier
-                              </a>
-                              <a class="dropdown-item" href="{% url 'commerce_supVersementClient' liste.id %}"
-                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
-                                <i class="fas fa-times-circle text-danger"></i> Supprimer
-                              </a>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr>
-                      <td colspan="14" class="text-center">Aucune ligne disponible pour le moment.</td>
-                    </tr>
-                  {% endif %}
-                </tbody>
-              </table>
+          
+          
             </div>
             <!-- /.card-body -->
-            <div class="card-footer clearfix">
-              <ul class="pagination pagination-sm m-0 justify-content-center">
-                <li class="page-item">
-                  {% if listes.has_previous %}
-                    <a class="page-link" href="?page={{ listes.previous_page_number }}">«</a>
-                  {% endif %}
-                  {% for num in listes.paginator.page_range %}
-                    {% if listes.number == num %}
-                      <li class="page-item"><a class="page-link" href="">{{ num }}</a></li>
-                    {% else %}
-                      <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                    {% endif %}
-                  {% endfor %}
-    
-                  {% if listes.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ listes.next_page_number }}">»</a></li>
-                  {% endif %}
-                
-              </ul>
+            <div class="card-footer text-center">
+              <button type="submit" class="btn btn-primary">Modifier</button>
             </div>
-          </div>
+          </form>
+        </div>
       </div>
+
     </div>
-    <!-- /.row -->
   </div><!-- /.container-fluid -->
 </section>
 <!-- /.content -->
@@ -175,12 +141,9 @@
   {% block js %}
 
     <!-- jQuery -->
-     
     <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
     <!-- Bootstrap 4 -->
     <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-    
-    <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
     <!-- bs-custom-file-input -->
     <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
     <!-- AdminLTE App -->
@@ -190,47 +153,33 @@
     <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
     <script src="{% static 'autre/dist/js/demo.js' %}"></script>
 
+    <script>
+      // cocher/décocher toutes les cases d’un module
+      function setModule(moduleKey, checked) {
+        const card = document.querySelector('.card[data-module="' + moduleKey + '"]');
+        if (!card) return;
+        card.querySelectorAll('input[name="permissions"]').forEach(inp => inp.checked = checked);
+      }
+
+      document.addEventListener('click', function(e){
+        if (e.target.matches('.btn-check-all')) {
+          e.preventDefault();
+          const key = e.target.getAttribute('data-target');
+          setModule(key, true);
+        }
+        if (e.target.matches('.btn-uncheck-all')) {
+          e.preventDefault();
+          const key = e.target.getAttribute('data-target');
+          setModule(key, false);
+        }
+      });
+    </script>
+
+
     <script type="text/javascript">
     $(document).ready(function () {
-      
     bsCustomFileInput.init();
-
-    //Initialize Select2 Elements
-      $('.select2').select2()
-      $('.select2bs4').select2({ theme: 'bootstrap4' })
-
-
-
-      $('#idClient').on('change', function() {
-        let clientID = $(this).val();
-
-        const url = "{% url 'get_reste_client' 0 %}".replace('0', clientID);
-
-        if (clientID) {
-            $.ajax({
-                url: url,
-                type: "GET",
-                success: function(data) {
-                    $('#reste').val(data.balance);
-                }
-            });
-        } else {
-            $('#reste').val('');
-        }
     });
-
-
-  });
-
-
-
-
-
-
-    
-
-
-
 
   $(function() {
     const Toast = Swal.mixin({

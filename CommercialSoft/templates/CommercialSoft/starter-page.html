@@ -196,6 +196,9 @@
                 {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                 <li><a href="{% url 'caisse' %}">Caisse</a></li>
                 {% endif %}
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
+                <li><a href="{% url 'register' %}">Utilisateur</a></li>
+                {% endif %}
               </ul>
             </li>
           </ul>

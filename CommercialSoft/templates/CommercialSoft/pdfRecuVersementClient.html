@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Reçu de versement</title>
+  <style>
+    body {
+      width: 80mm;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      margin: 0;
+      padding: 5px;
+    }
+    h3, h4{
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .ligne {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .center {
+      text-align: center;
+      margin-top: 10px;
+    }
+    hr {
+      border: none;
+      border-top: 1px dashed #000;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body onload="window.print()">
+
+  <h3>REÇU DE VERSEMENT</h3>
+  <hr>
+    <h4> {{ client }}</h4>
+  <hr>
+
+  <div class="center"><span>Montant payé :</span> <strong>{{ montant }} GNF</strong></div>
+  <div class="center"><span>Date :</span> <strong>{{ date }}</strong></div>
+  <div class="center"><span>Reste à payer :</span> <strong>{{ reste }} GNF</strong></div>
+
+  <hr>
+  <div class="center">Caissier : {{ user.first_name }} {{ user.last_name }}</div>
+  <div class="center">Merci pour votre paiement</div>
+
+</body>
+</html>

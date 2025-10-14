@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm, CustomUserModificationForm
+from .models import CustomUser
 from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
 from django.contrib import messages
+
 
 
 
@@ -87,3 +89,81 @@ def change_password(request):
 @login_required
 def password_change_done(request):
     return render(request, 'accounts/password_change_done.html')
+
+
+
+
+
+
+
+# accounts/views.py
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+@login_required
+@permission_required('auth.add_user', raise_exception=True)
+def create_user_view(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Utilisateur créé avec succès !")
+            # return redirect('user_list')  # si tu as une page liste
+        else:
+            messages.error(request, "Veuillez corriger les erreurs. " + str(form.errors))
+    else:
+        form = CustomUserCreationForm()
+
+    users = User.objects.all()
+    context = {
+        'form': form,
+        'listes': users,
+        'grouped_perms': form.grouped_permissions,  # ✅ clé utilisée dans le template
+    }
+    return render(request, 'accounts/create_user.html', context)
+
+
+
+
+
+
+
+@login_required
+def modifier_user(request, user_id):
+    user = CustomUser.objects.get(pk=user_id)
+    
+    if request.method == "POST":
+        form = CustomUserModificationForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Utilisateur modifié avec succès !")
+            return redirect('register')  # adapter
+        else:
+            messages.error(request, "Veuillez corriger les erreurs. " + str(form.errors))
+    else:
+        form = CustomUserModificationForm(instance=user)
+
+    users = CustomUser.objects.all()
+
+    return render(request, 'accounts/update.html', {
+        'form': form,
+        'listes': users,
+        'grouped_perms': form.grouped_permissions,  # ✅ même template !
+    })
+
+
+
+
+def supprimer_user(request, user_id):
+    user = CustomUser.objects.get(id=user_id)
+    user.delete()
+    messages.success(request, "Utilisateur supprimé avec succès.")
+    form = CustomUserCreationForm()
+    users=CustomUserCreationForm.Meta.model.objects.all()
+
+    context = {
+        'form': form,
+        'listes': users,
+    }
+    return render(request, 'accounts/create_user.html', context)

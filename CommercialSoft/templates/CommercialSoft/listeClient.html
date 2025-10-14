@@ -212,6 +212,7 @@
               const supUrl = "{% url 'commerce_supClient' 0 %}".replace("0", data.id);
               const detUrl = "{% url 'commerce_detailClient' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_modClient' 0 %}".replace("0", data.id);
+              const recuUrl = "{% url 'imprimer_situation_client' 0 %}".replace("0", data.id);
               patientsTable.append(`
                 <tr>
                         <td class="text-center">${data.id}</td>
@@ -234,6 +235,9 @@
                               <a class="dropdown-item" href="${supUrl}"
                                 onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
                                 <i class="fas fa-times-circle text-danger"></i> Supprimer
+                              </a>
+                              <a class="dropdown-item" href="${recuUrl}" title="Modifier">
+                                <i class="fas fa-edit text-warning"></i> Modifier
                               </a>
                             </div>
                           </div>

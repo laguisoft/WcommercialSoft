@@ -90,6 +90,12 @@ def dashboard(request):
 
 
 
+
+
+
+
+
+
 # examen Views
 @user_passes_test(est_administrateur, est_gestionnaire)
 @login_required
@@ -1502,6 +1508,34 @@ def categorie_depense_delete(request, pk):
 
 
 
+def imprimer_recu_versement(request, versement_id):
+    versement = get_object_or_404(VersementClient, id=versement_id)
+
+    total_prets = PretClient.objects.filter(client=versement.client) \
+                                    .aggregate(total=Sum('montant'))['total'] or 0
+
+    total_versements = VersementClient.objects.filter(client=versement.client) \
+                                              .aggregate(total=Sum('montant'))['total'] or 0
+
+    reste = total_prets - total_versements
+    if reste < 0:
+        reste = 0
+
+    context = {
+        'client': versement.client.nom,
+        'montant': versement.montant,
+        'date': versement.date,
+        'reste': reste,
+        'user': versement.user,
+    }
+    return render(request, 'CommercialSoft/pdfRecuVersementClient.html', context)
+
+
+
+
+
+
+
 # examen Views
 @login_required
 def versementClient_list_create(request):
@@ -1512,6 +1546,7 @@ def versementClient_list_create(request):
             versement.user=request.user
             versement.save()
             messages.success(request, "Versement créée avec succès !")
+            return redirect('imprimer_recu_versement', versement.id)
             return redirect('commerce_versementClient')
         else:
             messages.error(request, "Erreur lors de la création du versement.")
@@ -1524,6 +1559,36 @@ def versementClient_list_create(request):
     paginated_depense = paginator.get_page(page)
     
     return render(request, 'CommercialSoft/versementClient.html', {'form': form,'listes': paginated_depense})
+
+
+
+
+from django.utils import timezone
+from django.db.models import Sum
+
+def imprimer_situation_client(request, client_id):
+    client = Client.objects.get(id=client_id)
+
+    total_prets = PretClient.objects.filter(client=client) \
+                                    .aggregate(total=Sum('montant'))['total'] or 0
+
+    total_versements = VersementClient.objects.filter(client=client) \
+                                              .aggregate(total=Sum('montant'))['total'] or 0
+
+    reste = total_prets - total_versements
+    if reste < 0:
+        reste = 0
+
+    date_impression = timezone.now()
+
+    context = {
+        'client': client,
+        'reste': reste,
+        'date_impression': date_impression,
+    }
+    return render(request, 'CommercialSoft/pdfSituationRecuClient.html', context)
+
+
 
 
 
@@ -2928,6 +2993,21 @@ def pdf_etat_situation_client(request):
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationClient.html", context)
 
     return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+
+def get_reste_client(request, id):
+    total_pret = PretClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
+    total_versement = VersementClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
+    balance = total_pret - total_versement
+
+    return JsonResponse({
+        'total_pret': total_pret,
+        'total_versement': total_versement,
+        'balance': balance
+    })
 
 
 

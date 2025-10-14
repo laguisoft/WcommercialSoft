@@ -5,6 +5,7 @@ from . import views
 
 urlpatterns=[
     path('accounts/', include(('accounts.urls', 'accounts'), namespace='accounts')),
+    path('register/', include(('accounts.urls', 'register'), namespace='accounts')),
 
     path('dashboard/', views.dashboard, name="commerce_dashboard"),
     path('fournisseur/', views.fournisseur_list_create,name="commerce_fournisseur"),    
@@ -81,6 +82,10 @@ urlpatterns=[
     path('commerce/versementClient/liste', views.versementClient_list,name="commerce_listeVersementClient"),
     path('commerce/versementClient/recherche', views.recherche_versementClient,name="commerce_rechercheVersementClient"),
     path('commerce/versementClient/etat', views.pdf_etat_versementClient,name="commerce_etatVersementClient"),
+    path('versement/recu/<int:versement_id>/', views.imprimer_recu_versement, name='imprimer_recu_versement'),
+    path('client/situation/<int:client_id>/', views.imprimer_situation_client, name='imprimer_situation_client'),
+
+
     #-- client
     path('commerce/client', views.client_list_create,name="commerce_client"),
     path('commerce/client/modification/<int:pk>/', views.client_edit,name="commerce_modClient"),
@@ -97,6 +102,8 @@ urlpatterns=[
     path('commerce/pret/client/recherche', views.recherche_pretClient,name="commerce_recherchePretClient"),
     path('commerce/pret/detail/<int:pk>/', views.detail_pret_client,name="commerce_detailClient"),
     path('commerce/pret/client/etat', views.pdf_etat_pretClient,name="commerce_etatPretClient"),
+    path('commerce/client/reste/<int:id>/', views.get_reste_client, name='get_reste_client'),
+
     #-- fournisseur
     path('commerce/fournisseur', views.fournisseur_list_create,name="commerce_fournisseur"),
     path('commerce/fournisseur/modification/<int:pk>/', views.fournisseur_edit,name="commerce_modFournisseur"),
