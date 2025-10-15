@@ -60,7 +60,7 @@ class LivraisonProduit(models.Model):
     quantite=models.PositiveIntegerField()
     prix=models.PositiveBigIntegerField() 
     prixDetail=models.PositiveBigIntegerField()
-    peremption=models.DateField(default=timezone.now)
+    peremption=models.DateField(null=True, blank=True)
 
 
 class Societe(models.Model):

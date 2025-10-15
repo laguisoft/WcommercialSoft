@@ -300,6 +300,8 @@
 
 
 
+    
+
 
 
 
@@ -316,6 +318,9 @@
         let prixDetail = $("#prixDetail").val();
         let montant=prixAchat*quantite;
         let datePeremption=$("#peremption").val();
+        if (datePeremption) {
+          datePeremption = datePeremption ;  // devient "2025-10-01"
+        }
 
         
         let ancienMontant=$("#numLivraison").val();
@@ -383,7 +388,10 @@
         $("#prixAchat").val('');
         $("#prixDetail").val('');
         $("#peremption").val('');
+        $("#idProduit").select2("open");
     });
+
+    
 
     // Supprimer une ligne du tableau et du formset
     $(document).on("click", ".btn-remove", function () {
@@ -416,6 +424,96 @@
 
 
 
+
+
+
+
+(function(){
+  function findPeremptionInputs() {
+    const byId = document.getElementById('peremption');
+    const byName = document.querySelectorAll('input[name$="peremption"], input[name="peremption"]');
+    const list = new Set();
+    if (byId) list.add(byId);
+    byName.forEach(el => list.add(el));
+    return Array.from(list);
+  }
+
+  function clampMonth(mm) {
+    let n = parseInt(mm || '0', 10);
+    if (isNaN(n) || n <= 0) return '01';
+    if (n > 12) return '12';
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  function formatMMYY(raw) {
+    let v = String(raw || '').replace(/\D/g, '').slice(0, 4);
+    if (v.length <= 2) return v;
+    return v.slice(0, 2) + '/' + v.slice(2);
+  }
+
+  function onInput(e) {
+    const el = e.target;
+    const prev = el.value;
+    const prevPos = el.selectionStart;   // position du curseur AVANT formatage
+
+    let formatted = formatMMYY(prev);
+
+    // Borne le mois si possible
+    if (formatted.length >= 2) {
+      let mm = formatted.slice(0, 2);
+      mm = clampMonth(mm);
+      formatted = mm + formatted.slice(2);
+    }
+
+    // Réassigner SANS inverser
+    el.value = formatted;
+
+    // Correction du curseur : ne pas +1 automatiquement
+    let newPos = prevPos+1;
+
+    // Si on vient juste de taper le 2e chiffre du mois, on avance après le '/'
+    if (prev.length === 2 && formatted.length === 3) {
+      newPos = 3;
+    }
+
+    // Empêcher le curseur d'aller après la longueur max
+    if (newPos > formatted.length) newPos = formatted.length;
+
+    try { el.setSelectionRange(newPos, newPos); } catch(_) {}
+  }
+
+  function onPaste(e) {
+    e.preventDefault();
+    let text = (e.clipboardData || window.clipboardData).getData('text');
+    e.target.value = formatMMYY(text);
+  }
+
+  function wire(el) {
+    if (!el.value) el.placeholder = 'MM/AA';
+    el.maxLength = 5;
+    el.addEventListener('input', onInput);
+    el.addEventListener('paste', onPaste);
+
+    if (el.value) el.value = formatMMYY(el.value);
+  }
+
+  function init() {
+    findPeremptionInputs().forEach(wire);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  const obs = new MutationObserver(() => {
+    findPeremptionInputs().forEach(el => {
+      if (!el._masked) { wire(el); el._masked = true; }
+    });
+  });
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+})();
 
 
 

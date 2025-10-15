@@ -78,6 +78,9 @@ class LivraisonForm(forms.ModelForm):
         }
 
 
+
+
+
 # Formulaire pour le modèle livraisonProduit
 class LivraisonProduitForm(forms.ModelForm):
     class Meta:
@@ -88,8 +91,9 @@ class LivraisonProduitForm(forms.ModelForm):
             'quantite': forms.NumberInput(attrs={'class': 'form-control', 'id':"quantite"}),
             'prix': forms.NumberInput(attrs={'class': 'form-control','id':'prixAchat'}),
             'prixDetail': forms.NumberInput(attrs={'class': 'form-control','id':"prixDetail"}),
-            'peremption': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'peremption'}),
+            'peremption': forms.TextInput(attrs={'class': 'form-control', 'id':'peremption','placeholder': 'MM/AA', 'maxlength': '5', 'inputmode': 'numeric','pattern': r'\d{2}/\d{2}','autocomplete': 'off'}),
         }
+
 
 
 # Formulaire pour le modèle livraisonProduit

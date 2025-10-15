@@ -363,52 +363,84 @@ def situation_vente(request):
 
 
 
-
 @login_required
 @user_passes_test(est_administrateur, est_gestionnaire)
 def reception_create(request):
     if request.method == 'POST':
         livraison_form = LivraisonForm(request.POST)
-        formset = LivraisonProduitFormSet(request.POST)
 
-        if livraison_form.is_valid() and formset.is_valid():
-            with transaction.atomic():  # Ensure database integrity
+        # ✅ 1) COPIE du POST modifiable
+        post_data = request.POST.copy()
+
+        # ✅ 2) Récupérer le nombre total de formulaires dans le formset
+        total_forms = int(post_data.get('livraisonproduit_set-TOTAL_FORMS', 0))
+
+        # ✅ 3) Boucle sur chaque formulaire du formset
+        for i in range(total_forms):
+            key = f"livraisonproduit_set-{i}-peremption"
+            val = post_data.get(key, "").strip()
+
+            if val:
                 try:
-                    # Save Livraison
+                    # ✅ Séparer MM/AA
+                    mm, yy = val.split("/")
+
+                    # ✅ Transformer AA en YYYY (ex: 25 -> 2025)
+                    yy = "20" + yy  # Si tu veux une logique intelligente 19xx/20xx, je peux te l'ajouter
+
+                    # ✅ Reformater en YYYY-MM-01 (format accepté par DateField)
+                    post_data[key] = f"{yy}-{mm}-01"
+                except:
+                    # si mauvais format, on laisse Django déclencher l'erreur
+                    pass
+
+        # ✅ 4) On recrée le formset AVEC les valeurs corrigées
+        formset = LivraisonProduitFormSet(post_data)
+
+        # ✅ 5) Validation
+        if livraison_form.is_valid() and formset.is_valid():
+            with transaction.atomic():  # évite les données partielles
+                try:
+                    # ✅ Enregistrer la livraison
                     livraison = livraison_form.save()
-                    # Process each form in the formset
+
+                    # ✅ Traiter chaque ligne du formset
                     for form in formset:
-                        if not (form.cleaned_data.get('produit') and form.cleaned_data.get('quantite')):  # Skip empty forms
-                            continue
+                        if not (form.cleaned_data.get('produit') and form.cleaned_data.get('quantite')):
+                            continue  # ignorer les lignes vides
+
                         livraison_produit = form.save(commit=False)
                         livraison_produit.livraison = livraison
 
+                        # ✅ Mise à jour du stock produit
                         produit = livraison_produit.produit
                         produit.quantiteTotal += livraison_produit.quantite
                         produit.prixAchat = livraison_produit.prix
-                        produit.quantite +=livraison_produit.quantite
-                        produit.prixDetail=livraison_produit.prixDetail
-
+                        produit.quantite += livraison_produit.quantite
+                        produit.prixDetail = livraison_produit.prixDetail
                         produit.save()
 
+                        # ✅ Enregistrer la ligne de livraison
                         livraison_produit.save()
-                    messages.success(request,"Enregistrement reussi")
+
+                    messages.success(request, "Enregistrement réussi")
                     return redirect('commerce_reception')
+
                 except Exception as e:
-                    # Handle exceptions (log error, notify user, etc.)
-                    messages.error(request,f"Error processing livraison: {e}")
-                # Optionally add an error message to the user
+                    messages.error(request, f"Erreur lors de l’enregistrement : {e}")
+
         else:
-            # Print form errors for debugging
-            messages.error(request,"Livraison form errors:", livraison_form.errors)
+            # Afficher les erreurs
+            messages.error(request, "Formulaire invalide")
             for error in formset.errors:
-                if error:  # Vérifie si l'erreur existe
+                if error:
                     messages.error(request, f"Erreur dans un formulaire : {error}")
-    
+
+    # ✅ 6) GET → afficher page avec formulaires vides
     livraison_form = LivraisonForm()
     formset = LivraisonProduitFormSet()
-
     produits = Produit.objects.all()
+
     return render(request, 'CommercialSoft/reception.html', {
         'livraison_form': livraison_form,
         'formset': formset,
