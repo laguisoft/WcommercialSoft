@@ -174,7 +174,7 @@
         
           <div class="row">
             <div class="col-md-5">
-              <div class="card card-primary" style="height: 67vh; overflow: hidden;">
+              <div class="card card-info" style="height: 67vh; overflow: hidden;">
                 <div class="card-header">
                   <h3 class="card-title">Nouvelle vente</h3>
                 </div>
@@ -234,7 +234,7 @@
               </div>
             </div>
             <div class="col-md-7">
-              <div class="card card-primary" style="height: 67vh; overflow: hidden;">
+              <div class="card card-info" style="height: 67vh; overflow: hidden;">
                 <div class="card-header d-flex justify-content-between">
                   <h3 class="card-title mb-0">Liste des produits</h3>
                 </div>
@@ -734,7 +734,7 @@ async function validerVente() {
     let venteData = {
       id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
       lignes: panier,
-      date: document.getElementById("idCommande").value || new Date().toISOString().slice(0, 10),
+      date: document.getElementById("idCommande").value,
       remise,
       montant,
       typeVente,
@@ -1046,18 +1046,6 @@ async function proforma() {
 }
 
 
-
-
-
-
-
-document.addEventListener("DOMContentLoaded", function () {
-    const dateInput = document.getElementById("idCommande");
-    if (dateInput && !dateInput.value) {
-        let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-        dateInput.value = today;
-    }
-});
 
 
 // --- 🌐 Sync ventes ---

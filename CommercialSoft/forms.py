@@ -4,6 +4,7 @@ from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
 from django.forms import inlineformset_factory
+from django.utils import timezone
 
 
 # Formulaire pour la connexion
@@ -101,6 +102,12 @@ LivraisonProduitFormSet = inlineformset_factory(
 
 # Formulaire pour le modèle commande
 class CommandeForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # ✅ Si aucune valeur n’est fournie, on met la date du jour
+        if not self.initial.get('date'):
+            self.initial['date'] = timezone.now().date()
+
     class Meta:
         model = Commande
         fields = ['montant','remise','date','typeVente','typePayement']

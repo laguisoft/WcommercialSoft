@@ -419,6 +419,111 @@ def reception_create(request):
 
 
 
+
+
+
+"""
+@login_required
+def reception_create(request):
+    if request.method == 'POST':
+        livraison_form = LivraisonForm(request.POST)
+        detteFournisseur_form = DetteFournisseur(request.POST)
+        produits_json = request.POST.get('jsonDataInput', '[]')  # JSON envoyé depuis JS
+        try:
+            produits_data = json.loads(produits_json)
+        except json.JSONDecodeError:
+            produits_data = []
+
+        if livraison_form.is_valid() and (not produits_data == []):
+            with transaction.atomic():
+                try:
+                    # Création de la commande
+                    livraison= livraison_form.save()
+
+                    montantTotal = 0
+
+                    for item in produits_data:
+                        produit_id = item.get('id')
+                        quantite = int(item.get('quantite', 0))
+                        prix = int(item.get('prix', 0))
+                        prixDetail=int(item.get('prixDetail',0))
+                        peremption=date(item.get('peremption'))
+
+                        if not produit_id or quantite <= 0:
+                            continue
+
+                        produit = Produit.objects.get(id=produit_id)
+
+                        produit.quantite += quantite
+                        produit.save()
+
+                        LivraisonProduit.objects.create(
+                            livraison=livraison,
+                            produit=produit,
+                            quantite=quantite,
+                            prix=prix,
+                            prixDetail=prixDetail,
+                            peremption=peremption
+                        )
+
+                        montantTotal += prix * quantite
+
+                    livraison.montant = montantTotal
+                    livraison.save()
+
+                    # Gestion Pret
+                    if livraison.typePayement == "Pret":
+                        detteFournisseur_form.fields['fournisseur'].required = True
+                        if detteFournisseur_form.is_valid():
+                            pret = detteFournisseur_form.save(commit=False)
+                            pret.livraison = livraison
+                            pret.montant = livraison.montant
+                            pret.date = livraison.date
+                            pret.save()
+                            livraison.fournisseur = pret.fournisseur
+                            livraison.save()
+                        else:
+                            messages.error(request, "Erreur dans le formulaire de Pret.")
+                    else:
+                        detteFournisseur_form.fields['fournisseur'].required = False
+
+                    messages.success(request, "Enregistrement réussi !")
+
+                    # Préparer les formulaires vides pour réaffichage
+                    livraison_form = LivraisonForm()
+                    detteFournisseur_form = DetteFournisseurForm()
+                    produits = Produit.objects.all()
+                    return render(request, 'CommercialSoft/reception2.html', {
+                        'commande_form': livraison_form,
+                        'pret_form': pret_form,
+                        'listes': produits,
+                        'recu_url': '/commerce_recu',
+                        'venteId': livraison.id
+                    })
+                except Exception as e:
+                    messages.error(request, f"Erreur d'enregistrement: {e}")
+        else:
+            messages.error(request, "Formulaire incomplet ou aucun produit sélectionné.")
+
+    # GET ou formulaire invalide
+    livraison_form = LivraisonForm()
+    detteFournisseur_form = DetteFournisseurForm()
+    produits = Produit.objects.all()
+    boutique= InfoBoutique.objects.first()
+    return render(request, 'CommercialSoft/reception2.html', {
+        'commande_form': livraison_form,
+        'pret_form': detteFournisseur_form,
+        'listes': produits,
+        'user':request.user,
+        'boutique': boutique,
+    })
+
+"""
+
+
+
+
+
 @login_required
 @user_passes_test(est_administrateur, est_gestionnaire)
 def reception_delete(request, pk):
@@ -3938,7 +4043,8 @@ def sync_ventes(request):
             client =  client,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
-            date=vente.get("date", timezone.now().date()),
+            #date=vente.get("date", timezone.now().date()),
+            date = date(2025, 10, 14),  # Pour test
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),
             montantAchat=0,
