@@ -779,6 +779,8 @@ async function validerVente() {
     };
     imprimerRecuLocal(venteData, boutique);
   }
+  document.getElementById("remise").value = "";
+  document.getElementById("remisePourcent").value = "";
 
   toastr.success("✅ Vente enregistrée localement !");
 

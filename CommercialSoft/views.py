@@ -4043,7 +4043,7 @@ def sync_ventes(request):
             client =  client,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
-            date=vente.get("date", timezone.now().date()),
+            date = vente.get("date") or timezone.now().date(),
             #date = date(2025, 10, 14),  # Pour test
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),
