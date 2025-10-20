@@ -1203,7 +1203,8 @@ $("#btnRetour").on("click", function () {
 
   $("#livraison-produits tr").each(function () {
     let produitNom = $(this).find("td:eq(1)").text().trim();
-    let quantite = parseInt($(this).find("td:eq(2)").text().trim());
+    let quantite = parseInt($(this).find("td:eq(2) input").val()) || 0;
+
     let prix = parseInt($(this).find("td:eq(3)").text().replace(/\s/g, "")); // 🔥 enlever espaces formatés
 
     let produitId = $(this).data("produit-id"); // ✅ fonctionne maintenant

@@ -3608,7 +3608,9 @@ def enregistrer_retours(request):
                     produit = Produit.objects.select_for_update().get(id=item['produit_id'])
                     
                     # Mise à jour du stock
-                    produit.quantite += item['quantite']
+                    print(item['quantite'], type(item['quantite']))
+                    qte = int(item.get('quantite') or 0)
+                    produit.quantite += qte
                     produit.save()
 
                     # Création du retour
