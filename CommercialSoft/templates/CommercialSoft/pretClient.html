@@ -47,7 +47,7 @@
                     {% csrf_token %}
                     <div class="card-body">
                       <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                           <div class="form-group">
                             <label for="intitule">Client</label>
                             {{ form.client }}
@@ -59,18 +59,25 @@
                             {{ form.montant }}
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="date">Date</label>
                             {{ form.date }}
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="categorie">Date echeance</label>
                             {{ form.dateEcheance }}
                           </div>
-                      </div>
+                        </div>
+
+                        <div class="col-md-3">
+                          <div class="form-group">
+                            <label for="categorie">Commentaire</label>
+                            {{ form.commentaire }}
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <!-- /.card-body -->
@@ -98,6 +105,7 @@
                     <th class="text-center">Montant</th>
                     <th class="text-center">date</th>
                     <th class="text-center">Echeance</th>
+                    <th class="text-center">Commentaire</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
@@ -110,6 +118,7 @@
                         <td class="text-center">{{liste.montant}}</td>
                         <td class="text-center">{{liste.date}}</td>
                         <td class="text-center">{{liste.dateEcheance}}</td>
+                        <td class="text-center">{{liste.commentaire}}</td>
                         <td class="text-center">
                           <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">

@@ -441,11 +441,145 @@ def reception_create(request):
     formset = LivraisonProduitFormSet()
     produits = Produit.objects.all()
 
-    return render(request, 'CommercialSoft/reception.html', {
+    return render(request, 'CommercialSoft/reception2.html', {
         'livraison_form': livraison_form,
         'formset': formset,
         'listes': produits,
     })
+
+
+
+
+
+
+
+
+
+
+#------------------------- nouvelle reception ------------------------------
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.dateparse import parse_date
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from datetime import date
+import json
+
+from .models import Produit, Fournisseur, Livraison, LivraisonProduit, DetteFournisseur
+
+@login_required
+@require_GET
+def api_reception(request):
+    """
+    Données de base pour le offline :
+    - produits (partagés avec la vente via localforage 'produits')
+    - fournisseurs (localforage 'fournisseurs')
+    """
+    prods = list(Produit.objects.values(
+        "id", "libelle", "prixAchat", "prixDetail", "prixEnGros", "quantite"
+    ))
+    fours = list(Fournisseur.objects.values("id", "nom"))
+    return JsonResponse({"produits": prods, "fournisseurs": fours})
+
+
+def _mm_aa_to_date(mm_aa: str):
+    """ '10/25' -> date(2025,10,1). Retourne None si vide/KO. """
+    try:
+        mm, aa = (mm_aa or "").split("/")
+        yy = int("20" + aa.strip())
+        mm = max(1, min(int(mm.strip()), 12))
+        return date(yy, mm, 1)
+    except Exception:
+        return None
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def api_sync_livraisons(request):
+    """
+    Reçoit UNE livraison locale (offline) et la persiste.
+    - crée Livraison + LivraisonProduit
+    - met à jour le stock Produit (entrée)
+    - enregistre DetteFournisseur si typePayement == 'Pret'
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"JSON invalide: {e}"}, status=400)
+
+    fournisseur_id = payload.get("fournisseur")
+    lignes = payload.get("lignes", [])
+    montant = int(payload.get("montant") or 0)
+    numeroFacture = payload.get("numeroFacture") or None
+    typePayement = payload.get("typePayement") or "Espece"
+    date_str = payload.get("date") or ""
+
+    if not fournisseur_id or not lignes:
+        return JsonResponse({"success": False, "error": "Fournisseur et lignes requis"}, status=400)
+
+    try:
+        fournisseur = Fournisseur.objects.get(id=fournisseur_id)
+    except Fournisseur.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Fournisseur introuvable"}, status=404)
+
+    liv_date = parse_date(date_str) or date.today()
+
+    try:
+        with transaction.atomic():
+            liv = Livraison.objects.create(
+                fournisseur=fournisseur,
+                date=liv_date,
+                montant=montant,
+                numeroFacture=numeroFacture,
+                typePayement=typePayement,
+            )
+
+            for li in lignes:
+                pid = li.get("produit_id")
+                qte = int(li.get("quantite") or 0)
+                prix = int(float(li.get("prix") or 0))
+                prixDetail = int(float(li.get("prixDetail") or 0))
+                per_mm_aa = (li.get("peremption") or "").strip()
+                if not pid or qte <= 0 or prix <= 0:
+                    continue
+
+                pr = Produit.objects.filter(id=pid).first()
+                if not pr:
+                    continue
+
+                per_date = _mm_aa_to_date(per_mm_aa)
+
+                LivraisonProduit.objects.create(
+                    livraison=liv,
+                    produit=pr,
+                    quantite=qte,
+                    prix=prix,
+                    prixDetail=prixDetail,
+                    peremption=per_date
+                )
+
+                # entrée de stock + mise à jour prix
+                pr.quantite += qte
+                pr.quantiteTotal += qte
+                pr.prixAchat = prix
+                if prixDetail > 0:
+                    pr.prixDetail = prixDetail
+                pr.save()
+
+            if typePayement == "Pret":
+                DetteFournisseur.objects.create(
+                    fournisseur=fournisseur,
+                    montant=montant,
+                    date=liv_date,
+                    facture=liv
+                )
+
+        return JsonResponse({"success": True, "livraison_id": liv.id})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 
@@ -1999,6 +2133,7 @@ def recherche_pretClient(request):
                 "montant":pret.montant,
                 "date": pret.date,
                 "dateEcheance":pret.dateEcheance,
+                "commentaire":pret.commentaire or "",
                 "user": pret.user.first_name+ " "+pret.user.last_name,
             }
             for pret in pretClients

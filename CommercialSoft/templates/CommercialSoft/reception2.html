@@ -1,1421 +1,528 @@
+{% extends "CommercialSoft/starter-page.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>commercial Soft</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
+{% block css %}
+<link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+<link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+<link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+<link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+<link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+<link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+<style>
+  .suggestions{
+    border:1px solid #ccc;max-height:200px;overflow-y:auto;margin:0;padding:0;list-style:none;
+    position:absolute;background:#fff;width:100%;z-index:1000
+  }
+  .suggestions li{padding:6px 8px;cursor:pointer}
+  .suggestions li:hover,.suggestions li.active-suggestion{background:#007bff;color:#fff}
+</style>
+{% endblock %}
 
-  <!-- Favicons -->
-  <link href="{% static 'clinique/assets/img/favicon.png' %}" rel="icon">
-  <link href="{% static 'clinique/assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
 
-  
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'clinique/assets/vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'clinique/assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
-  <link href="{% static 'clinique/assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
-  <link href="{% static 'clinique/assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
-
-
-  <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
-    <!-- Ionicons -->
-    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-    <!-- Theme style -->
-  <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
-    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
-    <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
-    <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
-  <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
-
-  <!-- Main CSS File -->
-  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
-
-  
-
-  <!-- =======================================================
-  * Template Name: Medilab
-  * Template URL: https://bootstrapmade.com/medilab-free-medical-bootstrap-theme/
-  * Updated: Aug 07 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
-  <style>
-    .suggestions {
-  border: 1px solid #ccc;
-  max-height: 200px;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  position: absolute;
-  background: white;
-  width: 100%;
-  z-index: 1000;
-}
-
-.suggestions li {
-  padding: 5px;
-  cursor: pointer;
-}
-
-.suggestions li:hover {
-  background: #eee;
-}
-
-.suggestions li.active-suggestion {
-  background-color: #007bff;
-  color: white;
-}
-
-
-  </style>
-</head>
-
-<body class="starter-page-page vh-100">
-  
-  {% csrf_token %}
-    <header id="header" class="header sticky-top">
-      
-      <div class="topbar d-flex align-items-center">
-        <div class="container d-flex justify-content-center justify-content-md-between">
-          <div class="contact-info d-flex align-items-center">
-            <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
-            
-          </div>
-          <div class="contact-info d-flex align-items-center">
-            <i class="bi  d-flex align-items-center"><a href="#" id="etatSynchro">synchronisation</a></i>
-          </div>
-          <div class="social-links d-none d-md-flex align-items-center">
-            <a href="#" class="text-white">{{user.first_name}} {{user.last_name}}</a>
-            <input type="hidden" id="user_id" value="{{user.id}}">
-          </div>
-        </div>
-      </div><!-- End Top Bar -->
-
-      <div class="branding d-flex align-items-center">
-        <div class="col-md-2 d-none d-sm-block">
-          <div class="form-group">
-            {{ commande_form.date }}
-          </div>
-        </div>
-
-        <div class="container position-relative d-flex align-items-center justify-content-end">
-          <nav id="navmenu" class="navmenu">
-            <i class="mobile-nav-toggle"></i>
-          </nav>
-          
-          <a href="#" class="col-sm-10 col-md-9 ms-auto">
-            <!-- Uncomment the line below if you also wish to use an image logo -->
-            <!-- <img src="assets/img/logo.png" alt=""> -->
-            <h1 class="sitename" >
-              <div class="form-group">
-                {{ commande_form.montant }}
-                <input type="text" readonly="true" class="form-control fw-bold  text-center fs-3" id="montantTotal">
-              </div>
-            </h1>
-          </a>
-          <div class="col-md-1 d-none d-sm-block">
-            <div class="form-group">
-              <input type="number" class="form-control fw-bold text-center fs-6" id="remisePourcent" placeholder="%" min="0" max="100">
-            </div>
-          </div>
-          <div class="col-md-2 ms-auto">
-            <div class="form-group">
-              <input type="number" class="form-control fw-bold text-center fs-5" id="remise" placeholder="0" min="0">
-            </div>
-          </div>
-
-
-        </div>
-
+    <!-- Bandeau synchro -->
+    <div class="row">
+      <div class="col-12 d-flex justify-content-end py-2">
+        <a href="#" id="etatSynchroReception" class="text-muted">synchronisation</a>
       </div>
-
-    </header>
-
-    <main class="main">
-
-      <section class="content pt-0">
-        <div class="container-fluid h-100 d-flex flex-column">
-          <div class="row">
-            {% if messages %}
-                <div>
-                    {% for message in messages %}
-                        {% if message.tags == "success" %}
-                            <div class="bg-{{ message.tags }} text-center h-15" id="messageErreur">
-                                {{ message }}
-                            </div>
-                        {% else %}
-                            <div class="bg-danger text-center h-15" id="messageErreur">
-                                {{ message }}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            {% endif %}
-            {% if commande_form.errors %}
-                <div class="bg-danger">{{ commande_form.errors }}</div>
-            {% endif %}
-        </div>
-        
-          <div class="row">
-            <div class="col-md-5">
-              <div class="card card-info" style="height: 67vh; overflow: hidden;">
-                <div class="card-header">
-                  <h3 class="card-title">Nouvelle vente</h3>
-                </div>
-                  <div style="height: calc(67vh - 56px); overflow-y: auto;">
-                    <div class="card-body">
-                    
-                      <div class="row" id="formset-container">
-                          <div class="formset-item">
-                            <div class="row">
-                              <div class="form-group position-relative">
-                                <label>Produit</label>
-                                <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
-                                <ul id="suggestions" class="suggestions" style="width: 100%;"></ul>
-                              </div>
-                            </div>
-                            <div class="row">
-                              <div class="col-md-6">
-                                <div class="form-group">
-                                  <label>Quantité</label>
-                                  <input type="number" class="form-control" id="quantite" value="1" min="0"> 
-                                </div>
-                              </div>
-                              <div class="col-md-6">
-                                <div class="form-group">
-                                  <label>Prix unitaire</label>
-                                  <input type="number" class="form-control" id="prixDetail" value="1" min="0"> 
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                      </div>
-
-                      <div class="row">
-                        <div class="col-md-6">
-                          <div class="form-group">
-                            <label>Stock</label>
-                            <input type="number" disabled="true" class="form-control" id="stock">
-                          </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                          <div class="form-group">
-                            <label>Type vente</label>
-                            <select class="form-control select2bs4" id="typeVente" style="width: 100%;">
-                              <option value="detail">Détail</option>
-                              <option value="en gros">En gros</option>
-                              <option value="achat">Achat</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                  </div>
-                  <div class="card-footer clearfix text-center">
-                    <button class="btn btn-primary" id="ajoutBouton">Ajouter</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-7">
-              <div class="card card-info" style="height: 67vh; overflow: hidden;">
-                <div class="card-header d-flex justify-content-between">
-                  <h3 class="card-title mb-0">Liste des produits</h3>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body p-0" style="height: calc(100% - 50px); overflow-y: auto;">
-                  <div >
-                    <table class="table table-bordered table-hover table-striped table-sm mb-0" id="tablePanier">
-                      <thead>
-                        <tr>
-                          <th style="width: 10px" class="text-center">#</th>
-                          <th class="text-center">Libelle produits</th>
-                          <th class="text-center">Quantité</th>
-                          <th class="text-center">P unitaire</th>
-                          <th class="text-center">Montant</th>
-                          <th style="width: 40px" class="text-center">#</th>
-                        </tr>
-                      </thead>
-                      <tbody id="livraison-produits">
-                        <!-- tes lignes dynamiques ici -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- /.row -->
-          <div class="row d-flex justify-content-between align-items-center">
-            <div class="col-md-2">
-              <div class="form-group d-flex align-items-center">
-                <label class="mb-0" style="width: 50%;">Payement</label> <!-- Ajuste le width si nécessaire -->
-                <div style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
-                  {{ commande_form.typePayement }}
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3" id="lgClient">
-              <div class="form-group d-flex align-items-center">
-                <label class="mb-0 col-md-3" >Client</label> <!-- Ajuste le width si nécessaire -->
-                <div class="col-md-9" style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
-                  <select class="form-control select2bs4" id="id_client">
-                    <option value="0">--------</option>
-                    
-                    </select>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3" id="lgEcheance">
-              <div class="form-group d-flex align-items-center">
-                <label class="mb-0 col-md-5" >Echeance</label> <!-- Ajuste le width si nécessaire -->
-                <div style="flex-grow: 1;" class="col-md-7"> <!-- Cette div prendra l'espace restant -->
-                  {{ pret_form.dateEcheance }}
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4 d-flex justify-content-end align-items-center" id="">
-              <div class="form-group ml-auto">
-                <a type="submit" href="{% url 'commerce_vente' %}" target="_blank" class="btn bg-secondary color-palette">Attente</a>
-                <button onclick="proforma()" class="btn btn-info">Facture</button>
-                <button type="button" class="btn bg-fuchsia btn-md border" id="btnRetour">Retour</button>
-                <button onclick="validerVente()" class="btn btn-primary btn-md border">valider la vente</button>
-              </div>
-            </div>
-          </div>
-            
-        </div><!-- /.container-fluid -->
-      </section>
-      <!-- /.content -->
-      
-    <input type="hidden" name="jsonDataInput" id="jsonDataInput">
-    </main>
-
-  
-  <form id="formExportPDF" method="post" action="{% url 'pdf_facture_proforma' %}" target="_blank">
-    {% csrf_token %}
-    <input type="hidden" name="data" id="jsonDataInputPdf">
-  </form>
-
-
-  <form id="formExportPDFRecu" method="post" action="{% url 'recu_offline' %}" target="_blank">
-    {% csrf_token %}
-    <input type="hidden" name="jsonData" id="jsonDataInputPdfRecu">
-  </form>
-
-
-  <footer id="footer" class="footer light-background">
-
-
-    <div class="container copyright text-center mt-4">
-      <p>© <span>Copyright 2025</span> <strong class="px-1 sitename">Laguisoft Technologie</strong> <span>Tous droit reservé</span></p>
     </div>
 
-  </footer>
+    <div class="row">
+      <!-- Colonne gauche : zone de saisie comme la vente -->
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Nouvelle réception (saisie rapide)</h3>
+          </div>
+          <div class="card-body">
+            {% if messages %}
+              <div>
+                {% for message in messages %}
+                  {% if message.tags == "success" %}
+                    <div class="alert alert-success text-center">{{ message }}</div>
+                  {% elif message.tags == "error" %}
+                    <div class="alert alert-danger text-center">{{ message }}</div>
+                  {% elif message.tags == "warning" %}
+                    <div class="alert alert-warning text-center">{{ message }}</div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
 
-  <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+            <!-- Recherche produit (autocomplétion comme la vente) -->
+            <div class="row">
+              <div class="col-md-3">
+                <div class="form-group position-relative">
+                  <label>Produit</label>
+                  <input type="text" class="form-control" id="produitSearchR" placeholder="Rechercher un produit..." autocomplete="off">
+                  <ul id="suggestionsR" class="suggestions"></ul>
+                </div>
+              </div>
 
-  <!-- Preloader -->
-  <div id="preloader"></div>
+              <div class="col-md-1">
+                <div class="form-group">
+                  <label>Quantité</label>
+                  <input type="number" class="form-control" id="quantiteR" value="1" min="1">
+                </div>
+              </div>
 
-  <!-- Vendor JS Files -->
-  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'clinique/assets/vendor/php-email-form/validate.js' %}"></script>
-  <script src="{% static 'clinique/assets/vendor/aos/aos.js' %}"></script>
-  <script src="{% static 'clinique/assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'clinique/assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
-  <script src="{% static 'clinique/assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Prix d'achat</label>
+                  <input type="number" class="form-control" id="prixAchatR" min="0">
+                </div>
+              </div>
 
-  <!-- Main JS File -->
-  <script src="{% static 'clinique/assets/js/main.js' %}"></script>
-  <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
-  <!-- Bootstrap 4 -->
-  <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-  <!-- bs-custom-file-input -->
-  <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
-  <!-- AdminLTE App -->
-  <script src="{% static 'autre/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js' %}"></script>
-  <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
-  <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
-  <!-- AdminLTE for demo purposes -->
-  <script src="{% static 'autre/plugins/moment/moment.min.js' %}"></script>
-  <script src="{% static 'autre/plugins/inputmask/min/jquery.inputmask.bundle.min.js' %}"></script>
-  <script src="{% static 'autre/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
-  <!-- Bootstrap Switch -->
-  <script src="{% static 'autre/plugins/bootstrap-switch/js/bootstrap-switch.min.js' %}"></script>
-  <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
-  <!-- AdminLTE for demo purposes -->
-  <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
-  <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Prix détail</label>
+                  <input type="number" class="form-control" id="prixDetailR" min="0">
+                </div>
+              </div>
 
-  <script src="{% static 'js/localforage.min.js' %}"></script>
-  <script src="{% static 'js/offline-core.js' %}"></script>
-  <script src="{% static 'js/vente.js' %}"></script>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Péremption (MM/AA)</label>
+                  <input type="text" class="form-control" id="peremptionR" placeholder="MM/AA" maxlength="5" inputmode="numeric" autocomplete="off">
+                </div>
+              </div>
 
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Stock actuel</label>
+                  <input type="number" class="form-control" id="stockR" disabled>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="row align-items-end">
+
+              <div class="col-md-3">
+                <div class="form-check mt-4">
+                  <input class="form-check-input" type="checkbox" id="useTVA" data-tva="18">
+                  <label class="form-check-label" for="useTVA">Appliquer TVA (18%)</label>
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <div class="form-check mt-4">
+                  <input class="form-check-input" type="checkbox" id="isDette">
+                  <label class="form-check-label" for="isDette">Fourniture à dette</label>
+                </div>
+              </div>
+
+              <div class="col-md-4 text-end">
+                <!-- même id que ton bouton “Ajouter” d’origine -->
+                <button class="btn btn-primary" id="idAjouter">Ajouter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tableau de lignes (même style que ton template) -->
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Liste des produits</h3>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-bordered table-hover table-striped table-sm mb-0" id="tableReception">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width:10px">#</th>
+                  <th class="text-center">Libelle produits</th>
+                  <th class="text-center">Quantité</th>
+                  <th class="text-center">Prix d'achat</th>
+                  <th class="text-center">Montant</th>
+                  <th class="text-center">Péremption</th>
+                  <th class="text-center">Prix vente</th>
+                  <th class="text-center" style="width:40px">#</th>
+                </tr>
+              </thead>
+              <tbody id="livraison-produits"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bas de page : tes champs LivraisonForm inchangés -->
+    <form id="LivraisonForm" role="form" action="{% url 'commerce_reception' %}" method="post">
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-3 col-lg-3">
+          <div class="form-group">
+            <label for="numeroFacture">N° facture</label>
+            {{ livraison_form.numeroFacture }}
+          </div>
+        </div>
+        <div class="col-md-3 col-lg-3">
+          <div class="form-group">
+            <label for="fournisseur">Fournisseur</label>
+            {{ livraison_form.fournisseur }}
+          </div>
+        </div>
+        <div class="col-md-3 col-lg-3">
+          <div class="form-group">
+            <label for="date">Date</label>
+            {{ livraison_form.date }}
+          </div>
+        </div>
+        <div class="col-md-3 col-lg-3">
+          <div class="form-group">
+            <label for="montant">Montant</label>
+            {{ livraison_form.montant }}
+          </div>
+        </div>
+      </div>
+
+      <!-- formset caché (compat Django) -->
+      <div id="formset-container" class="d-none">
+        {{ formset.management_form }}
+      </div>
+      <input type="hidden" id="id_livraisonproduit_set-TOTAL_FORMS" name="livraisonproduit_set-TOTAL_FORMS" value="{{ formset.total_form_count }}">
+
+      <div class="card-footer clearfix text-center">
+        <!-- on ne soumet pas au serveur ici; on enregistre localement et on synchronise -->
+        <button type="button" class="btn btn-success" id="btnValiderReception">Valider la facture</button>
+      </div>
+    </form>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+<script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+<script src="{% static 'js/localforage.min.js' %}"></script>
 
 <script>
-  localforage.config({ name: "venteApp" });
+/* ================= Réception Offline/Online — clone de la Vente ================= */
+localforage.config({ name: "venteApp" }); // même DB que la vente pour partager les clés
 
-let panier = [];
+let panierR = [];
 let produitsCache = [];
-let currentFocus = -1;
-let produitSelectionne = null;
-let input = document.getElementById("produitSearch");
-let suggestions = document.getElementById("suggestions");
+let fournisseursCache = [];
+let currentFocusR = -1;
+let produitSelectionneR = null;
 
-// --- 🚀 Charger produits & clients ---
-async function chargerProduits() {
+const inputR = document.getElementById("produitSearchR");
+const sugR = document.getElementById("suggestionsR");
+
+const prixAchatR = document.getElementById("prixAchatR");
+const prixDetailR = document.getElementById("prixDetailR");
+const quantiteR = document.getElementById("quantiteR");
+const peremptionR = document.getElementById("peremptionR");
+const stockR = document.getElementById("stockR");
+
+const useTVA = document.getElementById("useTVA");
+const isDette = document.getElementById("isDette");
+const etatSynchroReception = document.getElementById("etatSynchroReception");
+
+const montantTotalEl = document.getElementById("numLivraison");
+const dateEl = document.querySelector("[name='date']");
+const numFactureEl = document.querySelector("[name='numeroFacture']");
+const fournisseurEl = document.querySelector("[name='fournisseur']");
+
+/* ---------- Chargement produits & fournisseurs (cache partagé) ---------- */
+async function chargerDonnees() {
+  // 1) Lire cache partagé (produits/fournisseurs) — identique Vente
+  produitsCache = await localforage.getItem("produits") || [];
+  fournisseursCache = await localforage.getItem("fournisseurs") || [];
+
+  if (produitsCache.length && fournisseursCache.length) {
+    console.log("✅ Réception: cache partagé utilisé (produits/fournisseurs)");
+    remplirSelectFournisseurSiVide();
+    return;
+  }
+
   try {
-    const response = await fetch("/commerce/api/produits/");
-    const data = await response.json();
-    produitsCache = data.produits;
+    const resp = await fetch("/commerce/api/reception/");
+    const data = await resp.json();
+    if (!produitsCache.length) produitsCache = data.produits || [];
+    if (!fournisseursCache.length) fournisseursCache = data.fournisseurs || [];
+
     await localforage.setItem("produits", produitsCache);
-    await localforage.setItem("clients", data.clients);
-    remplirSelectClients(data.clients);
-    console.log("✅ Produits et clients chargés depuis API");
-  } catch {
-    produitsCache = await localforage.getItem("produits") || [];
-    let clients = await localforage.getItem("clients") || [];
-    remplirSelectClients(clients);
-    console.warn("⚠️ Hors ligne : données locales utilisées");
+    await localforage.setItem("fournisseurs", fournisseursCache);
+
+    console.log("✅ Réception: cache partagé mis à jour via API");
+    remplirSelectFournisseurSiVide();
+  } catch (e) {
+    console.warn("⚠️ Réception hors-ligne: aucun cache trouvé");
   }
 }
 
-function remplirSelectClients(clients) {
-  let select = document.getElementById("id_client");
-  select.innerHTML = '<option value="">---------</option>';
-  clients.forEach(c => {
-    let option = document.createElement("option");
-    option.value = c.id;
-    option.textContent = `${c.nom}`;
-    select.appendChild(option);
-  });
+function remplirSelectFournisseurSiVide() {
+  if (!fournisseurEl) return;
+  if (fournisseurEl.options.length <= 1 && fournisseursCache.length) {
+    fournisseurEl.innerHTML = '<option value="">---------</option>';
+    fournisseursCache.forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f.id; opt.textContent = f.nom;
+      fournisseurEl.appendChild(opt);
+    });
+  }
 }
 
-// --- 🔎 Recherche produit ---
-input.addEventListener("input", function () {
-  let query = this.value.toLowerCase();
-  suggestions.innerHTML = "";
-  currentFocus = -1;
-  produitSelectionne = null;
+/* ---------- Autocomplétion (comme la vente) ---------- */
+inputR.addEventListener("input", function () {
+  const q = this.value.toLowerCase();
+  sugR.innerHTML = "";
+  currentFocusR = -1;
+  produitSelectionneR = null;
+  if (q.length < 1) return;
 
-  if (query.length < 1) return;
-
-  let results = produitsCache
-    .filter(p => p.libelle.toLowerCase().includes(query))
-    .slice(0, 100);
-
-  results.forEach((p, index) => {
-    let li = document.createElement("li");
+  const results = produitsCache.filter(p => p.libelle.toLowerCase().includes(q)).slice(0,100);
+  results.forEach((p, idx) => {
+    const li = document.createElement("li");
     li.textContent = p.libelle;
-    li.dataset.index = index;
-    li.onclick = () => {
-      remplirInfosProduit(p);
-      suggestions.innerHTML = "";
-    };
-    suggestions.appendChild(li);
+    li.dataset.index = idx;
+    li.onclick = () => { remplirInfosProduit(p); sugR.innerHTML = ""; };
+    sugR.appendChild(li);
   });
 });
 
-// ---  Navigation suggestions ---
-input.addEventListener("keydown", function (e) {
-  let items = suggestions.getElementsByTagName("li");
+inputR.addEventListener("keydown", function (e) {
+  const items = sugR.getElementsByTagName("li");
   if (!items.length) return;
 
   if (e.key === "ArrowDown") {
-    e.preventDefault();
-    currentFocus++;
-    if (currentFocus >= items.length) currentFocus = 0;
-    activerSuggestion(items);
+    e.preventDefault(); currentFocusR++;
+    if (currentFocusR >= items.length) currentFocusR = 0;
+    activerSug(items);
   } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    currentFocus--;
-    if (currentFocus < 0) currentFocus = items.length - 1;
-    activerSuggestion(items);
+    e.preventDefault(); currentFocusR--;
+    if (currentFocusR < 0) currentFocusR = items.length - 1;
+    activerSug(items);
   }
 });
 
-// --- ⏎ Entrée global ---
 document.addEventListener("keydown", function (e) {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    let items = suggestions.getElementsByTagName("li");
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const items = sugR.getElementsByTagName("li");
 
-    if (currentFocus > -1 && items[currentFocus]) {
-      items[currentFocus].click(); // sélectionne
-    } else if (!produitSelectionne && input.value.trim() !== "") {
-      // Première validation
-      let produit = produitsCache.find(
-        p => p.libelle.toLowerCase() === input.value.toLowerCase()
-      );
-      if (produit) {
-        remplirInfosProduit(produit);
-        suggestions.innerHTML = "";
-      }
-    } else if (produitSelectionne) {
-      // Ajout direct au panier
-      ajouterAuPanier(produitSelectionne);
-    }
+  if (currentFocusR > -1 && items[currentFocusR]) {
+    items[currentFocusR].click(); return;
   }
+  if (!produitSelectionneR && inputR.value.trim() !== "") {
+    const p = produitsCache.find(x => x.libelle.toLowerCase() === inputR.value.toLowerCase());
+    if (p) { remplirInfosProduit(p); sugR.innerHTML = ""; return; }
+  }
+  if (produitSelectionneR) { ajouterLigneReception(produitSelectionneR); }
 });
 
-function activerSuggestion(items) {
-  for (let i = 0; i < items.length; i++) {
-    items[i].classList.remove("active-suggestion");
-  }
-  if (currentFocus >= 0) {
-    items[currentFocus].classList.add("active-suggestion");
-    items[currentFocus].scrollIntoView({ block: "nearest", behavior: "smooth" });
+function activerSug(items) {
+  Array.from(items).forEach(li => li.classList.remove("active-suggestion"));
+  if (currentFocusR >= 0) {
+    items[currentFocusR].classList.add("active-suggestion");
+    items[currentFocusR].scrollIntoView({ block:"nearest", behavior:"smooth" });
   }
 }
 
-function remplirInfosProduit(produit) {
-  produitSelectionne = produit;
-  input.value = produit.libelle;
-  let typeVente = document.getElementById("typeVente").value;
-  let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
-  document.getElementById("prixDetail").value = prix;
-  document.getElementById("stock").value = produit.quantite;
+function remplirInfosProduit(p) {
+  produitSelectionneR = p;
+  inputR.value = p.libelle;
+  prixAchatR.value = p.prixAchat;
+  prixDetailR.value = p.prixDetail;
+  stockR.value = p.quantite;
+  quantiteR.value = 1;
+  //peremptionR.focus();
 }
 
-// --- 🛒 Ajouter au panier ---
-function ajouterAuPanier(produit = null) {
-  if (!produit) {
-    produit = produitSelectionne;
-  }
+/* ---------- Ajout ligne (formset caché + tableau) ---------- */
+document.getElementById("idAjouter").addEventListener("click", function(e){
+  e.preventDefault();
+  ajouterLigneReception();
+});
 
-  if (!produit) {
-    toastr.error("Veuillez sélectionner un produit avant d'ajouter !");
+function ajouterLigneReception(p = null) {
+  if (!p) p = produitSelectionneR;
+  if (!p) { toastr.error("Sélectionnez un produit !"); return; }
+
+  let qte = parseInt(quantiteR.value || "1");
+  let pa = parseFloat(prixAchatR.value || "0");
+  let pd = parseFloat(prixDetailR.value || "0");
+  let per = (peremptionR.value || "").trim();
+
+  if (qte <= 0 || pa < 0) {
+    toastr.warning("Quantité et prix d'achat doivent être > 0");
     return;
   }
 
-  let quantite = parseInt(document.getElementById("quantite").value) || 1;
-  let typeVente = document.getElementById("typeVente").value;
-  //let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
-  let prix = parseFloat(document.getElementById("prixDetail").value);
+  const exist = panierR.find(it => it.produit_id === p.id);
+  if (exist) exist.quantite += qte;
+  else panierR.push({ produit_id:p.id, nom:p.libelle, quantite:qte, prix:pa, prixDetail:pd, peremption:per });
 
-  let produitExistant = panier.find(item => item.produit_id === produit.id);
-  if (produitExistant) {
-    produitExistant.quantite += quantite;
-    produitExistant.total = produitExistant.quantite * produitExistant.prix;
-  } else {
-    panier.push({
-      produit_id: produit.id,
-      nom: produit.libelle,
-      quantite,
-      prix,
-      total: prix * quantite
-    });
-  }
+  // formset caché
+  const fs = document.getElementById("formset-container");
+  const count = fs.children.length;
+  fs.insertAdjacentHTML("beforeend", `
+    <div class="formset-item">
+      <input type="hidden" name="livraisonproduit_set-${count}-produit" value="${p.id}">
+      <input type="hidden" name="livraisonproduit_set-${count}-quantite" value="${qte}">
+      <input type="hidden" name="livraisonproduit_set-${count}-prix" value="${pa}">
+      <input type="hidden" name="livraisonproduit_set-${count}-prixDetail" value="${pd}">
+      <input type="hidden" name="livraisonproduit_set-${count}-peremption" value="${per}">
+    </div>
+  `);
+  document.getElementById("id_livraisonproduit_set-TOTAL_FORMS").value = count + 1;
 
-  afficherPanier();
-  mettreAJourTotal();
+  afficherPanierR();
 
   // reset champs
-  document.getElementById("quantite").value = 1;
-  document.getElementById("prixDetail").value = "";
-  document.getElementById("stock").value = "";
-
-  input.value = "";
-  produitSelectionne = null;
-  input.focus();
+  prixAchatR.value = ""; prixDetailR.value = ""; quantiteR.value = 1; stockR.value = ""; peremptionR.value = "";
+  inputR.value = ""; produitSelectionneR = null; inputR.focus();
 }
 
-
-
-// --- 🖼️ Affichage panier ---
-function afficherPanier() {
-  let tbody = document.getElementById("livraison-produits");
+function afficherPanierR() {
+  const tbody = document.getElementById("livraison-produits");
   tbody.innerHTML = "";
   let num = 1;
-  panier.forEach((item, index) => {
-    let tr = document.createElement("tr");
-     tr.setAttribute("data-produit-id", item.produit_id); // ✅ on stocke l’ID ici
+  panierR.forEach((item, idx) => {
+    const m = montantLigne(item.quantite, item.prix);
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-index", idx);
     tr.innerHTML = `
       <td class="text-center">${num}</td>
       <td>${item.nom}</td>
-      <td class="text-center">
-        <input type="number" 
-               class="form-control form-control-md text-center qte-input" 
-               value="${item.quantite}" 
-               min="1" 
-               style="width:100%;" 
-               oninput="changerQuantite(${index}, this.value)">
-      </td>
-      <td class="text-center">${item.prix.toLocaleString("fr-FR")}</td>
-      <td class="text-center">${(item.quantite * item.prix).toLocaleString("fr-FR")}</td>
-      <td class="text-center">
-        <button class="btn btn-sm btn-danger" onclick="supprimerDuPanier(${index})">
-          <i class="fas fa-trash"></i>
-        </button>
-      </td>`;
+      <td class="text-center"><input type="number" class="form-control form-control-sm text-center qteR" value="${item.quantite}" min="1"></td>
+      <td class="text-center">${Number(item.prix).toLocaleString('fr-FR')}</td>
+      <td class="text-center">${m.toLocaleString('fr-FR')}</td>
+      <td class="text-center">${item.peremption || ""}</td>
+      <td class="text-center">${Number(item.prixDetail||0).toLocaleString('fr-FR')}</td>
+      <td class="text-center"><button class="btn btn-sm btn-danger btn-removeR"><i class="fas fa-trash"></i></button></td>`;
     tbody.appendChild(tr);
     num++;
   });
-  mettreAJourTotal();
+  mettreAJourTotalR();
 }
 
-function supprimerDuPanier(index) {
-  panier.splice(index, 1);
-  afficherPanier();
-}
-
-function mettreAJourTotal() {
-  let total = panier.reduce((acc, item) => acc + item.total, 0);
-  let remise = parseFloat(document.getElementById("remise").value) || 0;
-  let totalFinal = Math.max(total - remise, 0);
-  document.getElementById("montantTotal").value = totalFinal.toLocaleString("fr-FR");
-}
-
-
-
-// --- Changer quantité et recalcul les valeur---
-function changerQuantite(index, nouvelleQte) {
-  nouvelleQte = parseInt(nouvelleQte) || 1; // valeur minimum
-  panier[index].quantite = nouvelleQte;
-  panier[index].total = panier[index].prix * nouvelleQte;
-
-  afficherPanier(); // recharge le tableau
-}
-
-
-
-
-
-// --- 🎯 Gestion Remise ---
-document.getElementById("remise").addEventListener("keypress", function (e) {
-  if (!/[0-9]/.test(e.key)) e.preventDefault();
-});
-
-document.getElementById("remise").addEventListener("input", function () {
-  let total = panier.reduce((acc, item) => acc + item.total, 0);
-
-  let remiseSaisie = parseFloat(this.value) || 0;
-  let remiseMax = Math.floor(total * 0.10); // 🔥 max 10% du total
-
-  if (remiseSaisie > remiseMax) {
-    this.value = remiseMax; // ✅ on force la valeur max
-    toastr.warning("⚠️ La remise ne peut pas dépasser 10% du montant total !");
+function montantLigne(q, pa) {
+  let m = (parseFloat(q)||0) * (parseFloat(pa)||0);
+  if (useTVA && useTVA.checked) {
+    const taux = parseFloat(useTVA.dataset.tva || "18");
+    m = Math.round(m * (1 + taux/100));
   }
+  return m;
+}
+function mettreAJourTotalR() {
+  const total = panierR.reduce((acc,it)=> acc + montantLigne(it.quantite,it.prix), 0);
+  montantTotalEl.value = total;
+}
 
-  mettreAJourTotal();
+document.addEventListener("input", function(e){
+  if (!e.target.classList.contains("qteR")) return;
+  const tr = e.target.closest("tr");
+  const idx = parseInt(tr.dataset.index);
+  let q = parseInt(e.target.value || "1"); if (q<=0) q=1;
+  panierR[idx].quantite = q;
+  tr.children[4].textContent = montantLigne(q, panierR[idx].prix).toLocaleString('fr-FR');
+  mettreAJourTotalR();
 });
-
-
-
-
-// --- 💯 Gestion de la remise en pourcentage ---
-const champPourcent = document.getElementById("remisePourcent");
-const champRemise = document.getElementById("remise");
-
-champPourcent.addEventListener("input", function () {
-  let total = panier.reduce((acc, item) => acc + item.total, 0);
-  let pourcentage = parseFloat(this.value) || 0;
-
-  if (pourcentage < 0) pourcentage = 0;
-  if (pourcentage > 10) {
-    pourcentage = 10;
-    this.value = 10;
-    toastr.warning("⚠️ La remise ne peut pas dépasser 10% du total !");
-  }
-
-  let remiseCalculee = Math.floor((total * pourcentage) / 100);
-  champRemise.value = remiseCalculee;
-  mettreAJourTotal();
+document.addEventListener("click", function(e){
+  const btn = e.target.closest(".btn-removeR"); if (!btn) return;
+  const tr = btn.closest("tr"); const idx = parseInt(tr.dataset.index);
+  panierR.splice(idx,1); rebuildHiddenFormset(); afficherPanierR();
 });
-
-
-
-// --- 🏷️ Type vente ---
-$('#typeVente').on('change', function () {
-  let typeVente = $(this).val();
-
-  panier.forEach(item => {
-    let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
-    if (produit) {
-      if (typeVente === "en gros") {
-        item.prix = produit.prixEnGros;
-      } else if (typeVente === "achat") {
-        item.prix = produit.prixAchat; // 🔥 Prix d’achat
-      } else {
-        item.prix = produit.prixDetail;
-      }
-      item.total = item.quantite * item.prix;
-    }
+function rebuildHiddenFormset() {
+  const fs = document.getElementById("formset-container"); fs.innerHTML = "";
+  panierR.forEach((it,i)=>{
+    fs.insertAdjacentHTML("beforeend", `
+      <div class="formset-item">
+        <input type="hidden" name="livraisonproduit_set-${i}-produit" value="${it.produit_id}">
+        <input type="hidden" name="livraisonproduit_set-${i}-quantite" value="${it.quantite}">
+        <input type="hidden" name="livraisonproduit_set-${i}-prix" value="${it.prix}">
+        <input type="hidden" name="livraisonproduit_set-${i}-prixDetail" value="${it.prixDetail}">
+        <input type="hidden" name="livraisonproduit_set-${i}-peremption" value="${it.peremption}">
+      </div>
+    `);
   });
+  document.getElementById("id_livraisonproduit_set-TOTAL_FORMS").value = panierR.length;
+}
+useTVA.addEventListener("change", mettreAJourTotalR);
 
-  // Mettre à jour champ prix si produit sélectionné
-  if (produitSelectionne) {
-    let nouveauPrix;
-    if (typeVente === "en gros") {
-      nouveauPrix = produitSelectionne.prixEnGros;
-    } else if (typeVente === "achat") {
-      nouveauPrix = produitSelectionne.prixAchat;
-    } else {
-      nouveauPrix = produitSelectionne.prixDetail;
-    }
-    $("#prixDetail").val(nouveauPrix);
-  }
+/* ---------- Valider : enregistrement LOCAL (puis synchro) ---------- */
+document.getElementById("btnValiderReception").addEventListener("click", async function(){
+  if (!panierR.length) { Swal.fire({icon:"warning", title:"Panier vide !"}); return; }
+  const fournisseur = parseInt(fournisseurEl && fournisseurEl.value || "0");
+  if (!fournisseur) { toastr.error("Veuillez sélectionner un fournisseur."); return; }
 
-  afficherPanier();
-  mettreAJourTotal();
+  const total = parseInt((montantTotalEl.value||"0").toString().replace(/\s/g,'')) || 0;
+  const livraisonData = {
+    id_local: Date.now()+"_"+Math.floor(Math.random()*100000),
+    lignes: panierR,
+    date: (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().slice(0,10),
+    montant: total,
+    numeroFacture: numFactureEl && numFactureEl.value ? numFactureEl.value : null,
+    typePayement: (isDette && isDette.checked) ? "Pret" : "Espece",
+    fournisseur
+  };
+
+  const queue = await localforage.getItem("livraisons") || [];
+  queue.push(livraisonData);
+  await localforage.setItem("livraisons", queue);
+
+  panierR = []; afficherPanierR(); rebuildHiddenFormset(); montantTotalEl.value = 0; inputR.focus();
+  toastr.success("✅ Facture enregistrée localement !");
 });
 
+/* ---------- Synchronisation auto (toutes 10s) ---------- */
+let isSyncing = false;
+async function syncLivraisons(){
+  if (isSyncing) return; isSyncing = true;
+  let livs = await localforage.getItem("livraisons") || [];
+  if (!livs.length) {
+    etatSynchroReception.innerHTML="✅ Toutes les factures sont synchronisées !";
+    etatSynchroReception.style.color="lime"; isSyncing=false; return;
+  }
+  for (let i=0;i<livs.length;i++){
+    try{
+      const resp = await fetch("/commerce/api/sync/livraisons/", {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(livs[i])
+      });
+      const out = await resp.json();
+      if (out.success) { livs.splice(i,1); i--; await localforage.setItem("livraisons", livs); }
+      else { console.warn("⚠️ Erreur sync:", out.error); }
+    }catch(e){ console.error("❌ Erreur réseau sync"); break; }
 
-// --- 👥 Affichage Client/Echéance si Pret ---
-const typePayement = document.getElementById('typePayement');
-const lgClient = document.getElementById('lgClient');
-const lgEcheance = document.getElementById('lgEcheance');
-function togglePret() {
-  const isPret = (typePayement.value === 'Pret');
-
-  lgClient.style.display = isPret ? 'flex' : 'none';
-  lgEcheance.style.display = isPret ? 'flex' : 'none';
-
-  // Rendre les champs obligatoires uniquement en cas de prêt
-  const clientEl = document.getElementById('id_client');
-  const echEl = document.getElementById('dateEch') || document.getElementById('id_dateEcheance');
-
-  if (clientEl) clientEl.required = isPret;
-  if (echEl) echEl.required = isPret;
+    if (livs.length>0) { etatSynchroReception.innerHTML=`Reste ${livs.length} facture(s) à synchroniser...`; etatSynchroReception.style.color="orange"; }
+    else { etatSynchroReception.innerHTML="✅ Toutes les factures sont synchronisées !"; etatSynchroReception.style.color="lime"; }
+    await new Promise(r=>setTimeout(r,400));
+  }
+  if (!livs.length) await localforage.removeItem("livraisons");
+  isSyncing=false;
 }
+setInterval(syncLivraisons, 10000);
+window.addEventListener("load", chargerDonnees);
 
-typePayement.addEventListener('change', togglePret);
-togglePret();
-
-// --- 🖱️ Clic sur bouton Ajouter ---
-$(document).ready(function () {
-  $('#ajoutBouton').on('click', function (e) {
+/* ---------- Masque MM/AA (comme vente) ---------- */
+(function(){
+  const input = peremptionR; if (!input) return;
+  function clampMonth(mm){ let n=parseInt(mm||'0',10); if(isNaN(n)||n<=0)return'01'; if(n>12)return'12'; return n<10?'0'+n:String(n); }
+  function formatMMYY(raw){ let v=String(raw||'').replace(/\D/g,'').slice(0,4); if(v.length<=2) return v; return v.slice(0,2)+'/'+v.slice(2); }
+  input.addEventListener("input", ()=>{
+    let f=formatMMYY(input.value);
+    if (f.length>=2) f=clampMonth(f.slice(0,2))+f.slice(2);
+    input.value=f;
+  });
+  input.addEventListener("paste",(e)=>{
     e.preventDefault();
-    ajouterAuPanier();
+    let t=(e.clipboardData||window.clipboardData).getData('text');
+    let f=formatMMYY(t);
+    if (f.length>=2) f=clampMonth(f.slice(0,2))+f.slice(2);
+    input.value=f;
   });
-});
-
-// --- 💾 Validation vente (offline) ---
-async function validerVente() {
-  let ventes = await localforage.getItem("ventes") || [];
-  let remise = parseFloat(document.getElementById("remise").value) || 0;
-  let client = parseInt(document.getElementById("id_client").value) || null;
-  let typeVente = document.getElementById("typeVente").value;
-  let typePayementVal = document.getElementById("typePayement").value;
-  let user = parseInt(document.getElementById("user_id").value);
-  let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
-  let dateEcheance = document.getElementById("dateEch").value;
-  if (typePayementVal === "Pret" && (!client || !dateEcheance)) {
-    alert("Veuillez sélectionner un client pour un prêt !");
-    return;
-  }
-
-  montant = parseInt(montant, 10) || 0;
-
-  if (panier.length === 0) {
-    alert("Le panier est vide !");
-    return;
-  }
-
-
-    let venteData = {
-      id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
-      lignes: panier,
-      date: document.getElementById("idCommande").value,
-      remise,
-      montant,
-      typeVente,
-      typePayement: typePayementVal,
-      client,
-      user,
-      dateEcheance: dateEcheance,
-    };
-
-  ventes.push(venteData);
-
-  await localforage.setItem("ventes", ventes);
-  panier = [];
-
-    // ✅ Réinitialiser les champs après validation
-  document.getElementById("remise").value = "";
-  document.getElementById("remisePourcent").value = "";
-  document.getElementById("typePayement").value = "Espece";
-  document.getElementById("id_client").value = "";   // reset client
-  document.getElementById("dateEch").value = "";     // reset échéance
-  togglePret();
-
-  afficherPanier();
-  //alert("✅ Vente enregistrée localement !");
-
-
-  /*/ Préparer données pour imprimer le reçu
-  if (confirm("Voulez-vous imprimer le reçu ?")) {
-  let jsonDataInput = document.getElementById("jsonDataInputPdfRecu");
-  jsonDataInput.value = JSON.stringify(venteData); // 🔥 remplir correctement
-  console.log("Données envoyées pour reçu :", jsonDataInput.value); // debug
-  document.getElementById("formExportPDFRecu").submit();
-}*/
-  if (confirm("Voulez-vous imprimer le reçu ?")) {
-    // tu as déjà venteData (panier, total, etc.)
-    // ajoute un objet boutique pour compléter l'entête
-    let boutique = {
-        nom: "Laguisoft Technologie",
-        emplacement: "Quartier Missira",
-        ville: "Kankan",
-        telephone: "620000000"
-    };
-    imprimerRecuLocal(venteData, boutique);
-  }
-
-  toastr.success("✅ Vente enregistrée localement !");
-
-input.focus();
-  
-}
-
-
-function imprimerRecuLocal(venteData, boutique) {
-  let contenu = `
-  <!DOCTYPE html>
-  <html lang="fr">
-  <head>
-    <meta charset="UTF-8">
-    <title>Recette de Prestation</title>
-    <style>
-       @media print {
-          body {
-              width: 80mm;        /* Largeur ticket */
-              margin: 0 auto;     /* Centrer le contenu */
-              font-size: 12px;
-          }
-
-          .container {
-              width: 100%;
-              padding: 5px;       /* Réduire marges internes */
-              box-shadow: none;   /* Supprimer les ombres */
-              border-radius: 0;
-          }
-
-          @page {
-              size: 226pt auto;  /* largeur 80mm, hauteur auto */
-              margin: 5pt;
-          }
-       }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-            width: 80mm;
-            font-size: 12px;
-        }
-
-        .container {
-            width: 100%;
-            margin: auto;
-            background-color: #fff;
-            padding: 5px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid black;
-            padding: 3px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        h1,h2,h3 {
-            margin: 2px 0;
-            padding: 0;
-            color: black;
-        }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-
-        <div class="header">
-            <table style="width: 100%; font-size: 14pt; border: none;">
-                <tr>
-                    <td style="width: 60%; text-align:left; border: none;">
-                        <strong style="font-size: 9pt;">
-                            {{ boutique.nom }}<br>
-                             ${"{{ boutique.emplacement }}" || ""}
-                        </strong>
-                    </td>
-                    <td style="width: 40%; text-align:right; border: none;">
-                        <strong style="font-size: 9pt;">
-                          ${"{{boutique.ville}}" || ""}<br>
-                          ${"{{boutique.telephone}}" || ""}
-                        </strong>
-                    </td>
-                </tr>
-            </table>
-        </div>
-
-        <h3 style="text-align:center;">${venteData.date}</h3>
-        <h2 >N° : ${venteData.id || "____"}</h2>
-        <h3 style="padding:10px">Client : ${venteData.clientNom || "_____________________"}</h3>
-
-        <h2 style="text-align: center; padding: 15px">Liste des produits</h2>
-
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:48%;"><h3>Libellé</h3></th>
-                    <th style="width:12%;"><h3>Qte</h3></th>
-                    <th style="width:18%;"><h3>Prix U</h3></th>
-                    <th style="width:22%;"><h3>Montant</h3></th>
-                </tr>
-            </thead>
-            <tbody>`;
-
-  venteData.lignes.forEach(item => {
-    contenu += `
-        <tr>
-          <td style="text-align:left;"><h3>${item.nom}</h3></td>
-          <td><h3>${item.quantite}</h3></td>
-          <td><h3>${item.prix.toLocaleString("fr-FR")}</h3></td>
-          <td><h3>${item.total.toLocaleString("fr-FR")}</h3></td>
-        </tr>`;
-  });
-
-  contenu += `
-        <tr>
-            <td colspan="2" style="text-align:right;"><strong><h2>Total :</h2></td>
-            <td colspan="2"><h2>${(venteData.montant + venteData.remise).toLocaleString("fr-FR")}</h2></td>
-        </tr>
-        <tr>
-            <td colspan="2" style="text-align:right;"><h2>Remise :</h2></td>
-            <td colspan="2"><h2>${venteData.remise.toLocaleString("fr-FR")}</h2></td>
-        </tr>
-        <tr>
-            <td colspan="2" style="text-align:right;"><h2>Net :</h2></td>
-            <td colspan="2"><h2>${(venteData.montant).toLocaleString("fr-FR")}</h2></td>
-        </tr>
-            </tbody>
-        </table>
-
-        <div style="text-align:center; margin-top:20px;">
-            <h3>Le Gérant</h3>
-        </div>
-        <div style="text-align:center; margin-top:10px;">
-            <p><strong> Merci pour votre confiance !</strong></p>
-        </div>
-    </div>
-  </body>
-  </html>`;
-
-  let win = window.open("", "Recu", "width=400,height=600");
-  win.document.write(contenu);
-  win.document.close();
-  win.print();
-}
-
-
-
-async function proforma() {
-  if (!panier.length) {
-    Swal.fire({
-      icon: "warning",
-      title: "Panier vide !",
-      text: "Veuillez ajouter au moins un produit avant de continuer.",
-      confirmButtonText: "OK"
-    });
-    return;
-  }
-
-  // 🧾 Préparation des données de la vente
-  let remise = parseFloat(document.getElementById("remise").value) || 0;
-  let client = parseInt(document.getElementById("id_client").value) || null;
-  let typeVente = document.getElementById("typeVente").value;
-  let typePayementVal = document.getElementById("typePayement").value;
-  let user = parseInt(document.getElementById("user_id").value);
-  let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
-  let dateEcheance = document.getElementById("dateEch").value;
-  let select = document.getElementById("id_client");
-  let clientNom = select.options[select.selectedIndex].text;
-
-
-  // 🔹 Nettoyer les produits pour JSON
-  let lignesNettes = panier.map(p => ({
-    produit: p.nom,
-    quantite: p.quantite,
-    prix: p.prix,
-    montant: p.total
-  }));
-
-  let venteDataRecu = {
-    lignes: panier,
-    date: document.getElementById("idCommande").value,
-    remise,
-    montant: parseInt(montant, 10) || 0,
-    typeVente,
-    typePayement: typePayementVal,
-    client,
-    user,
-    dateEcheance,
-    clientNom
-  };
-
-  let venteData = {
-    produits: panier.map(p => ({
-      produit: p.nom,
-      quantite: p.quantite,
-      prix: p.prix,
-      montant: p.total
-    })),
-    remise: parseFloat(document.getElementById("remise").value) || 0,
-    montant: parseInt(document.getElementById("montantTotal").value.replace(/\s/g, ''), 10) || 0,
-    clientId: parseInt(document.getElementById("id_client").value) || null,
-    dateEcheance: document.getElementById("dateEch").value,
-    typeVente: document.getElementById("typeVente").value,
-    typePayement: document.getElementById("typePayement").value,
-    user: parseInt(document.getElementById("user_id").value)
-  };
-
-  // 💬 Boîte SweetAlert2
- const { value: choix } = await Swal.fire({
-    title: "Choisissez le type de facture",
-    text: "Souhaitez-vous imprimer le reçu en format ticket ou A4 ?",
-    icon: "question",
-    showCancelButton: true,
-    showCloseButton: true,  // ✅ ajoute la croix pour fermer
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#6c757d",
-    confirmButtonText: "🧾 Imprimer le reçu",
-    cancelButtonText: "📑 Générer le PDF A4"
-  });
-
-
-  if (choix) {
-    // 🧾 Impression locale du reçu
-    let boutique = {
-      nom: "Laguisoft Technologie",
-      emplacement: "Quartier Missira",
-      ville: "Kankan",
-      telephone: "620000000"
-    };
-    imprimerRecuLocal(venteDataRecu, boutique);
-    Swal.fire({
-      icon: "success",
-      title: "Impression en cours...",
-      timer: 1500,
-      showConfirmButton: false
-    });
-  } else {
-    // 📑 Génération PDF
-    let jsonDataInput = document.getElementById("jsonDataInputPdf");
-    jsonDataInput.value = JSON.stringify(venteData);
-    document.getElementById("formExportPDF").submit();
-
-    Swal.fire({
-      icon: "success",
-      title: "Génération du PDF...",
-      timer: 1500,
-      showConfirmButton: false
-    });
-  }
-}
-
-
-
-
-// --- 🌐 Sync ventes ---
-/*async function syncVentes() {
-  let ventes = await localforage.getItem("ventes");
-  if (ventes && ventes.length > 0) {
-    try {
-      let response = await fetch("/commerce/api/sync/ventes/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ventes })
-      });
-      let result = await response.json();
-      if (result.success) {
-        await localforage.removeItem("ventes");
-        console.log("✅ Ventes synchronisées !");
-      }
-    } catch (err) {
-      console.error("❌ Erreur synchro:", err);
-    }
-  }
-}*/
-
-
-let isSyncing = false; // 🔒 verrou pour éviter plusieurs syncs en même temps
-
-async function syncVentes() {
-  let etatSynchro = document.getElementById("etatSynchro");
-
-  if (isSyncing) return; // ⛔ empêche une deuxième exécution en parallèle
-  isSyncing = true;
-
-  let ventes = await localforage.getItem("ventes");
-  if (!ventes || ventes.length === 0) {
-    isSyncing = false;
-
-    return;
-  }
-
-  console.log(`🔄 Tentative de synchronisation de ${ventes.length} ventes...`);
-
-  for (let i = 0; i < ventes.length; i++) {
-    let vente = ventes[i];
-    try {
-      let response = await fetch("/commerce/api/sync/ventes/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vente),
-      });
-
-      let result = await response.json();
-      if (result.success) {
-        console.log(`✅ Vente ${i + 1}/${ventes.length} synchronisée !`);
-        ventes.splice(i, 1);
-        i--;
-        await localforage.setItem("ventes", ventes);
-      } else {
-        console.warn(`⚠️ Erreur sur la vente ${i + 1}:`, result.error);
-      }
-    } catch (err) {
-      console.error("❌ Erreur réseau, arrêt de la synchronisation !");
-      break;
-    }
-
-    //affichage du message de synchronisation
-    
-    if (ventes.length > 0) {
-      etatSynchro.innerHTML = `Reste ${ventes.length} ventes à synchroniser...`;
-      etatSynchro.style.color = "orange";
-    } else {
-      etatSynchro.innerHTML = "✅ Toutes les ventes sont synchronisées !";
-      etatSynchro.style.color = "lime";
-    }
-
-
-    await new Promise(resolve => setTimeout(resolve, 500)); // petite pause
-  }
-
-  if (ventes.length === 0) {
-    await localforage.removeItem("ventes");
-    console.log("🎉 Toutes les ventes ont été synchronisées !");
-  }
-
-  isSyncing = false; // 🔓 libère le verrou
-}
-// ⏱️ Relancer toutes les 10 secondes si besoin
-setInterval(syncVentes, 10000);
-
-
-// --- 🚀 Init ---
-window.onload = chargerProduits;
-
+})();
 </script>
-
-
-<script>
-  // --- Facture proforma PDF ---
-  $("#btnExportPDF").on("click", function (event) {
-    event.preventDefault();
-    let donnees = [];
-
-    $("#livraison-produits tr").each(function () {
-        let tds = $(this).find("td");
-        if (tds.length < 5) return;
-
-        let produit = {
-            produit: tds.eq(1).text().trim(),                // nom produit
-            quantite: parseFloat(tds.eq(2).text().trim()) || 0,
-            prix: parseFloat(tds.eq(3).text().replace(/\s/g, '')) || 0, // enlève espaces
-            montant: parseFloat(tds.eq(4).text().replace(/\s/g, '')) || 0,
-        };
-        donnees.push(produit);
-    });
-
-    let remise = parseFloat($("#remise").val()) || 0;
-    let clientId = 0;
-    if ($("#typePayement").val() === 'Pret') {
-        clientId = $("#id_client").val();   // ⚠️ ton select client s'appelle #id_client
-    }
-
-    let dataFinale = {
-        produits: donnees,
-        remise: remise,
-        clientId: clientId
-    };
-
-    // envoie dans input caché
-    $("#jsonDataInputPdf").val(JSON.stringify(dataFinale));
-    $("#formExportPDF").submit();
-});
-
-
-
-
-// Retour des produits
-$("#btnRetour").on("click", function () {
-  let lignes = [];
-  let userConfirmed = confirm("Confirmez-vous le retour des produits ?");
-
-  if (!userConfirmed) return;
-
-  $("#livraison-produits tr").each(function () {
-    let produitNom = $(this).find("td:eq(1)").text().trim();
-    let quantite = parseInt($(this).find("td:eq(2)").text().trim());
-    let prix = parseInt($(this).find("td:eq(3)").text().replace(/\s/g, "")); // 🔥 enlever espaces formatés
-
-    let produitId = $(this).data("produit-id"); // ✅ fonctionne maintenant
-
-    if (!produitId) {
-      toastr.error("Produit ID manquant pour " + produitNom);
-      return;
-    }
-
-    lignes.push({
-      produit_id: produitId,
-      quantite: quantite,
-      prix: prix
-    });
-  });
-
-  if (lignes.length === 0) {
-    toastr.warning("Aucun produit à retourner.");
-    return;
-  }
-
-  $.ajax({
-    url: "{% url 'ajouter_retours' %}",
-    type: "POST",
-    headers: {
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    data: JSON.stringify({ retours: lignes }),
-    contentType: "application/json",
-    success: function (response) {
-      if (response.success) {
-        toastr.success("Produits retournés avec succès !");
-        location.reload();
-      } else {
-        toastr.error("Erreur: " + response.message);
-      }
-    },
-    error: function () {
-      toastr.error("Erreur serveur.");
-    }
-  });
-});
-
-
-</script>
-
-
-
-
-<script type="text/javascript">
-    $(document).ready(function () {
-        bsCustomFileInput.init();
-    });
-
-  $(document).ready(function () {
-      bsCustomFileInput.init();
-        
-      //Initialize Select2 Elements
-      $('.select2').select2()
-
-      //Initialize Select2 Elements
-      $('.select2bs4').select2({
-        theme: 'bootstrap4'
-      })
-    })
-
-
-    $(function() {
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000
-    });
-
-    $('.swalDefaultSuccess').click(function() {
-        Toast.fire({
-        icon: 'success',
-        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.swalDefaultInfo').click(function() {
-        Toast.fire({
-        icon: 'info',
-        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.swalDefaultError').click(function() {
-        Toast.fire({
-        icon: 'error',
-        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.swalDefaultWarning').click(function() {
-        Toast.fire({
-        icon: 'warning',
-        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.swalDefaultQuestion').click(function() {
-        Toast.fire({
-        icon: 'question',
-        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-
-    $('.toastrDefaultSuccess').click(function() {
-        toastr.success('Enregistrement reussi.')
-    });
-    $('.toastrDefaultInfo').click(function() {
-        toastr.info('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
-    });
-    $('.toastrDefaultError').click(function() {
-        toastr.error('Operation non effectuée.')
-    });
-    $('.toastrDefaultWarning').click(function() {
-        toastr.warning('Lorem ipsum dolor sit amet, consetetur sadipscing elitr.')
-    });
-
-    $('.toastsDefaultDefault').click(function() {
-        $(document).Toasts('create', {
-        title: 'Toast Title',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultTopLeft').click(function() {
-        $(document).Toasts('create', {
-        title: 'Toast Title',
-        position: 'topLeft',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultBottomRight').click(function() {
-        $(document).Toasts('create', {
-        title: 'Toast Title',
-        position: 'bottomRight',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultBottomLeft').click(function() {
-        $(document).Toasts('create', {
-        title: 'Toast Title',
-        position: 'bottomLeft',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultAutohide').click(function() {
-        $(document).Toasts('create', {
-        title: 'Toast Title',
-        autohide: true,
-        delay: 750,
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultNotFixed').click(function() {
-        $(document).Toasts('create', {
-        title: 'Toast Title',
-        fixed: false,
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultFull').click(function() {
-        $(document).Toasts('create', {
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        icon: 'fas fa-envelope fa-lg',
-        })
-    });
-    $('.toastsDefaultFullImage').click(function() {
-        $(document).Toasts('create', {
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.',
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        image: '../../dist/img/user3-128x128.jpg',
-        imageAlt: 'User Picture',
-        })
-    });
-    $('.toastsDefaultSuccess').click(function() {
-        $(document).Toasts('create', {
-        class: 'bg-success', 
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultInfo').click(function() {
-        $(document).Toasts('create', {
-        class: 'bg-info', 
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultWarning').click(function() {
-        $(document).Toasts('create', {
-        class: 'bg-warning', 
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultDanger').click(function() {
-        $(document).Toasts('create', {
-        class: 'bg-danger', 
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    $('.toastsDefaultMaroon').click(function() {
-        $(document).Toasts('create', {
-        class: 'bg-maroon', 
-        title: 'Toast Title',
-        subtitle: 'Subtitle',
-        body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
-        })
-    });
-    });
-
-</script>
-
-
-
-
-
-</body>
-
-</html>
+{% endblock %}

@@ -167,7 +167,8 @@ urlpatterns=[
     #path("api/sync/livraisons/", views.sync_livraisons, name="api_sync_livraisons"),
     path("api/produits/", views.api_produits, name="api_produits"),
 
-
+    path("api/reception/", views.api_reception, name="api_reception"),
+    path("api/sync/livraisons/", views.api_sync_livraisons, name="api_sync_livraisons"),
 
 
 
