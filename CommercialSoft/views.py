@@ -363,6 +363,8 @@ def situation_vente(request):
 
 
 
+
+
 @login_required
 @user_passes_test(est_administrateur, est_gestionnaire)
 def reception_create(request):
@@ -685,8 +687,8 @@ def reception_create(request):
         'user':request.user,
         'boutique': boutique,
     })
-
 """
+
 
 
 
