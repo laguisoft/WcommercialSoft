@@ -54,7 +54,7 @@
             {% endif %}
 
             <!-- Recherche produit (autocomplétion comme la vente) -->
-            <div class="row">
+            <div class="row align-items-center">
               <div class="col-md-3">
                 <div class="form-group position-relative">
                   <label>Produit</label>
@@ -86,41 +86,85 @@
 
               <div class="col-md-2">
                 <div class="form-group">
-                  <label>Péremption (MM/AA)</label>
+                  <label>Péremption</label>
                   <input type="text" class="form-control" id="peremptionR" placeholder="MM/AA" maxlength="5" inputmode="numeric" autocomplete="off">
                 </div>
               </div>
 
-              <div class="col-md-2">
-                <div class="form-group">
-                  <label>Stock actuel</label>
-                  <input type="number" class="form-control" id="stockR" disabled>
-                </div>
-              </div>
-
-            </div>
-
-            <div class="row align-items-end">
-
-              <div class="col-md-3">
+              <div class="col-md-1">
                 <div class="form-check mt-4">
-                  <input class="form-check-input" type="checkbox" id="useTVA" data-tva="18">
-                  <label class="form-check-label" for="useTVA">Appliquer TVA (18%)</label>
+                  <input class="form-check-input" type="checkbox" id="useTVA" data-tva="18" disabled>
+                  <label class="form-check-label" for="useTVA">TVA 18%</label>
                 </div>
               </div>
 
-              <div class="col-md-3">
-                <div class="form-check mt-4">
-                  <input class="form-check-input" type="checkbox" id="isDette">
-                  <label class="form-check-label" for="isDette">Fourniture à dette</label>
-                </div>
-              </div>
-
-              <div class="col-md-4 text-end">
+              <div class="col-md-1 text-end">
                 <!-- même id que ton bouton “Ajouter” d’origine -->
                 <button class="btn btn-primary" id="idAjouter">Ajouter</button>
               </div>
+
             </div>
+
+            
+
+            <form id="LivraisonForm" role="form" action="{% url 'commerce_reception' %}" method="post">
+              {% csrf_token %}
+              <div class="row">
+                <div class="col-md-3 col-lg-2">
+                  <div class="form-group">
+                    <label for="numeroFacture">N° facture</label>
+                    {{ livraison_form.numeroFacture }}
+                  </div>
+                </div>
+                <div class="col-md-3 col-lg-3">
+                  <div class="form-group">
+                    <label for="fournisseur">Fournisseur</label>
+                    {{ livraison_form.fournisseur }}
+                  </div>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                  <div class="form-group">
+                    <label for="date">Date</label>
+                    {{ livraison_form.date }}
+                  </div>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                  <div class="form-group">
+                    <label for="montant">Montant</label>
+                    {{ livraison_form.montant }}
+                  </div>
+                </div>
+                
+                <div class="col-md-2">
+                  <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="isDette">
+                    <label class="form-check-label" for="isDette">Fourniture à dette</label>
+                  </div>
+                </div>
+
+                <div class="col-md-1">
+                  <div class="form-group">
+                    <label>Stock</label>
+                    <input type="number" class="form-control" id="stockR" disabled>
+                  </div>
+                </div>
+                
+              </div>
+
+              <!-- formset caché (compat Django) -->
+              <div id="formset-container" class="d-none">
+                {{ formset.management_form }}
+              </div>
+              <input type="hidden" id="id_livraisonproduit_set-TOTAL_FORMS" name="livraisonproduit_set-TOTAL_FORMS" value="{{ formset.total_form_count }}">
+
+              <div class="card-footer clearfix text-center">
+                <!-- on ne soumet pas au serveur ici; on enregistre localement et on synchronise -->
+                <button type="button" class="btn btn-success" id="btnValiderReception">Valider la facture</button>
+              </div>
+            </form>
+
+
+
           </div>
         </div>
       </div>
@@ -153,46 +197,7 @@
     </div>
 
     <!-- Bas de page : tes champs LivraisonForm inchangés -->
-    <form id="LivraisonForm" role="form" action="{% url 'commerce_reception' %}" method="post">
-      {% csrf_token %}
-      <div class="row">
-        <div class="col-md-3 col-lg-3">
-          <div class="form-group">
-            <label for="numeroFacture">N° facture</label>
-            {{ livraison_form.numeroFacture }}
-          </div>
-        </div>
-        <div class="col-md-3 col-lg-3">
-          <div class="form-group">
-            <label for="fournisseur">Fournisseur</label>
-            {{ livraison_form.fournisseur }}
-          </div>
-        </div>
-        <div class="col-md-3 col-lg-3">
-          <div class="form-group">
-            <label for="date">Date</label>
-            {{ livraison_form.date }}
-          </div>
-        </div>
-        <div class="col-md-3 col-lg-3">
-          <div class="form-group">
-            <label for="montant">Montant</label>
-            {{ livraison_form.montant }}
-          </div>
-        </div>
-      </div>
-
-      <!-- formset caché (compat Django) -->
-      <div id="formset-container" class="d-none">
-        {{ formset.management_form }}
-      </div>
-      <input type="hidden" id="id_livraisonproduit_set-TOTAL_FORMS" name="livraisonproduit_set-TOTAL_FORMS" value="{{ formset.total_form_count }}">
-
-      <div class="card-footer clearfix text-center">
-        <!-- on ne soumet pas au serveur ici; on enregistre localement et on synchronise -->
-        <button type="button" class="btn btn-success" id="btnValiderReception">Valider la facture</button>
-      </div>
-    </form>
+    
 
   </div>
 </section>
@@ -354,8 +359,13 @@ function ajouterLigneReception(p = null) {
   let pd = parseFloat(prixDetailR.value || "0");
   let per = (peremptionR.value || "").trim();
 
-  if (qte <= 0 || pa < 0) {
+  if (qte <= 0 || pa < 0 ) {
     toastr.warning("Quantité et prix d'achat doivent être > 0");
+    return;
+  }
+
+  if (per=="" ) {
+    toastr.warning("La date de peremption est obligatoire");
     return;
   }
 

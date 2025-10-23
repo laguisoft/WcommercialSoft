@@ -413,7 +413,9 @@ def reception_create(request):
                         livraison_produit.livraison = livraison
 
                         # ✅ Mise à jour du stock produit
-                        produit = livraison_produit.produit
+                        produit_id=livraison_produit.produit.id
+                        # produit livraison_produit.produit
+                        produit = Produit.objects.get(id=produit_id)
                         produit.quantiteTotal += livraison_produit.quantite
                         produit.prixAchat = livraison_produit.prix
                         produit.quantite += livraison_produit.quantite

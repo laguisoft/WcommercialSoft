@@ -73,7 +73,7 @@ class LivraisonForm(forms.ModelForm):
         widgets = {
             'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'montant': forms.NumberInput(attrs={'class': 'form-control','id':'numLivraison'}),
+            'montant': forms.NumberInput(attrs={'class': 'form-control','id':'numLivraison','disabled':'true'}),
             'numeroFacture': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
