@@ -240,30 +240,27 @@ const fournisseurEl = document.querySelector("[name='fournisseur']");
 
 /* ---------- Chargement produits & fournisseurs (cache partagé) ---------- */
 async function chargerDonnees() {
-  // 1) Lire cache partagé (produits/fournisseurs) — identique Vente
+  // On utilise le cache SEULEMENT si l’API échoue (mode hors ligne)
   produitsCache = await localforage.getItem("produits") || [];
   fournisseursCache = await localforage.getItem("fournisseurs") || [];
 
-  if (produitsCache.length && fournisseursCache.length) {
-    console.log("✅ Réception: cache partagé utilisé (produits/fournisseurs)");
-    remplirSelectFournisseurSiVide();
-    return;
-  }
-
   try {
-    const resp = await fetch("/commerce/api/reception/");
-    const data = await resp.json();
-    if (!produitsCache.length) produitsCache = data.produits || [];
-    if (!fournisseursCache.length) fournisseursCache = data.fournisseurs || [];
+      const resp = await fetch("/commerce/api/reception/");
+      const data = await resp.json();
 
-    await localforage.setItem("produits", produitsCache);
-    await localforage.setItem("fournisseurs", fournisseursCache);
+      produitsCache = data.produits || produitsCache;
+      fournisseursCache = data.fournisseurs || fournisseursCache;
 
-    console.log("✅ Réception: cache partagé mis à jour via API");
-    remplirSelectFournisseurSiVide();
+      await localforage.setItem("produits", produitsCache);
+      await localforage.setItem("fournisseurs", fournisseursCache);
+
+      console.log("🔄 Réception : données mises à jour depuis API");
   } catch (e) {
-    console.warn("⚠️ Réception hors-ligne: aucun cache trouvé");
+      console.warn("📴 Réception hors-ligne → utilisation du cache local");
   }
+
+  remplirSelectFournisseurSiVide();
+
 }
 
 function remplirSelectFournisseurSiVide() {
