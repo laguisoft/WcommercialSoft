@@ -31,6 +31,7 @@ class Produit(models.Model):
     prixAchat=models.DecimalField(max_digits=30, decimal_places=0)
     prixEnGros=models.DecimalField(max_digits=30, decimal_places=0)
     prixDetail=models.DecimalField(max_digits=30, decimal_places=0)
+    autrePrix=models.DecimalField(max_digits=30, decimal_places=0, default=0)
     date=models.DateField(default=timezone.now)
     datePeremption=models.DateField(default=timezone.now)
     seuil=models.PositiveIntegerField(default=0)

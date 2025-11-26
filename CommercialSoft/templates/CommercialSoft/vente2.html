@@ -222,6 +222,9 @@
                               <option value="detail">Détail</option>
                               <option value="en gros">En gros</option>
                               <option value="achat">Achat</option>
+                              {% if boutique.nom=="" %}
+                              <option value="autre">Autre</option>
+                              {% endif %}
                             </select>
                           </div>
                         </div>
