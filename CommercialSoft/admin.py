@@ -24,7 +24,7 @@ class CategorieAdmin(admin.ModelAdmin):
 
 @admin.register(Produit)
 class ProduitAdmin(admin.ModelAdmin):
-    list_display = ('codebare','categorie', 'libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','seuil','commentaire','quantiteTotal')
+    list_display = ('codebare','categorie', 'libelle','quantite','prixAchat','prixDetail','prixEnGros', 'autrePrix','date','datePeremption','seuil','commentaire','quantiteTotal')
     search_fields = ('codebare', 'libelle','categorie')
     list_filter = ('codebare', 'libelle','categorie')
     ordering = ('libelle',)

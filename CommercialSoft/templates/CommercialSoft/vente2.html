@@ -222,6 +222,9 @@
                               <option value="detail">Détail</option>
                               <option value="en gros">En gros</option>
                               <option value="achat">Achat</option>
+                              {% if boutique.nom == "Pharmacie Djimafa" %}
+                               <option value="autre">NSIA</option>
+                              {% endif %}
                             </select>
                           </div>
                         </div>
@@ -654,6 +657,8 @@ $('#typeVente').on('change', function () {
         item.prix = produit.prixEnGros;
       } else if (typeVente === "achat") {
         item.prix = produit.prixAchat; // 🔥 Prix d’achat
+      } else if(typeVente === "autre"){
+        item.prix=produit.autrePrix;
       } else {
         item.prix = produit.prixDetail;
       }
@@ -668,6 +673,8 @@ $('#typeVente').on('change', function () {
       nouveauPrix = produitSelectionne.prixEnGros;
     } else if (typeVente === "achat") {
       nouveauPrix = produitSelectionne.prixAchat;
+    } else if (typeVente === "autre") {
+      nouveauPrix = produitSelectionne.autrePrix;
     } else {
       nouveauPrix = produitSelectionne.prixDetail;
     }
