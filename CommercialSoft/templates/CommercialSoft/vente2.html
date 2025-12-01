@@ -918,16 +918,16 @@ function imprimerRecuLocal(venteData, boutique) {
 
   contenu += `
         <tr>
-            <td colspan="2" style="text-align:right;"><strong><h2>Total :</h2></td>
-            <td colspan="2"><h2>${(venteData.montant + venteData.remise).toLocaleString("fr-FR")}</h2></td>
+            <td colspan="1" style="text-align:right;"><strong><h2>Total :</h2></td>
+            <td colspan="3" style="text-align:left;"><h2>${(venteData.montant + venteData.remise).toLocaleString("fr-FR")}</h2></td>
         </tr>
         <tr>
-            <td colspan="2" style="text-align:right;"><h2>Remise :</h2></td>
-            <td colspan="2"><h2>${venteData.remise.toLocaleString("fr-FR")}</h2></td>
+            <td colspan="1" style="text-align:right;"><h2>Remise :</h2></td>
+            <td colspan="3" style="text-align:left;"><h2>${venteData.remise.toLocaleString("fr-FR")}</h2></td>
         </tr>
         <tr>
-            <td colspan="2" style="text-align:right;"><h2>Net :</h2></td>
-            <td colspan="2"><h2>${(venteData.montant).toLocaleString("fr-FR")}</h2></td>
+            <td colspan="1" style="text-align:right;"><h2>Net :</h2></td>
+            <td colspan="3" style="text-align:left;"><h2>${(venteData.montant).toLocaleString("fr-FR")}</h2></td>
         </tr>
             </tbody>
         </table>
