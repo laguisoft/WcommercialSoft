@@ -1014,6 +1014,7 @@ async function proforma() {
  const { value: choix } = await Swal.fire({
     title: "Choisissez le type de facture",
     text: "Souhaitez-vous imprimer le reçu en format ticket ou A4 ?",
+    html: `<input id="nomClient" class="swal2-input" placeholder="Nom du client">`,
     icon: "question",
     showCancelButton: true,
     showCloseButton: true,  // ✅ ajoute la croix pour fermer

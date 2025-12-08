@@ -182,6 +182,16 @@
     bsCustomFileInput.init();
     });
 
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const dateInput = document.getElementById("idDate");
+      if (dateInput && !dateInput.value) {
+          let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+          dateInput.value = today;
+      }
+  });
+
   $(function() {
     const Toast = Swal.mixin({
       toast: true,

@@ -171,5 +171,4 @@ urlpatterns=[
     path("api/sync/livraisons/", views.api_sync_livraisons, name="api_sync_livraisons"),
 
 
-
 ]

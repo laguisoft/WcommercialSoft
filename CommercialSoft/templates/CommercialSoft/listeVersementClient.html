@@ -171,6 +171,23 @@
 
 
 
+       document.addEventListener("DOMContentLoaded", function () {
+        const dateDebut = document.getElementById("dateDebut");
+        const dateFin = document.getElementById("dateFin");
+        if (dateDebut && !dateDebut.value) {
+            let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+            dateDebut.value = today;
+        }
+        if (dateFin && !dateFin.value) {
+            let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+            dateFin.value = today;
+        }
+    });
+
+
+
+
+
     
     $(document).ready(function () {
     $('#idrechercher').on('click', function (e) {

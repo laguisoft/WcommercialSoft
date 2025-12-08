@@ -211,6 +211,15 @@
 <script src="{% static 'js/localforage.min.js' %}"></script>
 
 <script>
+
+document.addEventListener("DOMContentLoaded", function () {
+    const dateInput = document.getElementById("idDate");
+    if (dateInput && !dateInput.value) {
+        let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+        dateInput.value = today;
+    }
+});
+    
 /* ================= Réception Offline/Online — clone de la Vente ================= */
 localforage.config({ name: "venteApp" }); // même DB que la vente pour partager les clés
 

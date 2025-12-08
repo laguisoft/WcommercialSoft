@@ -198,8 +198,8 @@
                         <td class="text-center">${data.montant.toLocaleString()}</td>
                 </tr>
               `);
-              montant +=data.montant;
-              benefice +=data.montant-data.montantAchat;
+              montant += Number(data.montant);
+              benefice += Number(data.montant) - Number(data.montantAchat);
             });
             $('#montant').html("Montant : "+ montant.toLocaleString());
             $('#benefice').html("Benefice : "+ benefice.toLocaleString());

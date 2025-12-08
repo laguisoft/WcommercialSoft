@@ -58,8 +58,8 @@ class ProduitForm(forms.ModelForm):
             'prixAchat': forms.NumberInput(attrs={'class': 'form-control'}),
             'prixDetail': forms.NumberInput(attrs={'class': 'form-control'}),
             'prixEnGros': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'datePeremption': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDateEnregistrement'}),
+            'datePeremption': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDatePeremption'}),
             'seuil': forms.NumberInput(attrs={'class': 'form-control'}),
             'commentaire': forms.TextInput(attrs={'class': 'form-control'}),
         }
@@ -72,7 +72,7 @@ class LivraisonForm(forms.ModelForm):
         fields = ['fournisseur','date','montant','numeroFacture']
         widgets = {
             'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
             'montant': forms.NumberInput(attrs={'class': 'form-control','id':'numLivraison','disabled':'true'}),
             'numeroFacture': forms.TextInput(attrs={'class': 'form-control'}),
         }
@@ -171,7 +171,7 @@ class DepenseForm(forms.ModelForm):
             'quantite': forms.NumberInput(attrs={'class': 'form-control'}),
             'prix': forms.NumberInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
 
 
@@ -186,7 +186,7 @@ class VersementClientForm(forms.ModelForm):
         widgets = {
             'client': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idClient"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
 
 
@@ -216,8 +216,8 @@ class detteClientForm(forms.ModelForm):
         widgets = {
             'client': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idClient"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'dateEcheance': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id':'idDate'}),
+            'dateEcheance': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id':'idDateEch'}),
             'commentaire': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -267,7 +267,7 @@ class VersementFournisseurForm(forms.ModelForm):
         widgets = {
             'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idFournisseur"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id':'idDate'}),
         }
 
 
@@ -280,7 +280,7 @@ class DetteFournisseurForm(forms.ModelForm):
         widgets = {
             'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idFournisseur"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
 
 
@@ -295,7 +295,7 @@ class VersementGerantForm(forms.ModelForm):
         widgets = {
             'user': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idUser"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
 
 

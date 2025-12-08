@@ -249,6 +249,22 @@
 
 
 
+
+       document.addEventListener("DOMContentLoaded", function () {
+        const dateDebut = document.getElementById("idDateEnregistrement");
+        const dateFin = document.getElementById("idDatePeremption");
+        if (dateDebut && !dateDebut.value) {
+            let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+            dateDebut.value = today;
+        }
+        if (dateFin && !dateFin.value) {
+            let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+            dateFin.value = today;
+        }
+    });
+
+
+
   $(function() {
     const Toast = Swal.mixin({
       toast: true,
