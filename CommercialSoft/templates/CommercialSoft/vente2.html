@@ -373,6 +373,7 @@
   <script src="{% static 'js/vente.js' %}"></script>
 
 
+
 <script>
   localforage.config({ name: "venteApp" });
 
@@ -1436,6 +1437,16 @@ $("#btnRetour").on("click", function () {
 </script>
 
 
+<script>
+  // le racourcie pour declencher la vente
+document.addEventListener("keydown", function(e) {
+    // Si Ctrl + espace
+    if (e.ctrlKey && e.code === "Space") {
+        e.preventDefault();     // empêche le comportement normal
+        validerVente();         // lance la vente
+    }
+});
+</script>
 
 
 

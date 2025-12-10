@@ -147,7 +147,7 @@ DATABASES = {
 
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -159,7 +159,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 
@@ -192,7 +192,7 @@ DATABASES = {
 }
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -205,7 +205,7 @@ DATABASES = {
     }
 }
 
-
+"""
 
 DATABASES = {
     'default': {
