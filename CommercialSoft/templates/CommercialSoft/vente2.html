@@ -892,7 +892,7 @@ function imprimerRecuLocal(venteData, boutique) {
 
         <h3 style="text-align:center;">${venteData.date}</h3>
         <h2 >N° : ${venteData.id || "____"}</h2>
-        <h3 style="padding:10px">Client : ${venteData.clientNom || "_____________________"}</h3>
+        <h3 style="padding:10px">Client : ${boutique.nomClientSimple || venteData.clientNom}</h3>
 
         <h2 style="text-align: center; padding: 15px">Liste des produits</h2>
 
@@ -1011,19 +1011,37 @@ async function proforma() {
     user: parseInt(document.getElementById("user_id").value)
   };
 
+
+  
   // 💬 Boîte SweetAlert2
- const { value: choix } = await Swal.fire({
+ const result = await Swal.fire({
     title: "Choisissez le type de facture",
     text: "Souhaitez-vous imprimer le reçu en format ticket ou A4 ?",
-    html: `<input id="nomClient" class="swal2-input" placeholder="Nom du client">`,
+    html: `
+        <input id="nomClient" class="swal2-input" placeholder="Nom du client">
+    `,
     icon: "question",
     showCancelButton: true,
-    showCloseButton: true,  // ✅ ajoute la croix pour fermer
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#6c757d",
-    confirmButtonText: "🧾 Imprimer le reçu",
-    cancelButtonText: "📑 Générer le PDF A4"
-  });
+    confirmButtonText: "🧾 Ticket",
+    cancelButtonText: "📑 Format A4"
+});
+
+
+
+// Récupérer la valeur du champ
+const nomClient = document.getElementById("nomClient").value;
+
+// Récupérer le bouton choisi
+let choix = "";
+if (result.isConfirmed) {
+    choix = "ticket";
+} else if (result.dismiss === Swal.DismissReason.cancel) {
+    choix = "";
+} else {
+    choix = "fermé";
+}
+
+
 
 
   if (choix) {
@@ -1032,7 +1050,8 @@ async function proforma() {
       nom: "Laguisoft Technologie",
       emplacement: "Quartier Missira",
       ville: "Kankan",
-      telephone: "620000000"
+      telephone: "620000000",
+      nomClientSimple: nomClient
     };
     imprimerRecuLocal(venteDataRecu, boutique);
     Swal.fire({

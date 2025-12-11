@@ -84,19 +84,31 @@
                 </div>
               </div>
 
-              <div class="col-md-2">
+              <div class="col-md-1">
                 <div class="form-group">
                   <label>Péremption</label>
                   <input type="text" class="form-control" id="peremptionR" placeholder="MM/AA" maxlength="5" inputmode="numeric" autocomplete="off">
                 </div>
               </div>
 
-              <div class="col-md-1">
+
+              <div class="col-md-2">
+                <div class="form-group position-relative">
+                  <label>Categorie</label>
+                  <input type="text" class="form-control" id="categorieSearchR" placeholder="Rechercher un produit..." autocomplete="off">
+                  <ul id="suggestionsRcat" class="suggestions"></ul>
+                </div>
+              </div>
+
+              
+              <div class="col-md-2 d-none">
                 <div class="form-check mt-4">
                   <input class="form-check-input" type="checkbox" id="useTVA" data-tva="18" disabled>
                   <label class="form-check-label" for="useTVA">TVA 18%</label>
                 </div>
               </div>
+              
+
 
               <div class="col-md-1 text-end">
                 <!-- même id que ton bouton “Ajouter” d’origine -->
@@ -230,7 +242,9 @@ let currentFocusR = -1;
 let produitSelectionneR = null;
 
 const inputR = document.getElementById("produitSearchR");
+const inputCatR = document.getElementById("categorieSearchR");
 const sugR = document.getElementById("suggestionsR");
+const sugCatR = document.getElementById("suggestionsRcat");
 
 const prixAchatR = document.getElementById("prixAchatR");
 const prixDetailR = document.getElementById("prixDetailR");
@@ -252,6 +266,7 @@ async function chargerDonnees() {
   // On utilise le cache SEULEMENT si l’API échoue (mode hors ligne)
   produitsCache = await localforage.getItem("produits") || [];
   fournisseursCache = await localforage.getItem("fournisseurs") || [];
+  categoriesCache = await localforage.getItem("categories") || [];
 
   try {
       const resp = await fetch("/commerce/api/reception/");
@@ -259,9 +274,11 @@ async function chargerDonnees() {
 
       produitsCache = data.produits || produitsCache;
       fournisseursCache = data.fournisseurs || fournisseursCache;
+      categoriesCache = data.categories || categoriesCache;
 
       await localforage.setItem("produits", produitsCache);
       await localforage.setItem("fournisseurs", fournisseursCache);
+      await localforage.setItem("categories", categoriesCache);
 
       console.log("🔄 Réception : données mises à jour depuis API");
   } catch (e) {
@@ -302,6 +319,10 @@ inputR.addEventListener("input", function () {
   });
 });
 
+
+
+
+
 inputR.addEventListener("keydown", function (e) {
   const items = sugR.getElementsByTagName("li");
   if (!items.length) return;
@@ -340,6 +361,178 @@ function activerSug(items) {
   }
 }
 
+
+// autocompletion categorie
+let categoriesCache = [];        // rempli dans chargerDonnees()
+let currentFocusCat = -1;
+
+
+// --- AUTOCOMPLÉTION CATEGORIE ---
+inputCatR.addEventListener("input", function () {
+    const q = this.value.toLowerCase().trim();
+    sugCatR.innerHTML = "";
+    currentFocusCat = -1;
+
+    if (!q) {
+        inputCatR.dataset.id = "";
+        return;
+    }
+
+    const results = categoriesCache
+        .filter(c => c.nom.toLowerCase().includes(q))
+        .slice(0, 50);
+
+    // Sélection automatique si une seule catégorie correspond
+    if (results.length === 1) {
+        const c = results[0];
+        inputCatR.value = c.nom;
+        inputCatR.dataset.id = c.id;
+        sugCatR.innerHTML = "";
+        return;
+    }
+
+    // Sinon, on affiche la liste
+    results.forEach((c, idx) => {
+        const li = document.createElement("li");
+        li.textContent = c.nom;
+        li.dataset.id = c.id;
+        li.dataset.index = idx;
+
+        li.onclick = () => {
+            inputCatR.value = c.nom;
+            inputCatR.dataset.id = c.id;
+            sugCatR.innerHTML = "";
+        };
+
+        sugCatR.appendChild(li);
+    });
+});
+
+// Navigation clavier + ESC + création nouvelle catégorie
+inputCatR.addEventListener("keydown", async function (e) {
+    const items = sugCatR.getElementsByTagName("li");
+
+    // ESC → fermer la liste
+    if (e.key === "Escape") {
+        sugCatR.innerHTML = "";
+        currentFocusCat = -1;
+        return;
+    }
+
+    // Flèche bas
+    if (e.key === "ArrowDown" && items.length) {
+        e.preventDefault();
+        currentFocusCat++;
+        if (currentFocusCat >= items.length) currentFocusCat = 0;
+        activerCat(items);
+        return;
+    }
+
+    // Flèche haut
+    if (e.key === "ArrowUp" && items.length) {
+        e.preventDefault();
+        currentFocusCat--;
+        if (currentFocusCat < 0) currentFocusCat = items.length - 1;
+        activerCat(items);
+        return;
+    }
+
+    // ENTER
+    if (e.key === "Enter") {
+        e.preventDefault();
+
+        // 1) s'il y a un élément actif → on le sélectionne
+        if (currentFocusCat > -1 && items[currentFocusCat]) {
+            items[currentFocusCat].click();
+            return;
+        }
+
+        // 2) s'il n'y a pas de suggestion visible mais du texte saisi → proposer création
+        const saisie = inputCatR.value.trim();
+        if (!items.length && saisie !== "" && !inputCatR.dataset.id) {
+
+            const { isConfirmed } = await Swal.fire({
+                title: "Créer une nouvelle catégorie ?",
+                text: `La catégorie "${saisie}" n'existe pas. Voulez-vous la créer ?`,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Oui, créer",
+                cancelButtonText: "Annuler"
+            });
+
+            if (!isConfirmed) return;
+
+            try {
+                const resp = await fetch("/commerce/api/categories/create/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")  // helper ci-dessous
+                    },
+                    body: JSON.stringify({ nom: saisie })
+                });
+
+                const data = await resp.json();
+
+                if (data.success) {
+                    // On ajoute la catégorie au cache
+                    const nouvelleCat = { id: data.id, nom: saisie };
+                    categoriesCache.push(nouvelleCat);
+
+                    // On remplit le champ avec l'ID
+                    inputCatR.value = saisie;
+                    inputCatR.dataset.id = data.id;
+
+                    toastr.success("Catégorie créée avec succès.");
+                } else {
+                    toastr.error(data.error || "Erreur lors de la création de la catégorie.");
+                }
+
+            } catch (err) {
+                console.error(err);
+                toastr.error("Erreur réseau lors de la création de la catégorie.");
+            }
+        }
+    }
+});
+
+// surbrillance de la catégorie active
+function activerCat(items) {
+    Array.from(items).forEach(li => li.classList.remove("active-suggestion"));
+
+    if (currentFocusCat >= 0 && items[currentFocusCat]) {
+        items[currentFocusCat].classList.add("active-suggestion");
+        items[currentFocusCat].scrollIntoView({
+            block: "nearest",
+            behavior: "smooth"
+        });
+    }
+}
+
+// Helper CSRF (Django)
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const c = cookies[i].trim();
+            if (c.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
+
+
+
+
+
+
 function remplirInfosProduit(p) {
   produitSelectionneR = p;
   inputR.value = p.libelle;
@@ -348,6 +541,18 @@ function remplirInfosProduit(p) {
   stockR.value = p.quantite;
   quantiteR.value = 1;
   //peremptionR.focus();
+
+   // Remplir automatiquement la catégorie
+    if (p.categorie) {
+        const cat = categoriesCache.find(c => c.id === p.categorie);
+        if (cat) {
+            inputCatR.value = cat.nom;
+            inputCatR.dataset.id = cat.id;
+        }
+    } else {
+        inputCatR.value = "";
+        inputCatR.dataset.id = "";
+    }
 }
 
 /* ---------- Ajout ligne (formset caché + tableau) ---------- */
@@ -365,6 +570,9 @@ function ajouterLigneReception(p = null) {
   let pd = parseFloat(prixDetailR.value || "0");
   let per = (peremptionR.value || "").trim();
 
+  let categorieID = parseInt(inputCatR.dataset.id || "0");
+  let categorieNom = inputCatR.value || "";
+
   if (qte <= 0 || pa < 0 ) {
     toastr.warning("Quantité et prix d'achat doivent être > 0");
     return;
@@ -375,9 +583,14 @@ function ajouterLigneReception(p = null) {
     return;
   }
 
+  if (!categorieID && categorieNom.trim() !== "") {
+    toastr.warning("Veuillez choisir une catégorie valide dans la liste !");
+    return;
+  }
+
   const exist = panierR.find(it => it.produit_id === p.id);
   if (exist) exist.quantite += qte;
-  else panierR.push({ produit_id:p.id, nom:p.libelle, quantite:qte, prix:pa, prixDetail:pd, peremption:per });
+  else panierR.push({ produit_id:p.id, nom:p.libelle, quantite:qte, prix:pa, prixDetail:pd, peremption:per,categorie: categorieID });
 
   // formset caché
   const fs = document.getElementById("formset-container");
@@ -389,6 +602,8 @@ function ajouterLigneReception(p = null) {
       <input type="hidden" name="livraisonproduit_set-${count}-prix" value="${pa}">
       <input type="hidden" name="livraisonproduit_set-${count}-prixDetail" value="${pd}">
       <input type="hidden" name="livraisonproduit_set-${count}-peremption" value="${per}">
+      <input type="hidden" name="livraisonproduit_set-${count}-categorie" value="${categorieID}">
+
     </div>
   `);
   document.getElementById("id_livraisonproduit_set-TOTAL_FORMS").value = count + 1;

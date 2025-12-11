@@ -482,10 +482,12 @@ def api_reception(request):
     - fournisseurs (localforage 'fournisseurs')
     """
     prods = list(Produit.objects.values(
-        "id", "libelle", "prixAchat", "prixDetail", "prixEnGros", "quantite"
+        "id", "libelle", "prixAchat", "prixDetail", "prixEnGros", "quantite", "categorie"
     ))
+    categories= list(Categorie.objects.values("id", "nom"))
+
     fours = list(Fournisseur.objects.values("id", "nom"))
-    return JsonResponse({"produits": prods, "fournisseurs": fours})
+    return JsonResponse({"produits": prods, "fournisseurs": fours,"categories":categories})
 
 
 def _mm_aa_to_date(mm_aa: str):
@@ -553,6 +555,15 @@ def api_sync_livraisons(request):
                 pr = Produit.objects.filter(id=pid).first()
                 if not pr:
                     continue
+
+
+                # lire catégorie
+                cat_id = li.get("categorie")
+                if cat_id:
+                    cat = Categorie.objects.filter(id=cat_id).first()
+                    if cat:
+                        pr.categorie = cat
+
 
                 per_date = _mm_aa_to_date(per_mm_aa)
 
