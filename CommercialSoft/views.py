@@ -32,6 +32,13 @@ def est_utilisateur(user):
 def est_comptable(user):
     return user.groups.filter(name='Comptable').exists()
 
+def est_admin_ou_gestionnaire(user):
+    return (
+        user.groups.filter(name="Administrateur").exists()
+        or user.groups.filter(name="Gestionnaire").exists()
+    )
+
+
 
 #separateur de milieu
 def separateur(valeur):
@@ -97,7 +104,7 @@ def dashboard(request):
 
 
 # examen Views
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def fournisseur_list_create(request):
     if request.method == "POST":
@@ -140,7 +147,7 @@ def fournisseur_edit(request, pk):
 
 
  # Example for Patient Views
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def fournisseur_delete(request, pk):
     fournisseur = get_object_or_404(Fournisseur, pk=pk)
@@ -289,7 +296,7 @@ def produit_list(request):
 
 
  # Example for Patient Views
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def inventaire(request):
     categorie=Categorie.objects.all()
@@ -366,7 +373,7 @@ def situation_vente(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def reception_create(request):
     if request.method == 'POST':
         livraison_form = LivraisonForm(request.POST)
@@ -706,7 +713,7 @@ def reception_create(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def reception_delete(request, pk):
     livraison = get_object_or_404(Livraison, pk=pk)
     try:
@@ -720,7 +727,7 @@ def reception_delete(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def reception_edit(request, pk):
     livraisonP = get_object_or_404(LivraisonProduit, pk=pk)
     if request.method == "POST":
@@ -740,7 +747,7 @@ def reception_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def detail_reception(request, pk):
     livraison = get_object_or_404(Livraison, pk=pk)
 
@@ -763,7 +770,7 @@ def detail_reception(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def produit_livrer_delete(request, pk):
     livraisonP = get_object_or_404(LivraisonProduit, pk=pk)
     try:
@@ -776,7 +783,7 @@ def produit_livrer_delete(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def reception_par_produit(request):
     produit = Produit.objects.all()  # Récupérer tous les utilisateurs
     fournisseur=Fournisseur.objects.all()
@@ -786,7 +793,7 @@ def reception_par_produit(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def recherche_reception_produit(request):
     if request.method == "POST":
         idFournisseur = request.POST.get('idFournisseur')
@@ -908,7 +915,7 @@ def recherche_produit(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def recherche_produit_livrer(request):
     if request.method == "POST":
         numFacture = request.POST.get('numFacture')
@@ -1364,7 +1371,7 @@ def recherche_vente_type(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def recherche_situation_vente(request):
     if request.method == "POST":
         idProduit = request.POST.get('idProduit')
@@ -1519,7 +1526,7 @@ def recherche_detail_vente(request):
 
 
 
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def vente_delete(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
@@ -1545,7 +1552,7 @@ def vente_delete(request, pk):
 
 
 
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def commandeP_delete(request):
     myid = request.POST.get("id")
@@ -1570,7 +1577,7 @@ def commandeP_delete(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def produit_edit(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
     if request.method == "POST":
@@ -1592,7 +1599,7 @@ def produit_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def modifier_commande(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
     if request.method == "POST":
@@ -1658,7 +1665,7 @@ def depense_list_create(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def depense_edit(request, pk):
     depense = get_object_or_404(Depense, pk=pk)
     if request.method == "POST":
@@ -1937,7 +1944,7 @@ def recherche_versementClient(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def versementClient_delete(request, pk):
     versement = get_object_or_404(VersementClient, pk=pk)
     try:
@@ -1956,7 +1963,7 @@ def versementClient_delete(request, pk):
 
 
 # examen Views
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def versementGerant_list_create(request):
     if request.method == "POST":
@@ -2181,7 +2188,7 @@ def pretClient_delete(request, pk):
 
 # examen Views
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def versementFournisseur_list_create(request):
     if request.method == "POST":
         form = VersementFournisseurForm(request.POST)
@@ -2204,7 +2211,7 @@ def versementFournisseur_list_create(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def versementFournisseur_edit(request, pk):
     versementFournisseur = get_object_or_404(VersementFournisseur, pk=pk)
     if request.method == "POST":
@@ -2225,7 +2232,7 @@ def versementFournisseur_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def versementFournisseur_list(request):
     fournisseur=VersementFournisseur()
     return render(request, 'CommercialSoft/listeDepense.html',{'form':fournisseur})
@@ -2235,7 +2242,7 @@ def versementFournisseur_list(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def recherche_versementFournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
@@ -2267,7 +2274,7 @@ def recherche_versementFournisseur(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def versementFournisseur_delete(request, pk):
     versement = get_object_or_404(VersementFournisseur, pk=pk)
     try:
@@ -2285,7 +2292,7 @@ def versementFournisseur_delete(request, pk):
 
 # examen Views
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def detteFournisseur_list_create(request):
     if request.method == "POST":
         form = DetteFournisseurForm(request.POST)
@@ -2308,7 +2315,7 @@ def detteFournisseur_list_create(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def detteFournisseur_edit(request, pk):
     detteFournisseur = get_object_or_404(DetteFournisseur, pk=pk)
     if request.method == "POST":
@@ -2331,7 +2338,7 @@ def detteFournisseur_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def recherche_detteFournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
@@ -2363,7 +2370,7 @@ def recherche_detteFournisseur(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def detteFournisseur_delete(request, pk):
     dette = get_object_or_404(DetteFournisseur, pk=pk)
     try:
@@ -2379,7 +2386,7 @@ def detteFournisseur_delete(request, pk):
 
 # examen Views
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def client_list_create(request):
     if request.method == "POST":
         form = clientForm(request.POST)
@@ -2466,7 +2473,7 @@ def recherche_client(request):
 
 
 
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
 def client_delete(request, pk):
     client = get_object_or_404(Client, pk=pk)
@@ -2485,7 +2492,7 @@ def client_delete(request, pk):
 
 # examen Views
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def societe_list_create(request):
     if request.method == "POST":
         form = societeForm(request.POST)
@@ -2508,7 +2515,7 @@ def societe_list_create(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def societe_edit(request, pk):
     societe = get_object_or_404(Societe, pk=pk)
     if request.method == "POST":
@@ -2529,7 +2536,7 @@ def societe_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 def societe_delete(request, pk):
     societe = get_object_or_404(Societe, pk=pk)
     try:
@@ -2543,7 +2550,7 @@ def societe_delete(request, pk):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire, est_comptable)
+@user_passes_test(est_admin_ou_gestionnaire, est_comptable)
 def bilan(request):
     users = User.objects.all()
     return render(request, 'CommercialSoft/bilan.html',{'users':users})
@@ -2552,7 +2559,7 @@ def bilan(request):
 
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire, est_comptable)
+@user_passes_test(est_admin_ou_gestionnaire, est_comptable)
 def recherche_bilan(request):
     if request.method == "POST":
         idUser = request.POST.get('idUser')
