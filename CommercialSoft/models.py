@@ -46,7 +46,7 @@ class Livraison(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE)
     date=models.DateField(default=timezone.now)
     montant=models.BigIntegerField()
-    numeroFacture=models.CharField(max_length=20, unique=True, blank=True, null=True)
+    numeroFacture=models.CharField(max_length=20, blank=True, null=True)
     typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret')])
     # pour la gestion hors ligne
     client_uid = models.CharField(max_length=64, unique=True, null=True, blank=True)
