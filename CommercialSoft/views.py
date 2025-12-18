@@ -2684,6 +2684,14 @@ def benefice_sur_vente(request):
 
 
 
+ # Example for Patient Views
+@user_passes_test(est_administrateur)
+@login_required
+def vente_par_pourcentage(request):
+    return render(request, 'CommercialSoft/venteParPourcentage.html')
+
+
+
 
 
 @login_required
@@ -2703,7 +2711,41 @@ def recherche_benefice_sur_vente(request):
                 "montantVente":commande.montant,
                 "remise": commande.remise,
                 "net":commande.montant-commande.remise,
-                "benefice": commande.montant-commande.montantAchat,
+                "benefice": commande.montant-commande.montantAchat-commande.remise,
+            }
+            for commande in commandes
+        ]
+        
+        return JsonResponse({"patients": patients_data})
+    
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+
+
+
+
+@login_required
+@user_passes_test(est_administrateur)
+def recherche_pourcentage_sur_vente(request):
+    if request.method == "POST":
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+        type = request.POST.get("type")
+
+        commandes=Commande.objects.filter(typeVente=type, date__gte=dateDebut, date__lte=dateFin)
+        
+        # Construire une réponse JSON
+        patients_data = [
+            {
+                "id": commande.id,
+                "montantAchat": commande.montantAchat,
+                "montantVente":commande.montant,
+                "remise": commande.remise,
+                "net":commande.montant-commande.remise,
+                "benefice": commande.montant-commande.montantAchat-commande.remise,
             }
             for commande in commandes
         ]

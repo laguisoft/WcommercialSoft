@@ -61,6 +61,7 @@ urlpatterns=[
     path('vente/payement', views.vente_par_payement, name="commerce_venteParPayement"),
     path('vente/recherche/vente/type', views.recherche_vente_type,name="rechercheVenteType"),
     path('vente/type', views.vente_par_type, name="commerce_venteParType"),
+    path('vente/pourcentage', views.vente_par_pourcentage, name="commerce_venteParPourcentage"),
     path('vente/facture/proforma', views.pdf_facture_proforma, name="pdf_facture_proforma"),
     path('pdf/facture/<int:commande_id>/', views.pdf_facture_proforma_2, name='pdf_facture_proforma_2'),
 
@@ -131,6 +132,7 @@ urlpatterns=[
     path('commerce/situation/boutique/etat', views.pdf_etat_situation_boutique,name="commerce_etatSituationBoutique"),
     path('commerce/beneficevente', views.benefice_sur_vente,name="commerce_beneficeSurVente"),
     path('commerce/benefice/recherche', views.recherche_benefice_sur_vente,name="commerce_rechercheBeneficeSurVente"),
+    path('commerce/benefice/recherche', views.recherche_pourcentage_sur_vente,name="commerce_recherchePourcentageVente"),
     #-- versement gerant
     path('commerce/versementGerant', views.versementGerant_list_create,name="commerce_versementGerant"),
     path('commerce/versementGerant/modification/<int:pk>/', views.versementGerant_edit,name="commerce_modVersementGerant"),
