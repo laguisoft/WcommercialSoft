@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -87,7 +87,24 @@ DATABASES = {
     }
 }
 
+"""
 
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'WcommercialSoft',  # Remplacez par le nom de votre base
+        'USER': 'mans',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'salios',  # Mettez le mot de passe MySQL
+        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
+}
 
 # client gberedoudolar (commercialSoft)
 DATABASES = {
@@ -204,7 +221,41 @@ DATABASES = {
     }
 }
 
+
+
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'fskbussinesscom_db',  # Remplacez par le nom de votre base
+        'USER': 'fskbussinesscom_fskbusiness',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
+
+
+
 """
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'commercialsoftsk_db_sk2',  # Remplacez par le nom de votre base
+        'USER': 'commercialsoftsk_sk2',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
+"""
+
+
+
+
 
 DATABASES = {
     'default': {
@@ -216,7 +267,7 @@ DATABASES = {
         'PORT': '3306',
     }
 }
-
+"""
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
