@@ -1468,6 +1468,7 @@ def produit_par_vente(request):
                 "id": commandeP.id,
                 "produit": commandeP.produit.libelle if commandeP.produit else "inconu",
                 "quantite": commandeP.quantite,
+                "prix": commandeP.prix,
             }
             for commandeP in commandesP
         ]
@@ -3133,6 +3134,67 @@ def pdf_etat_depense(request):
 
     return HttpResponse("Méthode non autorisée", status=405)
 
+
+
+
+
+
+
+
+@csrf_exempt  # juste pour test si CSRF gêne
+def pdf_etat_detail_vente(request):
+    if request.method == "POST":
+        try:
+            idUser = request.GET.get('idUser')
+            dateDebut = request.GET.get("dateDebut")
+            dateFin = request.GET.get("dateFin")
+
+            filtre = {}
+
+            if dateDebut:
+                filtre["date__gte"] = dateDebut
+            if dateFin:
+                filtre["date__lte"] = dateFin
+
+            if idUser and idUser != "0":
+                try:
+                    user = User.objects.get(id=idUser)
+                    filtre["user"] = user
+                except User.DoesNotExist:
+                    return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+
+            commandes = Commande.objects.filter(**filtre)
+            produits_data = []
+
+            for commande in commandes:
+                commandesP = CommandeProduit.objects.filter(commande=commande).order_by('id')
+                for commandeP in commandesP:
+                    produits_data.append({
+                        "id": commandeP.id,
+                        "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
+                        "quantite": commandeP.quantite,
+                        "prix" : commandeP.prix,
+                        "date" : commandeP.date,
+                        "montant" : commandeP.prix*commandeP.quantite,
+                    })
+
+            montant_total = sum(p["montant"] for p in produits_data)
+            montant_formate = "{:,.0f}".format(montant_total).replace(",", " ")
+
+            infoBoutique = InfoBoutique.objects.first()
+
+            context = {
+                'listes': produits_data,
+                'montant': montant_formate,
+                'boutique': infoBoutique
+            }
+
+            return generate_pdf_response_vrais("CommercialSoft/pdfEtatDetailVente.html", context)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return HttpResponse("Méthode non autorisée", status=405)
 
 
 
