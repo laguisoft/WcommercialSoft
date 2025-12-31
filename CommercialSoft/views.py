@@ -3145,9 +3145,10 @@ def pdf_etat_depense(request):
 def pdf_etat_detail_vente(request):
     if request.method == "POST":
         try:
-            idUser = request.GET.get('idUser')
-            dateDebut = request.GET.get("dateDebut")
-            dateFin = request.GET.get("dateFin")
+            idUser = request.POST.get('idUser')
+            dateDebut = request.POST.get("dateDebut")
+            dateFin = request.POST.get("dateFin")
+
 
             filtre = {}
 
@@ -3163,7 +3164,7 @@ def pdf_etat_detail_vente(request):
                 except User.DoesNotExist:
                     return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
-            commandes = Commande.objects.filter(**filtre)
+            commandes = Commande.objects.filter(**filtre).order_by("id")
             produits_data = []
 
             for commande in commandes:
