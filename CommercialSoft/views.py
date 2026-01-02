@@ -1485,7 +1485,7 @@ def produit_par_vente(request):
 @login_required
 def recherche_detail_vente(request):
     if request.method == "GET":
-        idUser = request.GET.get('idUser')
+        idUser = request.GET.get('userId')
         dateDebut = request.GET.get("dateDebut")
         dateFin = request.GET.get("dateFin")
 
