@@ -376,6 +376,8 @@
 
 <script>
   localforage.config({ name: "venteApp" });
+  
+  const BOUTIQUE_NOM = "{{ boutique.nom|escapejs }}";
 
 let panier = [];
 let produitsCache = [];
@@ -514,6 +516,14 @@ function ajouterAuPanier(produit = null) {
   let typeVente = document.getElementById("typeVente").value;
   //let prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
   let prix = parseFloat(document.getElementById("prixDetail").value);
+  
+  let stock = parseFloat(document.getElementById("stock").value);
+
+  //colorer la ligne si le stock est insufisant
+  let couleur="";
+  if (stock < quantite){
+    couleur="table-danger"
+  }
 
   let produitExistant = panier.find(item => item.produit_id === produit.id);
   if (produitExistant) {
@@ -525,7 +535,8 @@ function ajouterAuPanier(produit = null) {
       nom: produit.libelle,
       quantite,
       prix,
-      total: prix * quantite
+      total: prix * quantite,
+      couleur:couleur
     });
   }
 
@@ -552,10 +563,11 @@ function afficherPanier() {
   panier.forEach((item, index) => {
     let tr = document.createElement("tr");
      tr.setAttribute("data-produit-id", item.produit_id); // ✅ on stocke l’ID ici
+     tr.setAttribute("class", item.couleur);
     tr.innerHTML = `
       <td class="text-center">${num}</td>
       <td>${item.nom}</td>
-      <td class="text-center">
+      <td class="text-center" style="width:20%;">
         <input type="number" 
                class="form-control form-control-md text-center qte-input" 
                value="${item.quantite}" 
@@ -651,21 +663,23 @@ champPourcent.addEventListener("input", function () {
 $('#typeVente').on('change', function () {
   let typeVente = $(this).val();
 
-  panier.forEach(item => {
-    let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
-    if (produit) {
-      if (typeVente === "en gros") {
-        item.prix = produit.prixEnGros;
-      } else if (typeVente === "achat") {
-        item.prix = produit.prixAchat; // 🔥 Prix d’achat
-      } else if(typeVente === "autre"){
-        item.prix=produit.autrePrix;
-      } else {
-        item.prix = produit.prixDetail;
+  if (BOUTIQUE_NOM !== "AMADOU BARRY ET FRERE") {
+    panier.forEach(item => {
+      let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
+      if (produit) {
+        if (typeVente === "en gros") {
+          item.prix = produit.prixEnGros;
+        } else if (typeVente === "achat") {
+          item.prix = produit.prixAchat; // 🔥 Prix d’achat
+        } else if(typeVente === "autre"){
+          item.prix=produit.autrePrix;
+        } else {
+          item.prix = produit.prixDetail;
+        }
+        item.total = item.quantite * item.prix;
       }
-      item.total = item.quantite * item.prix;
-    }
-  });
+    });
+  }
 
   // Mettre à jour champ prix si produit sélectionné
   if (produitSelectionne) {

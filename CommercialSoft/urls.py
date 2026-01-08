@@ -128,6 +128,7 @@ urlpatterns=[
     #-- autres
     path('bilan', views.bilan,name="commerce_bilan"),
     path('bilan/recherche', views.recherche_bilan,name="rechercheBilan"),
+    path('bilan/etat', views.pdf_etat_bilan,name="pdfBilan"),
     path('commerce/situation/boutique', views.situation_boutique,name="commerce_situationBoutique"),
     path('commerce/recherche/situation/boutique', views.recherche_situation_boutique,name="commerce_rechercheSituationBoutique"),
     path('commerce/situation/boutique/etat', views.pdf_etat_situation_boutique,name="commerce_etatSituationBoutique"),

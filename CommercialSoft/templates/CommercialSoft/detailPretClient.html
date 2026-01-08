@@ -38,6 +38,7 @@
                     <th class="text-center">Date</th>
                     <th class="text-center">Montant</th>
                     <th class="text-center">Commentaire</th>
+                    <th class="text-center" >N° vente</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
@@ -50,6 +51,7 @@
                         <td>{{liste.date}}</td>
                         <td>{{liste.montant}}</td>
                         <td>{{liste.commentaire}}</td>
+                        <td>{{liste.commande.id}}</td>
                         <td class="text-center">
                           <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
@@ -58,6 +60,9 @@
                             <div class="dropdown-menu">
                               <a class="dropdown-item" href="{% url 'commerce_modPretClient' liste.id %}" title="Modifier">
                                 <i class="fas fa-edit text-warning"></i> Modifier
+                              </a>
+                              <a class="dropdown-item" target="_blank" href="{% url 'pdf_facture_proforma_2' liste.commande.id %}" title="Detail">
+                                <i class="fas fa-edit text-success"></i> Detail
                               </a>
                               <a class="dropdown-item" href="{% url 'commerce_supPretClient' liste.id %}"
                                 onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">

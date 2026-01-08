@@ -240,20 +240,20 @@
                 
                 if (response.listes && response.listes.length > 0) {
                     response.listes.forEach(data => {
-                    patientsTable.append(`
-                        <tr class="produit_row" id="produit-${data.id}" data-id="${data.id}">
-                            <td class="text-center">${data.id}</td>
-                            <td>${data.produit}</td>
-                            <td class="text-center">${data.prix}</td>
-                            <td class="text-center">${data.quantite}</td>
-                            <td class="text-center">${data.montant}</td>
-                            <td class="text-center">${data.date}</td>
-                            <td>
-                                <button class="btn btn-danger prod"  data-id="${data.id}">sup</button>
-                            </td>
-                        </tr>
-                    `);
-                    montantDepense += parseFloat(data.montant);  // Ajouter le montant de chaque produit
+                      patientsTable.append(`
+                          <tr class="produit_row" id="produit-${data.id}" data-id="${data.id}">
+                              <td class="text-center">${data.id}</td>
+                              <td>${data.produit}</td>
+                              <td class="text-center">${data.prix}</td>
+                              <td class="text-center">${data.quantite}</td>
+                              <td class="text-center">${data.montant}</td>
+                              <td class="text-center">${data.date}</td>
+                              <td>
+                                  <button class="btn btn-danger prod"  data-id="${data.id}">sup</button>
+                              </td>
+                          </tr>
+                      `);
+                      montantDepense += parseFloat(data.montant);  // Ajouter le montant de chaque produit
                     });
                     $('#montantDepense').html("Total : " + montantDepense.toLocaleString());  // Mettre à jour le total
                 } else {

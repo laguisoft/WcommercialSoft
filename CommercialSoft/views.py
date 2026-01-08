@@ -4104,6 +4104,92 @@ def pdf_facture_proforma_2(request, commande_id):
 
 
 
+@csrf_exempt  # juste pour test si CSRF gêne
+def pdf_etat_bilan(request):
+    if request.method == "POST":
+        try:
+            idUser = request.POST.get('idUser')
+            dateDebut = request.POST.get("dateDebut")
+            dateFin = request.POST.get("dateFin")
+
+            # Construire le filtre dynamique
+            filtre = {}
+
+            # Ajouter les filtres pour les dates si elles sont fournies
+            if dateDebut:
+                filtre["date__gte"] = dateDebut
+            if dateFin:
+                filtre["date__lte"] = dateFin
+
+            
+
+            # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+            if idUser and idUser != "0":
+                try:
+                    user = User.objects.get(id=idUser)
+                    filtre["user"] = user
+                except User.DoesNotExist:
+                    return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+                
+            #pret reclamer
+            pretReclamer = VersementClient.objects.filter(**filtre)
+            depense = Depense.objects.filter(**filtre)
+
+            # Appliquer le filtre à la requête
+            retour=Retour.objects.filter(**filtre)
+            ventes = Commande.objects.filter(**filtre)
+            pret=PretClient.objects.filter(**filtre)
+            
+            # Calculer les totaux
+            total_montant = ventes.aggregate(Sum('montant'))['montant__sum'] or 0
+            total_remise = ventes.aggregate(Sum('remise'))['remise__sum'] or 0
+            total_net_vente = total_montant - total_remise  # Calcul de la différence
+            # pret reclamer
+            total_pretReclamer = pretReclamer.aggregate(Sum('montant'))['montant__sum'] or 0
+            total_pret = pret.aggregate(Sum('montant'))['montant__sum'] or 0
+            
+            total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+
+            total_retour = retour.aggregate(total=Sum(F('quantite')* F('prix')))['total'] or 0
+
+            caisse=total_net_vente+total_pretReclamer-total_pret-total_depense-total_retour or 0
+
+            if dateDebut == dateFin:
+                intervalle= "du "+dateDebut
+            else:
+                intervalle= "du "+dateDebut+" au "+dateFin
+
+            infoBoutique = InfoBoutique.objects.first()
+
+
+            def formater(montant):
+                return "{:,.0f}".format(montant).replace(",", " ")
+
+            context = {
+                "totalVente": formater(total_net_vente),
+                "totalPretReclame": formater(total_pretReclamer),
+                "totalPret": formater(total_pret),
+                "totalDepense":formater(total_depense),
+                "totalRetour":formater(total_retour),
+                "caisse":formater(caisse),
+                'boutique': infoBoutique,
+                "intervalle": intervalle
+            }
+
+            return generate_pdf_response_vrais("CommercialSoft/pdfBilan.html", context)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return HttpResponse("Méthode non autorisée", status=405)
+
+
+
+
+
+
+
+
 
 # views.py
 import pandas as pd

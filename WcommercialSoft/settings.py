@@ -165,21 +165,6 @@ DATABASES = {
 
 
 
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'amadoubarryetfre$dbCommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'amadoubarryetfre',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'amadoubarryetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
 """
 DATABASES = {
     'default': {
@@ -193,6 +178,21 @@ DATABASES = {
     }
 }
 """
+
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'amadoubarryetfre$dbCommercialSoft',  # Remplacez par le nom de votre base
+        'USER': 'amadoubarryetfre',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        'HOST': 'amadoubarryetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        #'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
+
 
 
 DATABASES = {

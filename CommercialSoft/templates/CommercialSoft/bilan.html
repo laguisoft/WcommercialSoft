@@ -79,9 +79,10 @@
                           </div>
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                                <a type="submit" href="#" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
                             </div>
                         </div>
                       </div>
@@ -269,18 +270,20 @@
         e.preventDefault();
 
         const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
-        const categorieId = $('#categorie').val();
-        const produitId = $('#produit').val();
+        const userId = $('#utilisateur').val();  // ID de l'examen sélectionné
+        const dateDebut = $('#dateDebut').val();  // ID de la consultation
+        const dateFin = $('#dateFin').val();  // ID de la consultation
 
         // Ouvrir une nouvelle fenêtre où le PDF sera affiché
         let pdfWindow = window.open("", "_blank");
 
         $.ajax({
-            url: "{% url 'pdfProduitDisponible' %}",
+            url: "{% url 'pdfBilan' %}",
             type: "POST",
             data: {
-                idCategorie: categorieId,
-                produitId: produitId,
+                idUser: userId,
+                dateDebut: dateDebut,
+                dateFin: dateFin,
                 csrfmiddlewaretoken: csrfToken
             },
             xhrFields: {
