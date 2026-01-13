@@ -287,12 +287,26 @@ DATABASES = {
 
 
 
-"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'commercialsoftsk_db_jumelle',  # Remplacez par le nom de votre base
         'USER': 'commercialsoftsk_jumelle',         # Remplacez par votre nom d'utilisateur
+        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
+        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'localhost',  # Hôte MySQL
+        'PORT': '3306',  # Port MySQL
+    }
+}
+
+
+
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'lststockcom_db_10avril',  # Remplacez par le nom de votre base
+        'USER': 'lststockcom_10avril',         # Remplacez par votre nom d'utilisateur
         'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
         #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
         'HOST': 'localhost',  # Hôte MySQL
