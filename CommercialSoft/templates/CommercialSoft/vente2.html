@@ -663,7 +663,7 @@ champPourcent.addEventListener("input", function () {
 $('#typeVente').on('change', function () {
   let typeVente = $(this).val();
 
-  if (BOUTIQUE_NOM !== "AMADOU BARRY ET FRERE") {
+  if (BOUTIQUE_NOM !== "AMADOU BARRY ET FRERE" && BOUTIQUE_NOM !== "FSK ELECTRIQUE") {
     panier.forEach(item => {
       let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
       if (produit) {

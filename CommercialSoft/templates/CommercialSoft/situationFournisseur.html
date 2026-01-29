@@ -220,6 +220,7 @@
             response.fournisseurs.forEach(data => {
               const supUrl = "{% url 'commerce_supFournisseur' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_modFournisseur' 0 %}".replace("0", data.id);
+              const detailUrl = "{% url 'commerce_detailFournisseur' 0 %}".replace("0", data.id);
               patientsTable.append(`
                 <tr>
                         <td class="text-center">${data.id}</td>
@@ -233,6 +234,9 @@
                               <i class="fas fa-cogs"></i>
                             </button>
                             <div class="dropdown-menu">
+                              <a class="dropdown-item" href="${detailUrl}" title="Detail">
+                                <i class="fas fa-edit text-success"></i> Detail
+                              </a>
                               <a class="dropdown-item" href="${modUrl}" title="Modifier">
                                 <i class="fas fa-edit text-warning"></i> Modifier
                               </a>

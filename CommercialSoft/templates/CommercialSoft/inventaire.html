@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
     <!-- Google Font: Source Sans Pro -->
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    
 {% endblock %}
 
 {% block corp %}
@@ -84,6 +85,7 @@
                             <div class="form-group">
                                 <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
                                 <a type="submit" href="{% url 'etatInventaire' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
+                                <button type="button" class="btn btn-success" id="idValider">Valider</button>
                             </div>
                           </div>
 
@@ -106,7 +108,12 @@
               <table class="table table-bordered table-hover table-striped table-sm">
                 <thead>                  
                   <tr>
-                    <th style="width: 50px" class="text-center">#</th>
+                    <th style="width: 50px" class="text-center">
+                      <div class="form-check">
+                          <input type="checkbox" class="form-check-input" id="selectAll">
+                      </div>
+                  </th>
+
                     <th class="text-center">Code</th>
                     <th class="text-center">libelle</th>
                     <th class="text-center">Qte theorique</th>
@@ -201,8 +208,11 @@
               patientsTable.append(`
                   <tr>
                      <td class="text-center">
-                        <input type="checkbox" class="select-matiere form-control" value="${data.id}">
-                     </td>
+                      <div class="form-check">
+                          <input class="form-check-input select-matiere" type="checkbox" value="${data.id}" id="check-${data.id}">
+                          <label class="form-check-label" for="check-${data.id}"></label>
+                      </div>
+                    </td>
                      <td class="text-center">${data.id}</td>
                      <td>${data.libelle}</td>
                      <td class="text-center">${data.quantite}</td>
@@ -222,6 +232,83 @@
       });
     });
   });
+
+
+
+
+
+
+
+  $(document).ready(function () {
+    $('#idValider').on('click', function () {
+        const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+        // Créer un tableau pour stocker les données à envoyer
+        let produitsData = [];
+
+        // Parcourir chaque ligne du tableau
+        $('#liste-categorie tr').each(function () {
+            const row = $(this);
+            const produitId = row.find('input.select-matiere[type="checkbox"]').val();
+            const qteReelle = row.find('input.select-matiere[type="number"]').val();
+
+            if (produitId && qteReelle !== "") {
+                produitsData.push({
+                    id: produitId,
+                    quantite_reelle: qteReelle
+                });
+            }
+        });
+
+        if (produitsData.length === 0) {
+            alert("Aucune quantité à mettre à jour !");
+            return;
+        }
+
+        // Envoi via AJAX
+        $.ajax({
+            url: "{% url 'validerQuantite' %}",  // URL Django pour traiter la mise à jour
+            type: "POST",
+            data: {
+                produits: JSON.stringify(produitsData),
+                csrfmiddlewaretoken: csrfToken
+            },
+            success: function (response) {
+                if (response.success) {
+                    toastr.success("Quantités mises à jour avec succès !");
+                } else {
+                    toastr.error("Erreur lors de la mise à jour !");
+                }
+            },
+            error: function () {
+                toastr.error("Une erreur est survenue. Veuillez réessayer.");
+            }
+        });
+      });
+    });
+
+
+
+
+
+
+    // Cocher/décocher toutes les cases
+    $(document).on('change', '#selectAll', function () {
+        const isChecked = $(this).is(':checked');
+        $('.select-matiere[type="checkbox"]').prop('checked', isChecked);
+    });
+
+    // Si une case est décochée, décocher “Tout sélectionner”
+    $(document).on('change', '.select-matiere[type="checkbox"]', function () {
+        if (!$(this).is(':checked')) {
+            $('#selectAll').prop('checked', false);
+        } else {
+            // Si toutes les cases sont cochées, cocher “Tout sélectionner”
+            const allChecked = $('.select-matiere[type="checkbox"]').length === $('.select-matiere[type="checkbox"]:checked').length;
+            $('#selectAll').prop('checked', allChecked);
+        }
+    });
+
 
 
 
@@ -264,6 +351,7 @@
         });
     });
 });
+
 
 
 

@@ -308,6 +308,27 @@ def inventaire(request):
 
 
 @login_required
+def valider_quantite(request):
+    if request.method == "POST":
+        produits_json = request.POST.get("produits", "[]")
+        produits_data = json.loads(produits_json)
+
+        for item in produits_data:
+            try:
+                produit = Produit.objects.get(id=item['id'])
+                produit.quantite = item['quantite_reelle']
+                produit.save()
+            except Produit.DoesNotExist:
+                continue
+
+        return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False})
+
+
+
+
+@login_required
 def produit_perime(request):
     aujourdhui = timezone.now().date()
     produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui)
@@ -2117,10 +2138,27 @@ def detail_pret_client(request, pk):
     dette=PretClient.objects.filter(client=client)
     payement=VersementClient.objects.filter(client=client)
 
-    total_dette=PretClient.objects.aggregate(total=Sum('montant'))['total'] or 0
-    total_payement=VersementClient.objects.aggregate(total=Sum('montant'))['total'] or 0
+    total_dette=PretClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
+    total_payement=VersementClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
 
     return render(request, 'CommercialSoft/detailPretClient.html', {'dettes': dette,'payements':payement,'total_dette': separateur(total_dette), 'total_payement': separateur(total_payement),'client':client})
+
+
+
+
+
+
+
+@login_required
+def detail_pret_fournisseur(request, pk):
+    fournisseur = get_object_or_404(Fournisseur, pk=pk)
+    dette=DetteFournisseur.objects.filter(fournisseur=fournisseur)
+    payement=VersementFournisseur.objects.filter(fournisseur=fournisseur)
+
+    total_dette=DetteFournisseur.objects.filter(fournisseur=fournisseur).aggregate(total=Sum('montant'))['total'] or 0
+    total_payement=VersementFournisseur.objects.filter(fournisseur=fournisseur).aggregate(total=Sum('montant'))['total'] or 0
+
+    return render(request, 'CommercialSoft/detailFournisseur.html', {'dettes': dette,'payements':payement,'total_dette': separateur(total_dette), 'total_payement': separateur(total_payement),'four':fournisseur})
 
 
 

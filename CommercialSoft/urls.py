@@ -110,6 +110,7 @@ urlpatterns=[
     path('commerce/fournisseur', views.fournisseur_list_create,name="commerce_fournisseur"),
     path('commerce/fournisseur/modification/<int:pk>/', views.fournisseur_edit,name="commerce_modFournisseur"),
     path('commerce/fournisseur/suppression/<int:pk>/', views.fournisseur_delete,name="commerce_supFournisseur"),
+    path('commerce/fournisseur/detail/<int:pk>/', views.detail_pret_fournisseur,name="commerce_detailFournisseur"),
     #-- versement fournisseur
     path('commerce/versementFournisseur', views.versementFournisseur_list_create,name="commerce_versementFournisseur"),
     path('commerce/versementFournisseur/modification/<int:pk>/', views.versementFournisseur_edit,name="commerce_modVersementFournisseur"),
@@ -145,6 +146,7 @@ urlpatterns=[
     #-- inventaire
     path('commerce/inventaire', views.inventaire,name="inventaire"),
     path('commerce/inventaire/etat', views.pdf_inventaire,name="etatInventaire"),
+    path('valider-quantite/', views.valider_quantite, name='validerQuantite'),
     #-- Reception par produit
     path('commerce/reception/produit', views.reception_par_produit,name="receptionParProduit"),
     path('commerce/reception/produit/recheche', views.recherche_reception_produit, name="rechercheReceptionParProduit"),
