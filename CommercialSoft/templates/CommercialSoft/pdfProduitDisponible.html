@@ -172,11 +172,11 @@
             <table style="border: solid 1px; width: 100%;">
                 <thead>
                     <th style="width: 8%;">N°</th>
-                    <th style="width: 35%;">Libelle</th>
+                    <th style="width: 34%;">Libelle</th>
                     <th style="width: 12%;">Qte</th>
-                    <th style="width: 17%;">Prix Achat</th>
-                    <th style="width: 18%;">Prix Detail</th>
-                    <th style="width: 10%;">Seuil</th>
+                    <th style="width: 15%;">Prix Achat</th>
+                    <th style="width: 15%;">P en gros</th>
+                    <th style="width: 16%;">Prix Detail</th>
                 </thead>
                 <tbody>
                     {% if listes %}
@@ -186,8 +186,8 @@
                         <td>{{ liste.libelle }}</td>
                         <td>{{ liste.quantite }}</td>
                         <td>{{ liste.prixAchat }}</td>
+                        <td>{{ liste.prixEnGros }}</td>
                         <td>{{ liste.prixDetail }}</td>
-                        <td>{{ liste.seuil }}</td>
                       </tr>
                     {% endfor %}
                   {% else %}
