@@ -1033,6 +1033,7 @@ async function proforma() {
     text: "Souhaitez-vous imprimer le reçu en format ticket ou A4 ?",
     html: `
         <input id="nomClient" class="swal2-input" placeholder="Nom du client">
+        <input id="telClient" class="swal2-input" placeholder="Telephone client">
     `,
     icon: "question",
     showCancelButton: true,
@@ -1044,6 +1045,7 @@ async function proforma() {
 
 // Récupérer la valeur du champ
 const nomClient = document.getElementById("nomClient").value;
+const telClient = document.getElementById("telClient").value;
 
 // Récupérer le bouton choisi
 let choix = "";
@@ -1059,34 +1061,54 @@ if (result.isConfirmed) {
 
 
   if (choix) {
-    // 🧾 Impression locale du reçu
-    let boutique = {
-      nom: "Laguisoft Technologie",
-      emplacement: "Quartier Missira",
-      ville: "Kankan",
-      telephone: "620000000",
-      nomClientSimple: nomClient
-    };
-    imprimerRecuLocal(venteDataRecu, boutique);
-    Swal.fire({
-      icon: "success",
-      title: "Impression en cours...",
-      timer: 1500,
-      showConfirmButton: false
-    });
-  } else {
-    // 📑 Génération PDF
-    let jsonDataInput = document.getElementById("jsonDataInputPdf");
-    jsonDataInput.value = JSON.stringify(venteData);
-    document.getElementById("formExportPDF").submit();
+  // 🧾 Impression locale du reçu
+  let boutique = {
+    nom: "Laguisoft Technologie",
+    emplacement: "Quartier Missira",
+    ville: "Kankan",
+    telephone: "620000000",
+    nomClientSimple: nomClient,
+    telClient:telClient
+  };
 
-    Swal.fire({
-      icon: "success",
-      title: "Génération du PDF...",
-      timer: 1500,
-      showConfirmButton: false
-    });
-  }
+  imprimerRecuLocal(venteDataRecu, boutique);
+
+  Swal.fire({
+    icon: "success",
+    title: "Impression en cours...",
+    timer: 1500,
+    showConfirmButton: false
+  });
+
+} else {
+
+  // 👉 Ajouter les infos client ici aussi
+  venteData.nomClientSimple = nomClient;
+  venteData.telClient = telClient;
+  venteData.boutique = {
+    nom: "Laguisoft Technologie",
+    emplacement: "Quartier Missira",
+    ville: "Kankan",
+    telephone: "620000000"
+  };
+
+  // 📑 Génération PDF
+  let jsonDataInput = document.getElementById("jsonDataInputPdf");
+  jsonDataInput.value = JSON.stringify(venteData);
+
+  document.getElementById("formExportPDF").submit();
+
+  Swal.fire({
+    icon: "success",
+    title: "Génération du PDF...",
+    timer: 1500,
+    showConfirmButton: false
+  });
+}
+
+
+
+
 }
 
 

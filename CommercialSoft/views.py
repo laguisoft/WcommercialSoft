@@ -4046,6 +4046,9 @@ def pdf_facture_proforma(request):
             remise = data.get("remise", 0)
 
             idClient = data.get("clientId", 0)
+
+            nom_client = data.get("nomClientSimple", "")
+            tel_client = data.get("telClient", "")
             
 
             # Calcul du total net après remise
@@ -4065,8 +4068,8 @@ def pdf_facture_proforma(request):
                 'remise': remise_formate,
                 'total_net': total_net_formate,
                 'date': timezone.now().strftime("%Y-%m-%d"),
-                'client': Client.objects.get(id=idClient).nom if idClient else "",
-                'numero_client': Client.objects.get(id=idClient).telephone if idClient else "",
+                'client': Client.objects.get(id=idClient).nom if idClient else nom_client,
+                'numero_client': Client.objects.get(id=idClient).telephone if idClient else tel_client,
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
