@@ -424,9 +424,34 @@ input.addEventListener("input", function () {
 
   if (query.length < 1) return;
 
-  let results = produitsCache
-    .filter(p => p.libelle.toLowerCase().includes(query))
-    .slice(0, 100);
+  // 🔥 Si correspond exactement à un code-barres → ajout direct
+  let produitCodeExact = produitsCache.find(p => 
+      String(p.codebare || "").trim() === query.trim()
+  );
+
+  if (produitCodeExact) {
+      remplirInfosProduit(produitCodeExact);
+      ajouterAuPanier(produitCodeExact);
+      suggestions.innerHTML = "";
+      input.value = "";
+      return;
+  }
+
+  const normalizedQuery = query.toLowerCase();
+
+  let results = produitsCache.filter(p => {
+      const libelle = (p.libelle || "").toLowerCase();
+      const code = String(p.codebare || "").trim(); // ✅ CORRIGÉ ICI
+
+      // 🔹 Si l'utilisateur tape uniquement des chiffres → priorité code-barres
+      if (/^\d+$/.test(query)) {
+          return code.startsWith(query);
+      }
+
+      // 🔹 Sinon recherche classique
+      return libelle.includes(normalizedQuery) || code.includes(query);
+  }).slice(0, 100);
+
 
   results.forEach((p, index) => {
     let li = document.createElement("li");

@@ -106,7 +106,7 @@ DATABASES = {
     }
 }
 
-"""
+
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -119,7 +119,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 # client Grand sidiki lofeba (quinquailerie)
@@ -317,7 +317,7 @@ DATABASES = {
 
 
 
-
+"""
 
 DATABASES = {
     'default': {
@@ -329,7 +329,7 @@ DATABASES = {
         'PORT': '3306',
     }
 }
-"""
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
