@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -89,7 +89,7 @@ DATABASES = {
 }
 
 
-
+"""
 
 DATABASES = {
     'default': {
@@ -106,7 +106,7 @@ DATABASES = {
     }
 }
 
-"""
+
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -120,7 +120,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
