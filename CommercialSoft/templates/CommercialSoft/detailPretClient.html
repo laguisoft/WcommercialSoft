@@ -61,9 +61,16 @@
                               <a class="dropdown-item" href="{% url 'commerce_modPretClient' liste.id %}" title="Modifier">
                                 <i class="fas fa-edit text-warning"></i> Modifier
                               </a>
-                              <a class="dropdown-item" target="_blank" href="{% url 'pdf_facture_proforma_2' liste.commande.id %}" title="Detail">
-                                <i class="fas fa-edit text-success"></i> Detail
-                              </a>
+                              
+                              {% if liste.commande %}
+                                <a class="dropdown-item" target="_blank" href="{% url 'pdf_facture_proforma_2' liste.commande.id %}" title="Detail">
+                                  <i class="fas fa-edit text-success"></i> Detail
+                                </a>
+                              {% else %}
+                                  <span class="dropdown-item text-muted">
+                                      Pas de commande
+                                  </span>
+                              {% endif %}
                               <a class="dropdown-item" href="{% url 'commerce_supPretClient' liste.id %}"
                                 onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
                                 <i class="fas fa-times-circle text-danger"></i> Supprimer
