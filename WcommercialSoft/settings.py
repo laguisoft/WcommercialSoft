@@ -106,7 +106,7 @@ DATABASES = {
     }
 }
 
-
+"""
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -120,7 +120,7 @@ DATABASES = {
     }
 }
 
-
+"""
 
 # client Grand sidiki lofeba (quinquailerie)
 DATABASES = {
@@ -240,7 +240,6 @@ DATABASES = {
 
 
 
-"""
 
 DATABASES = {
     'default': {
@@ -254,7 +253,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 
 
