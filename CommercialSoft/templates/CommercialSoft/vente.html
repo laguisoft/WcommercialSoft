@@ -398,32 +398,32 @@ $(document).ready(function () {
 
 
 
-var dernierProduitData = null;
-$('#idProduit').on('change', function () {
-    var selectedOption = $(this).find('option:selected');
+    var dernierProduitData = null;
+    $('#idProduit').on('change', function () {
+        var selectedOption = $(this).find('option:selected');
 
-    if (!selectedOption.val()) {
-        $('#stock').val('');
-        $('#prixDetail').val('');
-        $('#prixEngros').val('');
-        dernierProduitData = null;
-        return;
-    }
+        if (!selectedOption.val()) {
+            $('#stock').val('');
+            $('#prixDetail').val('');
+            $('#prixEngros').val('');
+            dernierProduitData = null;
+            return;
+        }
 
-    var data = {
-        stock: selectedOption.data('stock'),
-        prix_detail: selectedOption.data('prix-detail'),
-        prix_en_gros: selectedOption.data('prix-engros')
-    };
+        var data = {
+            stock: selectedOption.data('stock'),
+            prix_detail: selectedOption.data('prix-detail'),
+            prix_en_gros: selectedOption.data('prix-engros')
+        };
 
-    $('#stock').val(data.stock);
-    $('#prixDetail').val(data.prix_detail);
+        $('#stock').val(data.stock);
+        $('#prixDetail').val(data.prix_detail);
 
-    $('#quantite').val(1);
+        $('#quantite').val(1);
 
-    dernierProduitData = data;
-    mettreAJourPrix();
-});
+        dernierProduitData = data;
+        mettreAJourPrix();
+    });
 
 
 
@@ -548,97 +548,97 @@ $('#idProduit').on('change', function () {
 
 
 
-$("#btnExportPDF").on("click", function (event) {
-    event.preventDefault();
-    let donnees = [];
-    $("#panier tr").each(function () {
-        let tds = $(this).find("td");
-        if (tds.length < 5) return;
+  $("#btnExportPDF").on("click", function (event) {
+      event.preventDefault();
+      let donnees = [];
+      $("#panier tr").each(function () {
+          let tds = $(this).find("td");
+          if (tds.length < 5) return;
 
-        let produit = {
-            id: $(this).data("produit-id"),
-            produit: tds.eq(1).text().trim(),
-            quantite: parseFloat(tds.eq(2).text().trim()) || 0,
-            prix: parseFloat(tds.eq(3).text().trim()) || 0,
-            montant: parseFloat(tds.eq(4).text().trim()) || 0,
-        };
-        donnees.push(produit);
+          let produit = {
+              id: $(this).data("produit-id"),
+              produit: tds.eq(1).text().trim(),
+              quantite: parseFloat(tds.eq(2).text().trim()) || 0,
+              prix: parseFloat(tds.eq(3).text().trim()) || 0,
+              montant: parseFloat(tds.eq(4).text().trim()) || 0,
+          };
+          donnees.push(produit);
+      });
+
+      let remise = parseFloat($("#remise").val()) || 0;
+      let clientId = 0;
+      if ($("#typePayement").val() === 'Pret') {
+          clientId = $("#clientid").val();
+      }
+
+      let dataFinale = {
+          produits: donnees,
+          remise: remise,
+          clientId: clientId
+      };
+
+      $("#jsonDataInputPdf").val(JSON.stringify(dataFinale));
+      $("#formExportPDF").submit();
+  });
+
+
+
+
+
+    
+  // Retour des produits
+  $("#btnRetour").on("click", function () {
+    let lignes = [];
+    let userConfirmed = confirm("Confirmez-vous le retour des produits ?");
+
+    if (!userConfirmed) return;
+
+    $("#livraison-produits tr").each(function () {
+      let produitNom = $(this).find("td:eq(1)").text().trim();
+      let quantite = parseInt($(this).find("td:eq(2)").text().trim());
+      let prix = parseInt($(this).find("td:eq(3)").text().trim());
+
+      // Tu dois avoir un mapping produitNom -> produit_id, sinon tu peux stocker l'ID dans un attribut <tr data-produit-id="xx">
+      let produitId = $(this).data("produit-id");
+
+      if (!produitId) {
+        toastr.error("Produit ID manquant pour " + produitNom);
+        return;
+      }
+
+      lignes.push({
+        produit_id: produitId,
+        quantite: quantite,
+        prix: prix
+      });
     });
 
-    let remise = parseFloat($("#remise").val()) || 0;
-    let clientId = 0;
-    if ($("#typePayement").val() === 'Pret') {
-        clientId = $("#clientid").val();
-    }
-
-    let dataFinale = {
-        produits: donnees,
-        remise: remise,
-        clientId: clientId
-    };
-
-    $("#jsonDataInputPdf").val(JSON.stringify(dataFinale));
-    $("#formExportPDF").submit();
-});
-
-
-
-
-
-  
-// Retour des produits
-$("#btnRetour").on("click", function () {
-  let lignes = [];
-  let userConfirmed = confirm("Confirmez-vous le retour des produits ?");
-
-  if (!userConfirmed) return;
-
-  $("#livraison-produits tr").each(function () {
-    let produitNom = $(this).find("td:eq(1)").text().trim();
-    let quantite = parseInt($(this).find("td:eq(2)").text().trim());
-    let prix = parseInt($(this).find("td:eq(3)").text().trim());
-
-    // Tu dois avoir un mapping produitNom -> produit_id, sinon tu peux stocker l'ID dans un attribut <tr data-produit-id="xx">
-    let produitId = $(this).data("produit-id");
-
-    if (!produitId) {
-      toastr.error("Produit ID manquant pour " + produitNom);
+    if (lignes.length === 0) {
+      toastr.warning("Aucun produit à retourner.");
       return;
     }
 
-    lignes.push({
-      produit_id: produitId,
-      quantite: quantite,
-      prix: prix
+    $.ajax({
+      url: "{% url 'ajouter_retours' %}",
+      type: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      data: JSON.stringify({ retours: lignes }),
+      contentType: "application/json",
+      success: function (response) {
+        if (response.success) {
+          toastr.success("Produits retournés avec succès !");
+          location.reload(); // Recharge la page pour mettre à jour l'état
+        } else {
+          toastr.error("Erreur: " + response.message);
+        }
+      },
+      error: function (xhr) {
+        toastr.error("Erreur serveur.");
+      }
     });
   });
-
-  if (lignes.length === 0) {
-    toastr.warning("Aucun produit à retourner.");
-    return;
-  }
-
-  $.ajax({
-    url: "{% url 'ajouter_retours' %}",
-    type: "POST",
-    headers: {
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
-    data: JSON.stringify({ retours: lignes }),
-    contentType: "application/json",
-    success: function (response) {
-      if (response.success) {
-        toastr.success("Produits retournés avec succès !");
-        location.reload(); // Recharge la page pour mettre à jour l'état
-      } else {
-        toastr.error("Erreur: " + response.message);
-      }
-    },
-    error: function (xhr) {
-      toastr.error("Erreur serveur.");
-    }
-  });
-});
 
 
 
