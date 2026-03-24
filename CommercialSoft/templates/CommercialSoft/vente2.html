@@ -424,8 +424,9 @@ input.addEventListener("input", function () {
 
   if (query.length < 1) return;
 
+  // GESTION CODE BARRES
   // 🔥 Si correspond exactement à un code-barres → ajout direct
-  let produitCodeExact = produitsCache.find(p => 
+  /*let produitCodeExact = produitsCache.find(p => 
       String(p.codebare || "").trim() === query.trim()
   );
 
@@ -435,7 +436,7 @@ input.addEventListener("input", function () {
       suggestions.innerHTML = "";
       input.value = "";
       return;
-  }
+  }*/
 
   const normalizedQuery = query.toLowerCase();
 
@@ -1512,7 +1513,7 @@ $("#btnRetour").on("click", function () {
         body: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
         })
     });
-    
+
   });
 
 </script>
