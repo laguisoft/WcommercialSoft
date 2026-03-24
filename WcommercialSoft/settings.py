@@ -106,7 +106,6 @@ DATABASES = {
     }
 }
 
-"""
 # client gberedoudolar (commercialSoft)
 DATABASES = {
     'default': {
@@ -120,7 +119,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 
 
@@ -272,7 +271,7 @@ DATABASES = {
 
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -284,7 +283,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 
 
