@@ -190,10 +190,10 @@
                                 <ul id="suggestions" class="suggestions" style="width: 100%;"></ul>
                               </div>
                             </div>
-                            <div class="row">
+                            <div class="row align-items-end">
                               <div class="col-md-6">
                                 <div class="form-group">
-                                  <label>Quantité</label>
+                                  <label>Quantité <input type="checkbox" id="filtreQuantite" class="form-input"> </label>
                                   <input type="number" class="form-control" id="quantite" value="1" min="0"> 
                                 </div>
                               </div>
@@ -440,11 +440,19 @@ input.addEventListener("input", function () {
 
   const normalizedQuery = query.toLowerCase();
 
+  let filtreQuantite = document.getElementById("filtreQuantite").checked;
+
   let results = produitsCache.filter(p => {
       const libelle = (p.libelle || "").toLowerCase();
-      const code = String(p.codebare || "").trim(); // ✅ CORRIGÉ ICI
+      const code = String(p.codebare || "").trim();
+      const stock = parseFloat(p.quantite) || 0;
 
-      // 🔹 Si l'utilisateur tape uniquement des chiffres → priorité code-barres
+      // filtre pour afficher le produit ayant une quantité (si la case filtreQuantite est cochée )
+      if (filtreQuantite && stock <= 0) {
+          return false;
+      }
+
+      // 🔹 Si chiffres → code barre
       if (/^\d+$/.test(query)) {
           return code.startsWith(query);
       }
@@ -465,6 +473,9 @@ input.addEventListener("input", function () {
     suggestions.appendChild(li);
   });
 });
+
+
+
 
 // ---  Navigation suggestions ---
 input.addEventListener("keydown", function (e) {
