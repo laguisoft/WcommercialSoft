@@ -190,6 +190,7 @@ class InfoBoutique(models.Model):
     telephone=models.CharField(max_length=20, null=True, blank=True)
     email=models.EmailField(max_length=70, null=True, blank=True)
     proprietaire=models.CharField(max_length=100, null=True, blank=True) 
+    quantiteNegative=models.BooleanField(default=True)
 
     def __str__(self):
         return self.nom

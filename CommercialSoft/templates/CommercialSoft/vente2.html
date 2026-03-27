@@ -789,6 +789,19 @@ async function validerVente() {
     return;
   }
 
+    //verifier que la quantité n'est pas supérieur au stock
+    let boutiqueQuantiteNegative = "{{ boutique.quantiteNegative }}";
+  if (boutiqueQuantiteNegative == "False") {
+    for (let item of panier) {
+      let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
+      if (produit) {
+        if (item.quantite > produit.quantite) {
+          alert(`La quantité pour ${item.nom} dépasse le stock disponible (${produit.quantite}) !`);
+          return;
+        }
+      }
+    }
+  }
 
     let venteData = {
       id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
