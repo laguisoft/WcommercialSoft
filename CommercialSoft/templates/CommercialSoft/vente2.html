@@ -791,7 +791,7 @@ async function validerVente() {
 
     //verifier que la quantité n'est pas supérieur au stock
     let boutiqueQuantiteNegative = "{{ boutique.quantiteNegative }}";
-  if (boutiqueQuantiteNegative == "False") {
+  if (boutiqueQuantiteNegative == 0) {
     for (let item of panier) {
       let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
       if (produit) {
