@@ -95,17 +95,17 @@
         <div class="container d-flex justify-content-center justify-content-md-between">
           <div class="contact-info d-flex align-items-center">
             <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
-            
           </div>
           <div class="contact-info d-flex align-items-center">
             <i class="bi  d-flex align-items-center"><a href="#" id="etatSynchro">synchronisation</a></i>
           </div>
+
           <div class="social-links d-none d-md-flex align-items-center">
             <a href="#" class="text-white">{{user.first_name}} {{user.last_name}}</a>
             <input type="hidden" id="user_id" value="{{user.id}}">
           </div>
         </div>
-      </div><!-- End Top Bar -->
+      </div> <!-- End Top Bar -->
 
       <div class="branding d-flex align-items-center">
         <div class="col-md-2 d-none d-sm-block">
@@ -186,7 +186,12 @@
                             <div class="row">
                               <div class="form-group position-relative">
                                 <label>Produit</label>
-                                <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
+                                <div class="input-group">
+                                  <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
+                                  <button class="btn btn-secondary" type="button" id="actualiser">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                  </button>
+                                </div>
                                 <ul id="suggestions" class="suggestions" style="width: 100%;"></ul>
                               </div>
                             </div>
@@ -1361,6 +1366,15 @@ $("#btnRetour").on("click", function () {
     }
   });
 });
+
+
+
+  //Actualiser les information du produit
+  const btnActualiser = document.getElementById('actualiser');
+  btnActualiser.addEventListener('click', function() {
+    
+    chargerProduits();
+  });
 
 
 </script>
