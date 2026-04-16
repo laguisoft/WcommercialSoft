@@ -62,7 +62,7 @@
                                 <i class="fas fa-edit text-warning"></i> Modifier
                               </a>
                               
-                              {% if liste.commande %}
+                              {% if liste.commande and liste.commande.id %}
                                 <a class="dropdown-item" target="_blank" href="{% url 'pdf_facture_proforma_2' liste.commande.id %}" title="Detail">
                                   <i class="fas fa-edit text-success"></i> Detail
                                 </a>
