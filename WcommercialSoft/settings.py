@@ -81,7 +81,6 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 
 
-
 """
 DATABASES = {
     'default': {
@@ -89,6 +88,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 
 
@@ -182,7 +182,7 @@ DATABASES = {
 
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -194,7 +194,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 
@@ -227,7 +227,7 @@ DATABASES = {
 
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -239,7 +239,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 
 DATABASES = {

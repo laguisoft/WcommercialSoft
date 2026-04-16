@@ -281,8 +281,7 @@
             </div>
             <div class="col-md-3" id="lgClient">
               <div class="form-group d-flex align-items-center">
-                <label class="mb-0 col-md-3" >Client</label> <!-- Ajuste le width si nécessaire -->
-                <div class="col-md-9" style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
+                <div class="" style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
                   <select class="form-control select2bs4" id="id_client">
                     <option value="0">--------</option>
                     
@@ -304,6 +303,15 @@
                 <button onclick="proforma()" class="btn btn-info">Facture</button>
                 <button type="button" class="btn bg-fuchsia btn-md border" id="btnRetour">Retour</button>
                 <button onclick="validerVente()" class="btn btn-primary btn-md border">valider la vente</button>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-5" id="lgCommentaire">
+              <div class="form-group">
+                <div> <!-- Cette div prendra l'espace restant -->
+                  {{ pret_form.commentaire }}
+                </div>
               </div>
             </div>
           </div>
@@ -747,11 +755,17 @@ $('#typeVente').on('change', function () {
 const typePayement = document.getElementById('typePayement');
 const lgClient = document.getElementById('lgClient');
 const lgEcheance = document.getElementById('lgEcheance');
+const lgCommentaire = document.getElementById('lgCommentaire');
 function togglePret() {
   const isPret = (typePayement.value === 'Pret');
 
-  lgClient.style.display = isPret ? 'flex' : 'none';
-  lgEcheance.style.display = isPret ? 'flex' : 'none';
+  //lgClient.style.display = isPret ? 'flex' : 'none';
+  //lgEcheance.style.display = isPret ? 'flex' : 'none';
+  //lgCommentaire.style.display = isPret ? 'flex' : 'none';
+
+  lgClient.classList.toggle('d-none', !isPret);
+  lgEcheance.classList.toggle('d-none', !isPret);
+  lgCommentaire.classList.toggle('d-none', !isPret);
 
   // Rendre les champs obligatoires uniquement en cas de prêt
   const clientEl = document.getElementById('id_client');
@@ -782,6 +796,7 @@ async function validerVente() {
   let user = parseInt(document.getElementById("user_id").value);
   let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
   let dateEcheance = document.getElementById("dateEch").value;
+  let commentaire = document.getElementById("id_commentaire").value;
   if (typePayementVal === "Pret" && (!client || !dateEcheance)) {
     alert("Veuillez sélectionner un client pour un prêt !");
     return;
@@ -819,6 +834,7 @@ async function validerVente() {
       client,
       user,
       dateEcheance: dateEcheance,
+      commentaire: commentaire,
     };
 
   ventes.push(venteData);
@@ -832,6 +848,7 @@ async function validerVente() {
   document.getElementById("typePayement").value = "Espece";
   document.getElementById("id_client").value = "";   // reset client
   document.getElementById("dateEch").value = "";     // reset échéance
+  document.getElementById("id_commentaire").value = ""; // reset commentaire
   togglePret();
 
   afficherPanier();
@@ -1039,6 +1056,7 @@ async function proforma() {
   let user = parseInt(document.getElementById("user_id").value);
   let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
   let dateEcheance = document.getElementById("dateEch").value;
+  let commentaire = document.getElementById("id_commentaire") ? document.getElementById("id_commentaire").value : "";
   let select = document.getElementById("id_client");
   let clientNom = select.options[select.selectedIndex].text;
 
@@ -1061,6 +1079,7 @@ async function proforma() {
     client,
     user,
     dateEcheance,
+    commentaire,
     clientNom
   };
 
@@ -1075,6 +1094,7 @@ async function proforma() {
     montant: parseInt(document.getElementById("montantTotal").value.replace(/\s/g, ''), 10) || 0,
     clientId: parseInt(document.getElementById("id_client").value) || null,
     dateEcheance: document.getElementById("dateEch").value,
+    commentaire: commentaire,
     typeVente: document.getElementById("typeVente").value,
     typePayement: document.getElementById("typePayement").value,
     user: parseInt(document.getElementById("user_id").value)
@@ -1395,7 +1415,8 @@ $("#btnRetour").on("click", function () {
 
       //Initialize Select2 Elements
       $('.select2bs4').select2({
-        theme: 'bootstrap4'
+        theme: 'bootstrap4',
+        placeholder: "Sélectionnez un client",
       })
     })
 

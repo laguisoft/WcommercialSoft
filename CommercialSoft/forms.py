@@ -194,12 +194,18 @@ class VersementClientForm(forms.ModelForm):
 
 
 class pretClientForm(forms.ModelForm):
+    client = forms.ModelChoiceField(
+        queryset=PretClient._meta.get_field('client').remote_field.model.objects.all(),
+        required=False,
+        empty_label="Sélectionnez un client"
+    )
     class Meta:
         model = PretClient
-        fields = ['client', 'dateEcheance']
+        fields = ['client', 'dateEcheance','commentaire']
         widgets = {
             'client': forms.Select(attrs={'class': 'form-control select2bs4', 'id': 'clientid'}),
             'dateEcheance': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id': 'dateEch'}),
+            'commentaire': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_commentaire','placeholder': 'Commentaire'}),
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

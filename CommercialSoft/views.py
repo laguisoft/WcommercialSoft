@@ -4509,6 +4509,7 @@ def sync_ventes(request):
                     date=vente.get("date", timezone.now().date()),
                     dateEcheance=vente.get("dateEcheance", timezone.now().date()),
                     commande=commande,
+                    commentaire=vente.get("commentaire"),
                     user=User.objects.get(id=user_id),
                 )
 
