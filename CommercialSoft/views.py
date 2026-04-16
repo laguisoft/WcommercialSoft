@@ -1927,7 +1927,7 @@ def versementClient_edit(request, pk):
  # Example for Patient Views
 @login_required
 def versementClient_list(request):
-    client=VersementClient()
+    client=VersementClientForm()
     return render(request, 'CommercialSoft/listeClient.html',{'form':client})
 
 
