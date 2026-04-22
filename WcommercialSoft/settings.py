@@ -81,7 +81,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -90,7 +90,7 @@ DATABASES = {
 }
 
 
-
+"""
 
 DATABASES = {
     'default': {
@@ -227,7 +227,7 @@ DATABASES = {
 
 
 
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -239,7 +239,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 DATABASES = {
@@ -404,7 +404,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
 # Configuration du pwa
-PWA_APP_NAME = 'CommercialSoft'
+PWA_APP_NAME = 'Commercial soft'
 PWA_APP_SHORT_NAME = 'Commerce'
 PWA_APP_DESCRIPTION = "Application de gestion commerciale Laguisoft"
 PWA_APP_THEME_COLOR = '#007bff'
