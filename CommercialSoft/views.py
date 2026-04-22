@@ -1,6 +1,6 @@
 import traceback
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
 from .models import *
@@ -43,6 +43,11 @@ def est_admin_ou_gestionnaire(user):
 #separateur de milieu
 def separateur(valeur):
     return f"{valeur:,}".replace(",", " ")
+
+
+#------------------------ Gestion des droits d'acces avec les decorateur -----------------
+def permission_denied_view(request, exception):
+    return render(request, "CommercialSoft/403.html", status=403)
 
 
 
@@ -106,6 +111,7 @@ def dashboard(request):
 # examen Views
 @user_passes_test(est_admin_ou_gestionnaire)
 @login_required
+@permission_required('CommercialSoft.add_fournisseur', raise_exception=True)
 def fournisseur_list_create(request):
     if request.method == "POST":
         form = FournisseurForm(request.POST)
@@ -130,6 +136,7 @@ def fournisseur_list_create(request):
 
 
 @login_required
+@permission_required('CommercialSoft.change_fournisseur', raise_exception=True)
 def fournisseur_edit(request, pk):
     fournisseur = get_object_or_404(Fournisseur, pk=pk)
     if request.method == "POST":
@@ -149,6 +156,7 @@ def fournisseur_edit(request, pk):
  # Example for Patient Views
 @user_passes_test(est_admin_ou_gestionnaire)
 @login_required
+@permission_required('CommercialSoft.delete_fournisseur', raise_exception=True)
 def fournisseur_delete(request, pk):
     fournisseur = get_object_or_404(Fournisseur, pk=pk)
     try:
@@ -165,6 +173,9 @@ def fournisseur_delete(request, pk):
  # Example for Patient Views
 @user_passes_test(est_administrateur)
 @login_required
+@permission_required('CommercialSoft.view_fournisseur')
+@permission_required('CommercialSoft.view_dettefournisseur')
+@permission_required('CommercialSoft.view_versementfournisseur')
 def situation_fournisseur(request):
     fournisseur=FournisseurForm()
     liste=Fournisseur.objects.all()
@@ -176,6 +187,9 @@ def situation_fournisseur(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_fournisseur')
+@permission_required('CommercialSoft.view_dettefournisseur')
+@permission_required('CommercialSoft.view_versementfournisseur')
 def recherche_fournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
@@ -211,6 +225,7 @@ def recherche_fournisseur(request):
 
 # Views
 @login_required
+@permission_required('CommercialSoft.add_categorie')
 def categorie_list_create(request):
     if request.method == "POST":
         form = CategorieForm(request.POST)
@@ -233,6 +248,7 @@ def categorie_list_create(request):
 
 
 @login_required
+@permission_required('CommercialSoft.change_categorie')
 def categorie_edit(request, pk):
     categorie = get_object_or_404(Categorie, pk=pk)
     if request.method == "POST":
@@ -251,6 +267,7 @@ def categorie_edit(request, pk):
 
  # Example for Patient Views
 @login_required
+@permission_required('CommercialSoft.delete_categorie')
 def categorie_delete(request, pk):
     categorie = get_object_or_404(Categorie, pk=pk)
     try:
@@ -263,6 +280,7 @@ def categorie_delete(request, pk):
 
 # examen Views
 @login_required
+@permission_required('CommercialSoft.add_produit')
 def produit_list_create(request):
     if request.method == "POST":
         form = ProduitForm(request.POST)
@@ -287,6 +305,7 @@ def produit_list_create(request):
 
  # Example for Patient Views
 @login_required
+@permission_required('CommercialSoft.view_produit')
 def produit_list(request):
     categorie=Categorie.objects.all()
     produit=Produit.objects.all()
@@ -295,9 +314,10 @@ def produit_list(request):
 
 
 
- # Example for Patient Views
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
 @login_required
+@user_passes_test(est_admin_ou_gestionnaire)
 def inventaire(request):
     categorie=Categorie.objects.all()
     produit=Produit.objects.all()
@@ -351,6 +371,7 @@ def produit_livrer(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def produit_vendu(request):
     users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
@@ -358,12 +379,14 @@ def produit_vendu(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def vente_par_client(request):
     client = Client.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/venteParClient.html', {'clients': client})
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def vente_par_payement(request):
     return render(request, 'CommercialSoft/venteParPayement.html')
 
@@ -371,12 +394,14 @@ def vente_par_payement(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def vente_par_type(request):
     return render(request, 'CommercialSoft/venteParTypeVente.html')
 
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def detail_vente(request):
     users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/detailVente.html', {'users': users})
@@ -384,6 +409,7 @@ def detail_vente(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def situation_vente(request):
     produit = Produit.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/situationVente.html', {'listes': produit})
@@ -395,6 +421,10 @@ def situation_vente(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.add_livraison')
+@permission_required('CommercialSoft.add_livraisonproduit')
 def reception_create(request):
     if request.method == 'POST':
         livraison_form = LivraisonForm(request.POST)
@@ -502,6 +532,7 @@ import json
 from .models import Produit, Fournisseur, Livraison, LivraisonProduit, DetteFournisseur
 
 @login_required
+@user_passes_test(est_administrateur, est_gestionnaire)
 @require_GET
 def api_reception(request):
     """
@@ -532,6 +563,11 @@ def _mm_aa_to_date(mm_aa: str):
 @csrf_exempt
 @require_POST
 @login_required
+@login_required
+@csrf_exempt
+@require_POST
+@permission_required('CommercialSoft.add_livraison', raise_exception=True)
+@permission_required('CommercialSoft.add_livraisonproduit', raise_exception=True)
 def api_sync_livraisons(request):
     """
     Reçoit UNE livraison locale (offline) et la persiste.
@@ -735,6 +771,7 @@ def reception_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_livraison', raise_exception=True)
 def reception_delete(request, pk):
     livraison = get_object_or_404(Livraison, pk=pk)
     try:
@@ -749,6 +786,9 @@ def reception_delete(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_livraison')
 def reception_edit(request, pk):
     livraisonP = get_object_or_404(LivraisonProduit, pk=pk)
     if request.method == "POST":
@@ -769,6 +809,10 @@ def reception_edit(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.view_livraison')
+@permission_required('CommercialSoft.view_livraisonproduit')
 def detail_reception(request, pk):
     livraison = get_object_or_404(Livraison, pk=pk)
 
@@ -792,6 +836,9 @@ def detail_reception(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_livraisonproduit', raise_exception=True)
 def produit_livrer_delete(request, pk):
     livraisonP = get_object_or_404(LivraisonProduit, pk=pk)
     try:
@@ -1180,6 +1227,7 @@ def vente_creates(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def recherche_vente(request):
     if request.method == "POST":
         idUser = request.POST.get('idUser')
@@ -1240,6 +1288,7 @@ def recherche_vente(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def recherche_vente_client(request):
     if request.method == "POST":
         idClient = request.POST.get('idClient')
@@ -1291,6 +1340,7 @@ def recherche_vente_client(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def recherche_vente_payement(request):
     if request.method == "POST":
         payement = request.POST.get('payement')
@@ -1342,6 +1392,7 @@ def recherche_vente_payement(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande')
 def recherche_vente_type(request):
     if request.method == "POST":
         type = request.POST.get('type')
@@ -1393,6 +1444,9 @@ def recherche_vente_type(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.view_commande')
 def recherche_situation_vente(request):
     if request.method == "POST":
         idProduit = request.POST.get('idProduit')
@@ -1504,6 +1558,7 @@ def produit_par_vente(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_commande', raise_exception=True)
 def recherche_detail_vente(request):
     if request.method == "GET":
         idUser = request.GET.get('userId')
@@ -1550,6 +1605,7 @@ def recherche_detail_vente(request):
 
 @user_passes_test(est_admin_ou_gestionnaire)
 @login_required
+@permission_required('CommercialSoft.delete_commande', raise_exception=True)
 def vente_delete(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
 
@@ -1573,9 +1629,11 @@ def vente_delete(request, pk):
 
 
 
-
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
 @login_required
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_commandeproduit', raise_exception=True)
 def commandeP_delete(request):
     myid = request.POST.get("id")
     commandeP = CommandeProduit.objects.get(id=myid)
@@ -1600,6 +1658,9 @@ def commandeP_delete(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_produit', raise_exception=True)
 def produit_edit(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
     if request.method == "POST":
@@ -1622,6 +1683,9 @@ def produit_edit(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_commande', raise_exception=True)
 def modifier_commande(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
     if request.method == "POST":
@@ -1644,6 +1708,7 @@ def modifier_commande(request, pk):
  # Example for Patient Views
 @user_passes_test(est_administrateur,est_gestionnaire)
 @login_required
+@permission_required('CommercialSoft.delete_produit', raise_exception=True)
 def produit_delete(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
     try:
@@ -1662,6 +1727,7 @@ def produit_delete(request, pk):
 
 # examen Views
 @login_required
+@permission_required('CommercialSoft.add_depense')
 def depense_list_create(request):
     if request.method == "POST":
         form = DepenseForm(request.POST)
@@ -1688,6 +1754,9 @@ def depense_list_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_depense', raise_exception=True)
 def depense_edit(request, pk):
     depense = get_object_or_404(Depense, pk=pk)
     if request.method == "POST":
@@ -1709,6 +1778,7 @@ def depense_edit(request, pk):
 
  # Example for Patient Views
 @login_required
+@permission_required('CommercialSoft.view_depense')
 def depense_list(request):
     categorie=DepenseForm()
     return render(request, 'CommercialSoft/listeDepense.html',{'form':categorie})
@@ -1718,6 +1788,7 @@ def depense_list(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_depense')
 def recherche_depense(request):
     if request.method == "POST":
         numero = request.POST.get('idCategorie', '0').strip()  # Récupérer le numéro envoyé
@@ -1753,6 +1824,7 @@ def recherche_depense(request):
 
 
 @login_required
+@permission_required('CommercialSoft.delete_depense')
 def depense_delete(request, pk):
     depense = get_object_or_404(Depense, pk=pk)
     try:
@@ -1768,6 +1840,7 @@ def depense_delete(request, pk):
 
 
 @login_required
+@permission_required('CommercialSoft.add_categoriedepense')
 def categorie_depense_list_create(request):
     if request.method == "POST":
         form = CategorieDepenseForm(request.POST)
@@ -1792,6 +1865,7 @@ def categorie_depense_list_create(request):
 
 
 @login_required
+@permission_required('CommercialSoft.change_categoriedepense')
 def categorie_depense_edit(request, pk):
     categorie = get_object_or_404(Categorie_Depense, pk=pk)
     if request.method == "POST":
@@ -1809,6 +1883,7 @@ def categorie_depense_edit(request, pk):
 
 
 @login_required
+@permission_required('CommercialSoft.delete_categoriedepense')
 def categorie_depense_delete(request, pk):
     categorie = get_object_or_404(Categorie_Depense, pk=pk)
     try:
@@ -1908,6 +1983,7 @@ def imprimer_situation_client(request, client_id):
 
 
 @login_required
+@permission_required('CommercialSoft.change_versementclient')
 def versementClient_edit(request, pk):
     versementClient = get_object_or_404(VersementClient, pk=pk)
     if request.method == "POST":
@@ -1935,6 +2011,7 @@ def versementClient_list(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_versementclient')
 def recherche_versementClient(request):
     if request.method == "POST":
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
@@ -1967,6 +2044,9 @@ def recherche_versementClient(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_versementclient')
 def versementClient_delete(request, pk):
     versement = get_object_or_404(VersementClient, pk=pk)
     try:
@@ -2010,6 +2090,7 @@ def versementGerant_list_create(request):
 
 @login_required
 @user_passes_test(est_administrateur)
+@permission_required('CommercialSoft.change_versementgerant')
 def versementGerant_edit(request, pk):
     versementGerant = get_object_or_404(VersementGerant, pk=pk)
     if request.method == "POST":
@@ -2037,6 +2118,7 @@ def versementGerant_list(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_versementgerant')
 def recherche_versementGerant(request):
     if request.method == "POST":
         numero = request.POST.get('idGerant', '0').strip()  # Récupérer le numéro envoyé
@@ -2069,6 +2151,7 @@ def recherche_versementGerant(request):
 
 
 @login_required
+@permission_required('CommercialSoft.delete_versementgerant')
 def versementGerant_delete(request, pk):
     versement = get_object_or_404(VersementGerant, pk=pk)
     try:
@@ -2148,8 +2231,10 @@ def detail_pret_client(request, pk):
 
 
 
-
 @login_required
+@login_required
+@permission_required('CommercialSoft.view_versementfournisseur')
+@permission_required('CommercialSoft.view_dettefournisseur')
 def detail_pret_fournisseur(request, pk):
     fournisseur = get_object_or_404(Fournisseur, pk=pk)
     dette=DetteFournisseur.objects.filter(fournisseur=fournisseur)
@@ -2210,6 +2295,7 @@ def recherche_pretClient(request):
 
 
 @login_required
+@permission_required('CommercialSoft.delete_pretclient')
 def pretClient_delete(request, pk):
     pret = get_object_or_404(PretClient, pk=pk)
     try:
@@ -2228,6 +2314,9 @@ def pretClient_delete(request, pk):
 # examen Views
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.add_versementfournisseur')
 def versementFournisseur_list_create(request):
     if request.method == "POST":
         form = VersementFournisseurForm(request.POST)
@@ -2251,6 +2340,9 @@ def versementFournisseur_list_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_versementfournisseur')
 def versementFournisseur_edit(request, pk):
     versementFournisseur = get_object_or_404(VersementFournisseur, pk=pk)
     if request.method == "POST":
@@ -2272,6 +2364,9 @@ def versementFournisseur_edit(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.view_versementfournisseur')
 def versementFournisseur_list(request):
     fournisseur=VersementFournisseur()
     return render(request, 'CommercialSoft/listeDepense.html',{'form':fournisseur})
@@ -2282,6 +2377,9 @@ def versementFournisseur_list(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.view_versementfournisseur')
 def recherche_versementFournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
@@ -2314,6 +2412,9 @@ def recherche_versementFournisseur(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_versementfournisseur')
 def versementFournisseur_delete(request, pk):
     versement = get_object_or_404(VersementFournisseur, pk=pk)
     try:
@@ -2332,6 +2433,9 @@ def versementFournisseur_delete(request, pk):
 # examen Views
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.add_dettefournisseur')
 def detteFournisseur_list_create(request):
     if request.method == "POST":
         form = DetteFournisseurForm(request.POST)
@@ -2355,6 +2459,9 @@ def detteFournisseur_list_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_dettefournisseur')
 def detteFournisseur_edit(request, pk):
     detteFournisseur = get_object_or_404(DetteFournisseur, pk=pk)
     if request.method == "POST":
@@ -2378,6 +2485,9 @@ def detteFournisseur_edit(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.view_dettefournisseur')
 def recherche_detteFournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
@@ -2410,6 +2520,9 @@ def recherche_detteFournisseur(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_dettefournisseur')
 def detteFournisseur_delete(request, pk):
     dette = get_object_or_404(DetteFournisseur, pk=pk)
     try:
@@ -2514,6 +2627,7 @@ def recherche_client(request):
 
 @user_passes_test(est_admin_ou_gestionnaire)
 @login_required
+@permission_required('CommercialSoft.delete_client')
 def client_delete(request, pk):
     client = get_object_or_404(Client, pk=pk)
     try:
@@ -2666,8 +2780,8 @@ def recherche_bilan(request):
 
 
  # Example for Patient Views
-@user_passes_test(est_administrateur)
 @login_required
+@user_passes_test(est_administrateur)
 def situation_boutique(request):
     return render(request, 'CommercialSoft/situationBoutique.html')
 
@@ -2716,8 +2830,8 @@ def recherche_situation_boutique(request):
 
 
  # Example for Patient Views
-@user_passes_test(est_administrateur)
 @login_required
+@user_passes_test(est_administrateur)
 def benefice_sur_vente(request):
     return render(request, 'CommercialSoft/beneficeSurVente.html')
 
@@ -3846,8 +3960,8 @@ def pdf_etat_reception_produit(request):
 
 
 
-@user_passes_test(est_administrateur)
 @login_required
+@user_passes_test(est_administrateur)
 def caisse(request):
     # solde fournisseur
     dette_fournisseur = DetteFournisseur.objects.aggregate(total=Sum('montant'))['total'] or 0
@@ -3897,8 +4011,8 @@ def caisse(request):
 
 
 
-@csrf_exempt
 @login_required
+@csrf_exempt
 def enregistrer_retours(request):
     if request.method == "POST":
         try:
@@ -3907,8 +4021,6 @@ def enregistrer_retours(request):
                 for item in data['retours']:
                     produit = Produit.objects.select_for_update().get(id=item['produit_id'])
                     
-                    # Mise à jour du stock
-                    print(item['quantite'], type(item['quantite']))
                     qte = int(item.get('quantite') or 0)
                     produit.quantite += qte
                     produit.save()
