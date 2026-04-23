@@ -2004,7 +2004,8 @@ def versementClient_edit(request, pk):
 @login_required
 def versementClient_list(request):
     client=VersementClientForm()
-    return render(request, 'CommercialSoft/listeClient.html',{'form':client})
+    liste=Client.objects.all()
+    return render(request, 'CommercialSoft/listeClient.html',{'form':client, 'listes': liste})
 
 
 

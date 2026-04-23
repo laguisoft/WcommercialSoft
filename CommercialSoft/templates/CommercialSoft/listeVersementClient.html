@@ -42,7 +42,16 @@
                         <div class="col-md-3">
                             <div class="form-group">
                               <label>Client</label>
-                              {{form.client}}
+                              <select class="form-control select2bs4" id="idClient" style="width: 100%;">
+                                  <option value="0">--------</option>
+                                  {% if listes %}
+                                    {% for liste in listes %}
+                                     <option value="{{liste.id}}">{{liste.nom}} </option>
+                                    {% endfor %}
+                                {% else %}
+                                <option >Aucun client trouve</option>
+                                {% endif %}
+                                </select>
                             </div>
                           </div>
                         <div class="col-md-3">
