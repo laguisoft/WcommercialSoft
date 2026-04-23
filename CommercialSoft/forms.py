@@ -220,7 +220,7 @@ class detteClientForm(forms.ModelForm):
         model = PretClient
         fields = ['client', 'montant', 'date','dateEcheance','commentaire']
         widgets = {
-            'client': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idClient"}),
+            'client': forms.Select(attrs={'class': "form-control select2bs4", "id":"idClient"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id':'idDate'}),
             'dateEcheance': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id':'idDateEch'}),

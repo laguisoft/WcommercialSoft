@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
     <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
     <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+<link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
     <!-- Google Font: Source Sans Pro -->
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
 {% endblock %}
@@ -191,6 +193,7 @@
     <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
     <!-- AdminLTE for demo purposes -->
     <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
     <script src="{% static 'autre/dist/js/demo.js' %}"></script>
     <script type="text/javascript">
     $(document).ready(function () {
@@ -199,18 +202,7 @@
 
 
 
-     $(document).ready(function () {
-        bsCustomFileInput.init();
-
-        //Initialize Select2 Elements
-        $('.select2').select2()
-
-        //Initialize Select2 Elements
-        $('.select2bs4').select2({
-        theme: 'bootstrap4'
-        })
-
-    });
+     
 
 
 
@@ -227,6 +219,21 @@
             let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
             dateFin.value = today;
         }
+    });
+
+
+
+
+    $(document).ready(function () {
+        bsCustomFileInput.init();
+
+        //Initialize Select2 Elements
+        $('.select2').select2()
+
+        //Initialize Select2 Elements
+        $('.select2bs4').select2({
+        theme: 'bootstrap4'
+        })
     });
 
 
