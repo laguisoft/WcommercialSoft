@@ -109,9 +109,10 @@ def dashboard(request):
 
 
 # examen Views
-@user_passes_test(est_admin_ou_gestionnaire)
 @login_required
+@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.add_fournisseur')
+@permission_required('CommercialSoft.view_fournisseur')
 def fournisseur_list_create(request):
     if request.method == "POST":
         form = FournisseurForm(request.POST)
@@ -171,8 +172,8 @@ def fournisseur_delete(request, pk):
 
 
  # Example for Patient Views
-@user_passes_test(est_administrateur)
 @login_required
+@user_passes_test(est_administrateur)
 @permission_required('CommercialSoft.view_fournisseur')
 @permission_required('CommercialSoft.view_dettefournisseur')
 @permission_required('CommercialSoft.view_versementfournisseur')
@@ -281,6 +282,7 @@ def categorie_delete(request, pk):
 # examen Views
 @login_required
 @permission_required('CommercialSoft.add_produit')
+@permission_required('CommercialSoft.view_produit')
 def produit_list_create(request):
     if request.method == "POST":
         form = ProduitForm(request.POST)
@@ -314,9 +316,9 @@ def produit_list(request):
 
 
 
+@login_required
 @user_passes_test(est_admin_ou_gestionnaire)
 @user_passes_test(est_administrateur, est_gestionnaire)
-@login_required
 @user_passes_test(est_admin_ou_gestionnaire)
 def inventaire(request):
     categorie=Categorie.objects.all()
@@ -560,10 +562,9 @@ def _mm_aa_to_date(mm_aa: str):
         return None
 
 
+@login_required
 @csrf_exempt
 @require_POST
-@login_required
-@login_required
 @csrf_exempt
 @require_POST
 @permission_required('CommercialSoft.add_livraison')
@@ -1928,6 +1929,7 @@ def imprimer_recu_versement(request, versement_id):
 
 # examen Views
 @login_required
+@permission_required('CommercialSoft.add_versementclient')
 def versementClient_list_create(request):
     if request.method == "POST":
         form = VersementClientForm(request.POST)
@@ -2068,6 +2070,7 @@ def versementClient_delete(request, pk):
 # examen Views
 @user_passes_test(est_admin_ou_gestionnaire)
 @login_required
+@permission_required('CommercialSoft.add_versementgerant')
 def versementGerant_list_create(request):
     if request.method == "POST":
         form = VersementGerantForm(request.POST)
@@ -2169,6 +2172,7 @@ def versementGerant_delete(request, pk):
 
 # examen Views
 @login_required
+@permission_required('CommercialSoft.add_pretclient')
 def pretClient_list_create(request):
     if request.method == "POST":
         form = detteClientForm(request.POST)
@@ -2193,6 +2197,7 @@ def pretClient_list_create(request):
 
 
 @login_required
+@permission_required('CommercialSoft.change_pretclient')
 def pretClient_edit(request, pk):
     pret = get_object_or_404(PretClient, pk=pk)
     if request.method == "POST":
@@ -2211,6 +2216,7 @@ def pretClient_edit(request, pk):
 
  # Example for Patient Views
 @login_required
+@permission_required('CommercialSoft.view_pretclient')
 def pretClient_list(request):
     client=detteClientForm()
     return render(request, 'CommercialSoft/listePretClient.html',{'form':client})
@@ -2540,6 +2546,7 @@ def detteFournisseur_delete(request, pk):
 # examen Views
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.add_client')
 def client_list_create(request):
     if request.method == "POST":
         form = clientForm(request.POST)
@@ -2562,6 +2569,7 @@ def client_list_create(request):
 
 
 @login_required
+@permission_required('CommercialSoft.change_client')
 def client_edit(request, pk):
     client = get_object_or_404(Client, pk=pk)
     if request.method == "POST":
@@ -2580,6 +2588,7 @@ def client_edit(request, pk):
 
  # Example for Patient Views
 @login_required
+@permission_required('CommercialSoft.view_client')
 def client_list(request):
     client=clientForm()
     liste=Client.objects.all()
@@ -2590,6 +2599,7 @@ def client_list(request):
 
 
 @login_required
+@permission_required('CommercialSoft.view_client')
 def recherche_client(request):
     if request.method == "POST":
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
@@ -2647,6 +2657,7 @@ def client_delete(request, pk):
 # examen Views
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.add_societe')
 def societe_list_create(request):
     if request.method == "POST":
         form = societeForm(request.POST)
@@ -2670,6 +2681,7 @@ def societe_list_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_societe')
 def societe_edit(request, pk):
     societe = get_object_or_404(Societe, pk=pk)
     if request.method == "POST":
@@ -2691,6 +2703,7 @@ def societe_edit(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.delete_societe')
 def societe_delete(request, pk):
     societe = get_object_or_404(Societe, pk=pk)
     try:

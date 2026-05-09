@@ -80,7 +80,6 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 
 
-
 """
 DATABASES = {
     'default': {
@@ -328,12 +327,12 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-
-
-
-
-
 """
+
+
+
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',

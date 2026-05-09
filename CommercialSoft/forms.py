@@ -52,7 +52,7 @@ class ProduitForm(forms.ModelForm):
         fields = ['codebare','categorie','libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','seuil','commentaire']
         widgets = {
             'codebare': forms.TextInput(attrs={'class': 'form-control'}),
-            'categorie': forms.Select(attrs={'class': 'form-control'}),
+            'categorie': forms.Select(attrs={'class': 'form-control bootstrap4'}),
             'libelle': forms.TextInput(attrs={'class': 'form-control'}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control'}),
             'prixAchat': forms.NumberInput(attrs={'class': 'form-control'}),
