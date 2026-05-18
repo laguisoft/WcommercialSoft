@@ -958,26 +958,18 @@ function imprimerRecuLocal(venteData, boutique) {
     <div class="container">
 
         <div class="header">
-            <table style="width: 100%; font-size: 14pt; border: none;">
-                <tr>
-                    <td style="width: 60%; text-align:left; border: none;">
-                        <strong style="font-size: 9pt;">
-                            {{ boutique.nom }}<br>
-                             ${"{{ boutique.emplacement }}" || ""}
-                        </strong>
-                    </td>
-                    <td style="width: 40%; text-align:right; border: none;">
-                        <strong style="font-size: 9pt;">
-                          ${"{{boutique.ville}}" || ""}<br>
-                          ${"{{boutique.telephone}}" || ""}
-                        </strong>
-                    </td>
-                </tr>
-            </table>
-        </div>
+            <h2 style="text-align:center;">{{ boutique.nom }} <br></h2>
+            <h3 style="text-align:center;"> ${"{{boutique.ville}}" || ""}/${"{{ boutique.emplacement }}" || ""}<br>
+              ${"{{boutique.telephone}}" || ""}
+            </h3>
+        </div><br>
 
-        <h3 style="text-align:center;">${venteData.date}</h3>
-        <h2 >N° : ${venteData.id || "____"}</h2>
+        <table style="border: none;">
+          <tr>
+            <td style="text-align: left; border: none;"><h2 >N° : ${venteData.id || "____"}</h2></td>
+            <td style="text-align: rigth; border: none;"><h3>${venteData.date}</h3></td>
+          </tr>
+        </table>
         <h3 style="padding:10px">Client : ${boutique.nomClientSimple || venteData.clientNom}</h3>
 
         <h2 style="text-align: center; padding: 15px">Liste des produits</h2>
