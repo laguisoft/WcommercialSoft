@@ -1444,9 +1444,6 @@ def recherche_vente_type(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.view_commande')
 def recherche_situation_vente(request):
     if request.method == "POST":
@@ -1676,6 +1673,43 @@ def produit_edit(request, pk):
         form = ProduitForm(instance=produit)
     
     return render(request, 'CommercialSoft/modification.html', {'form': form})
+
+
+
+
+
+@login_required
+@permission_required('CommercialSoft.change_produit')
+def modifierPrixProduit(request):
+    return render(request, 'CommercialSoft/modificationPrix.html')
+
+
+def modifierProduitAjax(request):
+
+    if request.method == "POST":
+
+        produit_id = request.POST.get('produit_id')
+        quantite = request.POST.get('quantite')
+        prixAchat = request.POST.get('prixAchat')
+        prixEnGros = request.POST.get('prixEnGros')
+        prixDetail = request.POST.get('prixDetail')
+
+        produit = Produit.objects.get(id=produit_id)
+
+        produit.quantite = quantite
+        produit.prix_achat = prixAchat
+        produit.prix_en_gros = prixEnGros
+        produit.prix_detail = prixDetail
+
+        produit.save()
+
+        return JsonResponse({
+            'status': 'success'
+        })
+
+    return JsonResponse({
+        'status': 'error'
+    })
 
 
 
@@ -2717,7 +2751,6 @@ def societe_delete(request, pk):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire, est_comptable)
 def bilan(request):
     users = User.objects.all()
     return render(request, 'CommercialSoft/bilan.html',{'users':users})
@@ -2726,7 +2759,12 @@ def bilan(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire, est_comptable)
+@permission_required('CommercialSoft.view_versementclient')
+@permission_required('CommercialSoft.view_pretclient')
+@permission_required('CommercialSoft.view_depense')
+@permission_required('CommercialSoft.view_retour')
+@permission_required('CommercialSoft.view_commande')
+@permission_required('CommercialSoft.view_commande_produit')
 def recherche_bilan(request):
     if request.method == "POST":
         idUser = request.POST.get('idUser')

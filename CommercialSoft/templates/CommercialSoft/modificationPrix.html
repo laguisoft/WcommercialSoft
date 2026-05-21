@@ -74,7 +74,6 @@
                             <div class="form-group">
                                 <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
                                 <button type="submit" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimmer</button>
-                                <a type="submit" href="{% url 'commerce_modificationPrixProduit' %}" class="btn bg-info color-palette" id="idImprimer">Modifier</a>
                             </div>
                         </div>
                         
@@ -107,8 +106,6 @@
                     <th class="text-center">P Achat</th>
                     <th class="text-center">P en gros</th>
                     <th class="text-center">P detail</th>
-                    <th class="text-center">Peremption</th>
-                    <th class="text-center">Seuil</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
@@ -204,6 +201,8 @@
       const categorieId = $('#categorie').val();  // ID de l'examen sélectionné
       const produitId = $('#produit').val();  // ID de l'examen sélectionné
 
+      let number = 1;
+
 
       $.ajax({
         url: "{% url 'rechercheProduit' %}",
@@ -218,34 +217,31 @@
           patientsTable.empty();
           if (response.produits && response.produits.length > 0) {
             response.produits.forEach(data => {
+                number++;
               const supUrl = "{% url 'commerce_produitDelete' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_produitEdit' 0 %}".replace("0", data.id);
               patientsTable.append(`
                 <tr>
-                        <td class="text-center">${data.code}</td>
+                        <td class="text-center">${number}</td>
                         <td>${data.libelle}</td>
-                        <td class="text-center">${data.quantite}</td>
-                        <td class="text-center">${data.prixAchat}</td>
-                        <td class="text-center">${data.prixEnGros}</td>
-                        <td class="text-center">${data.prixDetail}</td>
-                        <td >${data.peremption}</td>
-                        <td >${data.seuil}</td>
+                        <td class="text-center"><input type="number" class="form-control quantite" value="${data.quantite}" readonly></td>
+                        <td class="text-center"><input type="number" class="form-control prixAchat" value="${data.prixAchat}" readonly></td>
+                        <td class="text-center"><input type="number" class="form-control prixEnGros" value="${data.prixEnGros}" readonly></td>
+                        <td class="text-center"><input type="number" class="form-control prixDetail" value="${data.prixDetail}" readonly></td>
                         <td class="text-center">
-                          <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                              <i class="fas fa-cogs"></i>
-                            </button>
-                            <div class="dropdown-menu">
-                              <a class="dropdown-item" href="${modUrl} " title="Modifier">
-                                <i class="fas fa-edit text-warning"></i> Modifier
-                              </a>
-                              <a class="dropdown-item" href="${supUrl}"
-                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
-                                <i class="fas fa-times-circle text-danger"></i> Supprimer
-                              </a>
-                            </div>
-                          </div>
-                        </td>
+                        <button class="btn btn-info btn-sm btnModifier"
+                                data-id="${data.id}">
+                            <i class="fas fa-edit"></i>
+                            Modifier
+                        </button>
+
+                        <button class="btn btn-success btn-sm btnEnregistrer d-none"
+                                data-id="${data.id}">
+                            <i class="fas fa-save"></i>
+                            Enregistrer
+                        </button>
+
+                    </td>
                     </tr>
               `);
             });
@@ -260,6 +256,73 @@
     });
   });
 
+
+
+
+
+
+  // Activer la modification
+$(document).on('click', '.btnModifier', function () {
+
+    let ligne = $(this).closest('tr');
+
+    ligne.find('.quantite').prop('readonly', false);
+    ligne.find('.prixAchat').prop('readonly', false);
+    ligne.find('.prixEnGros').prop('readonly', false);
+    ligne.find('.prixDetail').prop('readonly', false);
+
+    $(this).addClass('d-none');
+
+    ligne.find('.btnEnregistrer').removeClass('d-none');
+});
+
+
+
+// Enregistrer les modifications
+$(document).on('click', '.btnEnregistrer', function () {
+    let bouton = $(this);
+    let ligne = bouton.closest('tr');
+    let produitId = bouton.data('id');
+    let quantite = ligne.find('.quantite').val();
+    let prixAchat = ligne.find('.prixAchat').val();
+    let prixEnGros = ligne.find('.prixEnGros').val();
+    let prixDetail = ligne.find('.prixDetail').val();
+
+    alert(produitId+" "+quantite+" "+prixAchat+" "+prixEnGros+" "+prixDetail);
+    const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+    $.ajax({
+        url: "{% url 'modifierProduitAjax' %}",
+
+        type: "POST",
+
+        data: {
+            produit_id: produitId,
+            quantite: quantite,
+            prixAchat: prixAchat,
+            prixEnGros: prixEnGros,
+            prixDetail: prixDetail,
+            csrfmiddlewaretoken: csrfToken
+        },
+
+        success: function (response) {
+
+            toastr.success("Modification effectuée avec succès");
+            ligne.find('.quantite').prop('readonly', true);
+            ligne.find('.prixAchat').prop('readonly', true);
+            ligne.find('.prixEnGros').prop('readonly', true);
+            ligne.find('.prixDetail').prop('readonly', true);
+            bouton.addClass('d-none');
+
+            ligne.find('.btnModifier').removeClass('d-none');
+        },
+
+        error: function () {
+
+            toastr.error("Erreur lors de la modification");
+        }
+    });
+});
 
 
   
