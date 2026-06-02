@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe,
+    Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, Categorie_Decaissement, Decaissement, VersementClient, PretClient, Client, Societe,
     VersementFournisseur, DetteFournisseur, VersementGerant, InfoBoutique, Retour
 )
 
@@ -74,6 +74,22 @@ class CategorieDepenseAdmin(admin.ModelAdmin):
 class DepenseAdmin(admin.ModelAdmin):
     list_display = ('intitule', 'quantite', 'prix', 'date', 'categorie')
     search_fields = ('intitule', 'categorie__nom', 'agent__user__username')
+    list_filter = ('date', 'categorie')
+    ordering = ('-date',)
+
+
+
+@admin.register(Categorie_Decaissement)
+class CategorieDecaisementAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'description')
+    search_fields = ('nom',)
+    ordering = ('nom',)
+
+
+@admin.register(Decaissement)
+class DecaissementAdmin(admin.ModelAdmin):
+    list_display = ('motif', 'montant', 'date', 'categorie')
+    search_fields = ('motif', 'categorie__nom', 'agent__user__username')
     list_filter = ('date', 'categorie')
     ordering = ('-date',)
 

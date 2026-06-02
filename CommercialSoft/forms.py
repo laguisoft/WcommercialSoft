@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
 from django.forms import inlineformset_factory
@@ -170,6 +170,37 @@ class DepenseForm(forms.ModelForm):
             'intitule': forms.TextInput(attrs={'class': 'form-control'}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control'}),
             'prix': forms.NumberInput(attrs={'class': 'form-control'}),
+            'categorie': forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
+        }
+
+
+
+
+
+
+
+# Formulaire pour le modèle Categorie decaissement
+class CategorieDecaissementForm(forms.ModelForm):
+    class Meta:
+        model = Categorie_Decaissement
+        fields = '__all__'
+        widgets = {
+            'nom': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+
+
+# Formulaire pour le modèle Decaissement
+class DecaissementForm(forms.ModelForm):
+    class Meta:
+        model = Decaissement
+        fields = ['motif','montant','categorie','date']
+        widgets = {
+            'motif': forms.TextInput(attrs={'class': 'form-control'}),
+            'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }

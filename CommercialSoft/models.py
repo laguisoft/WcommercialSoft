@@ -138,6 +138,26 @@ class Depense(models.Model):
 
 
 
+class Categorie_Decaissement(models.Model):
+    nom=models.CharField(max_length=50)
+    description=models.CharField(max_length=50, null=True, blank=True)
+
+    def __str__(self):
+        return self.nom
+
+
+
+
+class Decaissement(models.Model):
+    motif=models.CharField(max_length=100)
+    montant=models.PositiveBigIntegerField()
+    date=models.DateField(default=timezone.now)
+    categorie=models.ForeignKey(Categorie_Decaissement, on_delete=models.CASCADE)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+
+
+
 class VersementClient(models.Model):
     client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='versements')
     montant=models.BigIntegerField()

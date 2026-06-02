@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
-from .models import *
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -1928,6 +1928,176 @@ def categorie_depense_delete(request, pk):
         messages.error(request, "Erreur: Cette categorie est liée à d'autres entités et ne peut pas être supprimée.")
     return redirect('commerce_categorieDepense')
 
+
+
+
+
+#====================================================================
+
+# examen Views
+@login_required
+@permission_required('CommercialSoft.add_decaissement')
+def decaissement_list_create(request):
+    if request.method == "POST":
+        form = DecaissementForm(request.POST)
+        if form.is_valid():
+            decais= form.save(commit=False)  # Sauvegarder après modification
+            decais.user=request.user
+            decais.save()
+            messages.success(request, "Décaissement créée avec succès !")
+            return redirect('commerce_decaissement')
+        else:
+            messages.error(request, "Erreur lors de la création de la dépense.")
+    else:
+        form = DecaissementForm()
+    
+    decaiss = Decaissement.objects.all().order_by('-date')
+    paginator = Paginator(decaiss, 15)
+    page = request.GET.get('page')
+    paginated_decaiss = paginator.get_page(page)
+    
+    return render(request, 'CommercialSoft/decaissement.html', {'form': form,'listes': paginated_decaiss})
+
+
+
+
+@login_required
+@user_passes_test(est_administrateur)
+@permission_required('CommercialSoft.change_decaissement')
+def decaissement_edit(request, pk):
+    decaiss = get_object_or_404(Decaissement, pk=pk)
+    if request.method == "POST":
+        form = DecaissementForm(request.POST, instance=decaiss)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Decaissement mise à jour avec succès!")
+            return redirect('commerce_decaissement')
+        else:
+            messages.error(request, "Erreur lors de la mise à jour de la depense.")
+    else:
+        form = DecaissementForm(instance=decaiss)
+    
+    return render(request, 'CommercialSoft/modification.html', {'form': form})
+
+
+
+
+
+ # Example for Patient Views
+@login_required
+@permission_required('CommercialSoft.view_decaissement')
+def decaissement_list(request):
+    categorie=DecaissementForm()
+    return render(request, 'CommercialSoft/listeDecaissement.html',{'form':categorie})
+
+
+
+
+
+@login_required
+@permission_required('CommercialSoft.view_decaissement')
+def recherche_decaissement(request):
+    if request.method == "POST":
+        numero = request.POST.get('idCategorie', '0').strip()  # Récupérer le numéro envoyé
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+        if numero :  # Si un numéro est saisi
+            categorie = Categorie_Decaissement.objects.get(id=numero)
+            decaiss=Decaissement.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin)
+        else:  # Sinon, afficher les patients du jour
+            decaiss=Decaissement.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+            
+        # Construire une réponse JSON
+        patients_data = [
+            {
+                "id": dec.id,
+                "motif": dec.motif,
+                "montant": dec.montant,
+                "date": dec.date,
+                "categorie":dec.categorie.nom,
+            }
+            for dec in decaiss
+        ]
+        
+        return JsonResponse({"patients": patients_data})
+    
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+
+
+
+
+
+@login_required
+@permission_required('CommercialSoft.delete_decaissement')
+def decaissement_delete(request, pk):
+    decaiss = get_object_or_404(Decaissement, pk=pk)
+    try:
+        decaiss.delete()
+        messages.success(request, "Decaissement supprimée avec succès!")
+    except IntegrityError:
+        messages.error(request, "Erreur: Cette Decaissement est liée à d'autres entités et ne peut pas être supprimée.")
+    return redirect('commerce_decaissement')
+
+
+
+
+
+
+@login_required
+def categorie_decaissement_list_create(request):
+    if request.method == "POST":
+        form = CategorieDecaissementForm(request.POST)
+        if form.is_valid():
+            form.save()  # Sauvegarder après modification
+            messages.success(request, "Categorie créée avec succès !")
+            return redirect('commerce_categorieDecaissement')
+        else:
+            messages.error(request, "Erreur lors de la création de la categorie.")
+    else:
+        form = CategorieDecaissementForm()
+    
+    categorie = Categorie_Decaissement.objects.all()
+    paginator = Paginator(categorie, 15)
+    page = request.GET.get('page')
+    paginated_depense = paginator.get_page(page)
+    
+    return render(request, 'CommercialSoft/categorieDecaissement.html', {'form': form,'listes': paginated_depense})
+
+
+
+
+
+@login_required
+@permission_required('CommercialSoft.change_categoriedepense')
+def categorie_decaissement_edit(request, pk):
+    categorie = get_object_or_404(Categorie_Decaissement, pk=pk)
+    if request.method == "POST":
+        form = CategorieDecaissementForm(request.POST, instance=categorie)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Categorie mise à jour avec succès!")
+            return redirect('commerce_categorieDecaissement')
+        else:
+            messages.error(request, "Erreur lors de la mise à jour de la categorie.")
+    else:
+        form = CategorieDecaissementForm(instance=categorie)
+    
+    return render(request, 'CommercialSoft/modification.html', {'form': form})
+
+
+@login_required
+def categorie_decaissement_delete(request, pk):
+    categorie = get_object_or_404(Categorie_Decaissement, pk=pk)
+    try:
+        categorie.delete()
+        messages.success(request, "Categorie supprimée avec succès!")
+    except IntegrityError:
+        messages.error(request, "Erreur: Cette categorie est liée à d'autres entités et ne peut pas être supprimée.")
+    return redirect('commerce_categorieDecaissement')
+
+
+#==============================================================================
 
 
 
@@ -4031,6 +4201,9 @@ def caisse(request):
     #versement gerant
     versement_gerant=VersementGerant.objects.aggregate(total=Sum('montant'))['total'] or 0
 
+    # Decaissement
+    decaissement=Decaissement.objects.aggregate(total=Sum('montant'))['total'] or 0
+
     # stock
     # valeur_stock = Produit.objects.aggregate(total=Sum(F('quantite') * F('prixAchat')))['total'] or 0
     valeur_stock = Produit.objects.aggregate(
@@ -4044,15 +4217,16 @@ def caisse(request):
 
 
     # total client et stock
+    banque=versement_gerant - decaissement
     client_stock=valeur_stock + solde_client
-    solde_general=client_stock+versement_gerant
+    solde_general=client_stock+banque
     solde_pdg=solde_general-solde_fournisseur
 
     return render(request, 'CommercialSoft/caisse.html',{
         'stock': separateur(valeur_stock),
         'dette_client': separateur(solde_client),
         'client_stock': separateur(client_stock),
-        'banque': separateur(versement_gerant),
+        'banque': separateur(banque),
         'solde_general':separateur(solde_general),
         'solde_fournisseur': separateur(solde_fournisseur),
         'solde_pdg': separateur(solde_pdg)

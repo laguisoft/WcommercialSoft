@@ -193,6 +193,15 @@
                   </ul>
                 </li>
                 {% endif %}
+                {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
+                <li class="dropdown"><a href="#"><span>Decaissement</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                  <ul>
+                    <li><a href="{% url 'commerce_decaissement' %}">Nouvelle decaissement</a></li>
+                    <li><a href="{% url 'commerce_listeDecaissement' %}">Listes decaissement</a></li>
+                    <li><a href="{% url 'commerce_categorieDecaissement' %}">Categorie decaissement</a></li>
+                  </ul>
+                </li>
+                {% endif %}
                 <li><a href="{% url 'commerce_bilan' %}">Billan</a></li>
                 {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
                 <li><a href="{% url 'caisse' %}">Caisse</a></li>

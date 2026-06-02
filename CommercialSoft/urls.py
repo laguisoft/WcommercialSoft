@@ -79,6 +79,18 @@ urlpatterns=[
     path('commerce/categories', views.categorie_depense_list_create,name="commerce_categorieDepense"),
     path('commerce/categorie/modification/<int:pk>/', views.categorie_depense_edit,name="commerce_modCategorieDepense"),
     path('commerce/categorie/suppression/<int:pk>/', views.categorie_depense_delete,name="commerce_supCategorieDepense"),
+    
+    #--
+    path('commerce/decaissement', views.decaissement_list_create,name="commerce_decaissement"),
+    path('commerce/decaissement/modification/<int:pk>/', views.decaissement_edit,name="commerce_modDecaissement"),
+    path('commerce/decaissement/suppression/<int:pk>/', views.decaissement_delete,name="commerce_supDecaissement"),
+    path('commerce/decaissement/liste', views.decaissement_list,name="commerce_listeDecaissement"),
+    path('commerce/decaissement/recherche', views.recherche_decaissement,name="commerce_rechercheDecaissement"),
+    #path('commerce/decaissement/etat', views.pdf_etat_decaissement,name="commerce_etatDecaissement"),
+    #--
+    path('commerce/categories/decaissement', views.categorie_decaissement_list_create,name="commerce_categorieDecaissement"),
+    path('commerce/categorie/decaissement/modification/<int:pk>/', views.categorie_decaissement_edit,name="commerce_modCategorieDecaissement"),
+    path('commerce/categorie/decaissement/suppression/<int:pk>/', views.categorie_decaissement_delete,name="commerce_supCategorieDecaissement"),
     #--
     path('commerce/versementClient', views.versementClient_list_create,name="commerce_versementClient"),
     path('commerce/versementClient/modification/<int:pk>/', views.versementClient_edit,name="commerce_modVersementClient"),
