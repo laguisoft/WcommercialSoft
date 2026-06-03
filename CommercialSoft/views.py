@@ -2929,12 +2929,6 @@ def bilan(request):
 
 
 @login_required
-@permission_required('CommercialSoft.view_versementclient')
-@permission_required('CommercialSoft.view_pretclient')
-@permission_required('CommercialSoft.view_depense')
-@permission_required('CommercialSoft.view_retour')
-@permission_required('CommercialSoft.view_commande')
-@permission_required('CommercialSoft.view_commande_produit')
 def recherche_bilan(request):
     if request.method == "POST":
         idUser = request.POST.get('idUser')
