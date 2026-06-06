@@ -152,19 +152,19 @@ DATABASES = {
 
 
 
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'keitaetfrere$wcommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'keitaetfrere',         # Remplacez par votre nom d'utilisateur
+        'NAME': 'lststockcom_keitaetfrere',  # Remplacez par le nom de votre base
+        'USER': 'lststockcom_keit',         # Remplacez par votre nom d'utilisateur
         'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'keitaetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
+        #'HOST': 'keitaetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
+        'HOST': 'localhost',  # Hôte MySQL
         'PORT': '3306',  # Port MySQL
     }
 }
-
+"""
 
 DATABASES = {
     'default': {
@@ -327,7 +327,7 @@ DATABASES = {
         'PORT': '3306',  # Port MySQL
     }
 }
-"""
+
 
 
 DATABASES = {
@@ -340,7 +340,7 @@ DATABASES = {
         'PORT': '3306',
     }
 }
-
+"""
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
