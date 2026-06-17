@@ -21,12 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-39-8ml6yoy4+vrl6e$m&i-gbsa(dn4hx*q=1-cqo-g_*7yr82g'
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-39-8ml6yoy4+vrl6e$m&i-gbsa(dn4hx*q=1-cqo-g_*7yr82g'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# Définir ALLOWED_HOSTS via la variable d'environnement DJANGO_ALLOWED_HOSTS
+# (liste séparée par des virgules). Par défaut '*' pour ne pas casser les
+# déploiements existants tant que la variable n'est pas configurée.
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
 
 # Application definition
@@ -81,255 +87,8 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 
 
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WcommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'mans',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'salios',  # Mettez le mot de passe MySQL
-        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
-    }
-}
-
-# client gberedoudolar (commercialSoft)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gberedousolar$db_gberedou',  # Remplacez par le nom de votre base
-        'USER': 'gberedousolar',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'gberedousolar.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gberedoudolar$commercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'gberedoudolar',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
-        'HOST': 'gberedoudolar.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-# client Grand sidiki lofeba (quinquailerie)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'skservice$commercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'skservice',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
-        'HOST': 'skservice.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'keitaetfrere$wcommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'keitaetfrere',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'keitaetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'commercialSoft$laguisoft',  # Remplacez par le nom de votre base
-        'USER': 'commercialSoft',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'commercialSoft.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'amadoubarryetfre$dbCommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'amadoubarryetfre',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'amadoubarryetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'amadoubarryetfre$dbCommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'amadoubarryetfre',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'amadoubarryetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'etsboboetfrere$dbCommercialSoft',  # Remplacez par le nom de votre base
-        'USER': 'etsboboetfrere',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Laguisoft@dev',  # Mettez le mot de passe MySQL
-        'HOST': 'etsboboetfrere.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'djimafa$db_djimafa',  # Remplacez par le nom de votre base
-        'USER': 'djimafa',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'djimafa.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'kindy$db_kindy',  # Remplacez par le nom de votre base
-        'USER': 'kindy',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        #'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'fskbussinesscom_db',  # Remplacez par le nom de votre base
-        'USER': 'fskbussinesscom_fskbusiness',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'commercialsoftsk_db_sk2',  # Remplacez par le nom de votre base
-        'USER': 'commercialsoftsk_sk2',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'fskbussinesscom_lofeba',  # Remplacez par le nom de votre base
-        'USER': 'fskbussinesscom_lofeba',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'commercialsoftsk_db_jumelle',  # Remplacez par le nom de votre base
-        'USER': 'commercialsoftsk_jumelle',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-
-
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'lststockcom_db_10avril',  # Remplacez par le nom de votre base
-        'USER': 'lststockcom_10avril',         # Remplacez par votre nom d'utilisateur
-        'PASSWORD': 'Lst@dev93',  # Mettez le mot de passe MySQL
-        #'HOST': 'kindy.mysql.pythonanywhere-services.com',  # Hôte MySQL
-        'HOST': 'localhost',  # Hôte MySQL
-        'PORT': '3306',  # Port MySQL
-    }
-}
-"""
-
-
+# Configuration de la base de données via variables d'environnement
+# (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -396,6 +155,24 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+
+# Sécurité des cookies et des en-têtes HTTP.
+# SECURE_SSL_REDIRECT/HSTS sont désactivés par défaut (DJANGO_SECURE_SSL=False)
+# car le comportement du proxy inverse de certains déploiements n'est pas
+# garanti ; à activer explicitement via la variable d'environnement une fois
+# le HTTPS confirmé en production.
+SECURE_SSL = os.getenv('DJANGO_SECURE_SSL', 'False') == 'True'
+
+SESSION_COOKIE_SECURE = SECURE_SSL
+CSRF_COOKIE_SECURE = SECURE_SSL
+SECURE_SSL_REDIRECT = SECURE_SSL
+SECURE_HSTS_SECONDS = 31536000 if SECURE_SSL else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_SSL
+SECURE_HSTS_PRELOAD = SECURE_SSL
+
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 

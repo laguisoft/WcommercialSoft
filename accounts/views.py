@@ -155,6 +155,8 @@ def modifier_user(request, user_id):
 
 
 
+@login_required
+@permission_required('accounts.delete_customuser', raise_exception=True)
 def supprimer_user(request, user_id):
     user = CustomUser.objects.get(id=user_id)
     user.delete()

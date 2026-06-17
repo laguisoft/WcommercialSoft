@@ -724,7 +724,11 @@ async function syncLivraisons(){
   for (let i=0;i<livs.length;i++){
     try{
       const resp = await fetch("/commerce/api/sync/livraisons/", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
         body: JSON.stringify(livs[i])
       });
       const out = await resp.json();

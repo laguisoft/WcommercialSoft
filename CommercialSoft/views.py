@@ -563,9 +563,6 @@ def _mm_aa_to_date(mm_aa: str):
 
 
 @login_required
-@csrf_exempt
-@require_POST
-@csrf_exempt
 @require_POST
 @permission_required('CommercialSoft.add_livraison')
 @permission_required('CommercialSoft.add_livraisonproduit')
@@ -1491,29 +1488,38 @@ def recherche_situation_vente(request):
                 return JsonResponse({"error": "Produit introuvable"}, status=404)
 
         else:
-            # Parcourir tous les produits
+            # Parcourir tous les produits : calcul des quantités regroupé par
+            # produit en 2 requêtes au lieu d'aggréger pour chaque produit.
+            entree_filtre = {}
+            sortie_filtre = {}
+            if dateDebut:
+                entree_filtre["livraison__date__gte"] = dateDebut
+                sortie_filtre["date__gte"] = dateDebut
+            if dateFin:
+                entree_filtre["livraison__date__lte"] = dateFin
+                sortie_filtre["date__lte"] = dateFin
+
+            entrees_par_produit = dict(
+                LivraisonProduit.objects.filter(**entree_filtre)
+                .values("produit")
+                .annotate(total=Sum("quantite"))
+                .values_list("produit", "total")
+            )
+            sorties_par_produit = dict(
+                CommandeProduit.objects.filter(**sortie_filtre)
+                .values("produit")
+                .annotate(total=Sum("quantite"))
+                .values_list("produit", "total")
+            )
+
             produits = Produit.objects.all()
             for produit in produits:
-                entree = LivraisonProduit.objects.filter(produit=produit)
-                sortie = CommandeProduit.objects.filter(produit=produit)
-
-                if dateDebut:
-                    entree = entree.filter(livraison__date__gte=dateDebut)
-                    sortie = sortie.filter(date__gte=dateDebut)
-                if dateFin:
-                    entree = entree.filter(livraison__date__lte=dateDebut)
-                    sortie = sortie.filter(date__lte=dateFin)
-
-                quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
-                quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
-                stock = produit.quantite
-
                 produits_infos.append({
                     "id": produit.id,
                     "libelle": produit.libelle,
-                    "quantite_entree": quantite_entree,
-                    "quantite_sortie": quantite_sortie,
-                    "stock": stock
+                    "quantite_entree": entrees_par_produit.get(produit.id, 0),
+                    "quantite_sortie": sorties_par_produit.get(produit.id, 0),
+                    "stock": produit.quantite
                 })
 
         return JsonResponse({
@@ -1684,6 +1690,8 @@ def modifierPrixProduit(request):
     return render(request, 'CommercialSoft/modificationPrix.html')
 
 
+@login_required
+@permission_required('CommercialSoft.change_produit')
 def modifierProduitAjax(request):
 
     if request.method == "POST":
@@ -2103,6 +2111,8 @@ def categorie_decaissement_delete(request, pk):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_versementclient')
 def imprimer_recu_versement(request, versement_id):
     versement = get_object_or_404(VersementClient, id=versement_id)
 
@@ -2162,6 +2172,8 @@ def versementClient_list_create(request):
 from django.utils import timezone
 from django.db.models import Sum
 
+@login_required
+@permission_required('CommercialSoft.view_client')
 def imprimer_situation_client(request, client_id):
     client = Client.objects.get(id=client_id)
 
@@ -3155,6 +3167,8 @@ def generate_pdf_from_template(template_name, context, output_filename):
     return convert_html_to_pdf(html_content, output_filename)
 
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def recu(request, pk):
     if pk is None:
         return render(request, 'commerce/baseVente.html', {"message": "Pas d'ID fourni"})
@@ -3196,6 +3210,8 @@ from datetime import date
 
 from CommercialSoft.models import Client, InfoBoutique  # ✅ importer en haut
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def recu_offline(request):
     if request.method != "POST":
         return HttpResponse("Méthode non autorisée", status=405)
@@ -3311,6 +3327,8 @@ def generate_pdf_response_vrais(template_src, context_dict):
 
 
 # -------------------------- Vue PDF des produits disponibles -----------------------
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_Produit_disponible(request):
     if request.method == "POST":
         categorieId = request.POST.get('idCategorie')
@@ -3361,6 +3379,8 @@ def pdf_Produit_disponible(request):
 
 
 # -------------------------- Vue PDF des produits disponibles -----------------------
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_inventaire(request):
     if request.method == "POST":
         categorieId = request.POST.get('idCategorie')
@@ -3416,6 +3436,8 @@ def pdf_inventaire(request):
 
 #--------------------------liste des produits livrer -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_livraisonproduit')
 def pdf_Produit_livrer(request):
     if request.method =="POST":
         livraisonId= request.POST.get('idLivraison')
@@ -3453,7 +3475,8 @@ def pdf_Produit_livrer(request):
 # Exemple d'utilisation
 from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt  # juste pour test si CSRF gêne
+@login_required
+@permission_required('CommercialSoft.view_depense')
 def pdf_etat_depense(request):
     if request.method == "POST":
         try:
@@ -3509,7 +3532,8 @@ def pdf_etat_depense(request):
 
 
 
-@csrf_exempt  # juste pour test si CSRF gêne
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_etat_detail_vente(request):
     if request.method == "POST":
         try:
@@ -3569,6 +3593,8 @@ def pdf_etat_detail_vente(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_versementclient')
 def pdf_etat_versementClient(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -3613,6 +3639,8 @@ def pdf_etat_versementClient(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_versementfournisseur')
 def pdf_etat_versementFournisseur(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -3656,6 +3684,8 @@ def pdf_etat_versementFournisseur(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_client')
 def pdf_etat_client(request):
     if request.method =="POST":
         societeId= request.POST.get('idSociete')
@@ -3701,6 +3731,8 @@ def pdf_etat_client(request):
 
 
 #--------------------------liste des Versement des client -----------------------
+@login_required
+@permission_required('CommercialSoft.view_client')
 def pdf_etat_situation_client(request):
     if request.method == "POST":
         id_client_str = request.POST.get('idClient')
@@ -3765,6 +3797,8 @@ def pdf_etat_situation_client(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_client')
 def get_reste_client(request, id):
     total_pret = PretClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
     total_versement = VersementClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
@@ -3784,6 +3818,8 @@ def get_reste_client(request, id):
 
 #--------------------------liste des Versement des fournisseur -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_fournisseur')
 def pdf_etat_situation_fournisseur(request):
     if request.method =="POST":
         fournisseurId= request.POST.get('idFournisseur')
@@ -3837,6 +3873,8 @@ def pdf_etat_situation_fournisseur(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_etat_situation_boutique(request):
     if request.method =="POST":
         typePrix= request.POST.get('typePrix')
@@ -3889,6 +3927,8 @@ def pdf_etat_situation_boutique(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_etat_produit_perime(request):
     if request.method =="POST":
         
@@ -3921,6 +3961,8 @@ def pdf_etat_produit_perime(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_etat_produit_rupture(request):
     if request.method =="POST":
         
@@ -3955,6 +3997,8 @@ def pdf_etat_produit_rupture(request):
 
 #--------------------------liste des produits livrer -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_pretclient')
 def pdf_etat_pretClient(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -4004,6 +4048,8 @@ def pdf_etat_pretClient(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_versementgerant')
 def pdf_etat_versementGerant(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -4049,6 +4095,8 @@ def pdf_etat_versementGerant(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_etat_situation_vente(request):
     try:
         if request.method =="POST":
@@ -4090,29 +4138,38 @@ def pdf_etat_situation_vente(request):
                     return JsonResponse({"error": "Produit introuvable"}, status=404)
 
             else:
-                # Parcourir tous les produits
+                # Parcourir tous les produits : calcul des quantités regroupé
+                # par produit en 2 requêtes au lieu d'aggréger pour chaque produit.
+                entree_filtre = {}
+                sortie_filtre = {}
+                if dateDebut:
+                    entree_filtre["livraison__date__gte"] = dateDebut
+                    sortie_filtre["date__gte"] = dateDebut
+                if dateFin:
+                    entree_filtre["livraison__date__lte"] = dateFin
+                    sortie_filtre["date__lte"] = dateFin
+
+                entrees_par_produit = dict(
+                    LivraisonProduit.objects.filter(**entree_filtre)
+                    .values("produit")
+                    .annotate(total=Sum("quantite"))
+                    .values_list("produit", "total")
+                )
+                sorties_par_produit = dict(
+                    CommandeProduit.objects.filter(**sortie_filtre)
+                    .values("produit")
+                    .annotate(total=Sum("quantite"))
+                    .values_list("produit", "total")
+                )
+
                 produits = Produit.objects.all()
                 for produit in produits:
-                    entree = LivraisonProduit.objects.filter(produit=produit)
-                    sortie = CommandeProduit.objects.filter(produit=produit)
-
-                    if dateDebut:
-                        entree = entree.filter(livraison__date__gte=dateDebut)
-                        sortie = sortie.filter(date__gte=dateDebut)
-                    if dateFin:
-                        entree = entree.filter(livraison__date__lte=dateFin)
-                        sortie = sortie.filter(date__lte=dateFin)
-
-                    quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
-                    quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
-                    stock = produit.quantite or 0
-
                     produits_infos.append({
                         "id": produit.id,
                         "libelle": produit.libelle,
-                        "quantite_entree": quantite_entree,
-                        "quantite_sortie": quantite_sortie,
-                        "stock": stock
+                        "quantite_entree": entrees_par_produit.get(produit.id, 0),
+                        "quantite_sortie": sorties_par_produit.get(produit.id, 0),
+                        "stock": produit.quantite or 0
                     })
 
             infoBoutique=InfoBoutique.objects.first()
@@ -4128,6 +4185,8 @@ def pdf_etat_situation_vente(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_livraisonproduit')
 def pdf_etat_reception_produit(request):
     if request.method == "POST":
         try:
@@ -4232,7 +4291,6 @@ def caisse(request):
 
 
 @login_required
-@csrf_exempt
 def enregistrer_retours(request):
     if request.method == "POST":
         try:
@@ -4360,6 +4418,8 @@ def pdf_facture_proforma(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_facture_proforma(request):
     if request.method == "POST":
         try:
@@ -4417,6 +4477,8 @@ def pdf_facture_proforma(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_facture_proforma_2(request, commande_id):
     try:
         # ✅ 1️⃣ Récupération de la commande
@@ -4477,7 +4539,8 @@ def pdf_facture_proforma_2(request, commande_id):
 
 
 
-@csrf_exempt  # juste pour test si CSRF gêne
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_etat_bilan(request):
     if request.method == "POST":
         try:
@@ -4571,6 +4634,8 @@ from django.contrib import messages
 from .forms import UploadFileForm
 from .models import Societe, Client, Produit, Categorie
 
+@login_required
+@user_passes_test(est_administrateur)
 def import_excel_view(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
@@ -4650,6 +4715,7 @@ def import_excel_view(request):
 
 
 #---------- Gestion horconnexion ---------------------------
+@login_required
 def api_produits(request):
     produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal"))
     clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
@@ -4771,7 +4837,7 @@ from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, Pr
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
 
-@csrf_exempt
+@login_required
 def sync_ventes(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
