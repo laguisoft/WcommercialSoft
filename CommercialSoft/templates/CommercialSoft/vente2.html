@@ -82,6 +82,26 @@
   color: white;
 }
 
+.commande-attente-topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background-color: #fd7e14;
+  color: #fff !important;
+  text-decoration: none;
+  font-size: .85rem;
+  font-weight: 600;
+  animation: commande-attente-blink-topbar 1.6s ease-in-out infinite;
+}
+.commande-attente-topbar:hover {
+  color: #fff;
+}
+@keyframes commande-attente-blink-topbar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
 
   </style>
 </head>
@@ -96,6 +116,14 @@
           <div class="contact-info d-flex align-items-center">
             <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
           </div>
+          {% if demandes_commande_en_attente_count %}
+          <div class="contact-info d-flex align-items-center">
+            <a href="{% url 'demandes_commande_liste' %}" class="commande-attente-topbar" target="_blank" title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
+              <i class="bi bi-bell-fill"></i>
+              {{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} en attente
+            </a>
+          </div>
+          {% endif %}
           <div class="contact-info d-flex align-items-center">
             <i class="bi  d-flex align-items-center"><a href="#" id="etatSynchro">synchronisation</a></i>
           </div>
