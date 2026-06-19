@@ -5031,6 +5031,23 @@ def portail_commande_detail(request, pk):
 
 
 @client_required
+def portail_facture_pdf(request, pk):
+    demande = get_object_or_404(CommandeClient, pk=pk, client=request.user.client_profile, statut='Traitee')
+    lignes = list(demande.lignes.select_related('produit'))
+    total_facture = 0
+    for ligne in lignes:
+        ligne.sous_total = (ligne.quantiteAcceptee or 0) * ligne.prixUnitaire
+        total_facture += ligne.sous_total
+    context = {
+        'demande': demande,
+        'lignes': lignes,
+        'total_facture': total_facture,
+        'boutique': InfoBoutique.objects.first(),
+    }
+    return generate_pdf_response_vrais("CommercialSoft/portail/factureA4.html", context)
+
+
+@client_required
 def portail_versements(request):
     versements = request.user.client_profile.versements.order_by('-date', '-id')
 

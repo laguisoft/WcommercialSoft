@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture #{{ demande.id }}</title>
+    <style>
+        @page { size: A4; margin: 15mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; color: #333; font-size: 12pt; }
+        .header-boutique { width: 100%; margin-bottom: 20px; }
+        .header-boutique td { border: none; padding: 0; vertical-align: top; }
+        .titre { text-align: center; color: #2d3e50; font-size: 20px; margin: 10px 0 20px 0; }
+        .infos p { margin-bottom: 4px; font-size: 12px; }
+        table.lignes { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table.lignes th, table.lignes td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 11pt; }
+        table.lignes th { background-color: #2d3e50; color: #fff; }
+        table.lignes td.produit { text-align: left; }
+        .badge-indisponible { background-color: #c0392b; color: #fff; padding: 3px 10px; border-radius: 10px; font-size: 10pt; }
+        tfoot td { font-weight: bold; font-size: 12pt; }
+    </style>
+</head>
+<body>
+    <table class="header-boutique">
+        <tr>
+            <td style="width: 60%; text-align: left;">
+                <strong style="font-size: 14pt;">{{ boutique.nom }}</strong><br>
+                {{ boutique.ville }}{% if boutique.emplacement %}, {{ boutique.emplacement }}{% endif %}<br>
+                {% if boutique.telephone %}{{ boutique.telephone }}{% endif %}
+            </td>
+            <td style="width: 40%; text-align: right;">
+                <strong style="font-size: 14pt;">Facture N° {{ demande.id }}</strong><br>
+                Date : {{ demande.date }}
+            </td>
+        </tr>
+    </table>
+
+    <h1 class="titre">Facture client</h1>
+
+    <div class="infos">
+        <p><strong>Client :</strong> {{ demande.client.nom }}</p>
+        {% if demande.client.telephone %}<p><strong>Téléphone :</strong> {{ demande.client.telephone }}</p>{% endif %}
+    </div>
+
+    <table class="lignes">
+        <thead>
+            <tr>
+                <th style="width: 34%;">Produit</th>
+                <th style="width: 16%;">Qté demandée</th>
+                <th style="width: 16%;">Qté acceptée</th>
+                <th style="width: 17%;">Prix unitaire</th>
+                <th style="width: 17%;">Sous-total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in lignes %}
+            {% if ligne.quantiteAcceptee %}
+            <tr>
+                <td class="produit">{{ ligne.produit.libelle }}</td>
+                <td>{{ ligne.quantiteDemandee }}</td>
+                <td>{{ ligne.quantiteAcceptee }}</td>
+                <td>{{ ligne.prixUnitaire|floatformat:0 }}</td>
+                <td>{{ ligne.sous_total|floatformat:0 }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td class="produit">{{ ligne.produit.libelle }}</td>
+                <td>{{ ligne.quantiteDemandee }}</td>
+                <td colspan="3"><span class="badge-indisponible">Indisponible</span></td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" style="text-align: right;">Total</td>
+                <td>{{ total_facture|floatformat:0 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>

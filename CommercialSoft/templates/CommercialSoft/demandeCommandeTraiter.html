@@ -66,7 +66,11 @@
                           name="quantite_{{ ligne.id }}" id="quantite_{{ ligne.id }}"
                           value="{% if ligne.quantiteDemandee < ligne.produit.quantite %}{{ ligne.quantiteDemandee }}{% else %}{{ ligne.produit.quantite }}{% endif %}">
                       {% else %}
-                        {{ ligne.quantiteAcceptee|default:0 }}
+                        {% if ligne.quantiteAcceptee %}
+                          {{ ligne.quantiteAcceptee }}
+                        {% else %}
+                          <span class="badge bg-danger">Indisponible</span>
+                        {% endif %}
                       {% endif %}
                     </td>
                     {% if demande.statut == 'En attente' %}

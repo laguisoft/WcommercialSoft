@@ -197,6 +197,7 @@ urlpatterns=[
     path('portail/commande/creer/', views.portail_commande_creer, name='portail_commande_creer'),
     path('portail/commandes/', views.portail_mes_commandes, name='portail_mes_commandes'),
     path('portail/commande/<int:pk>/', views.portail_commande_detail, name='portail_commande_detail'),
+    path('portail/commande/<int:pk>/facture/', views.portail_facture_pdf, name='portail_facture_pdf'),
     path('portail/versements/', views.portail_versements, name='portail_versements'),
 
     #-- Gestion des demandes de commande par le personnel
