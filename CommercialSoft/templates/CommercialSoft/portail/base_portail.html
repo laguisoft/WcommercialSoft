@@ -10,49 +10,134 @@
   <link href="{% static 'clinique/assets/img/favicon.png' %}" rel="icon">
   <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
-  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   {% block css %}{% endblock %}
 
   <style>
-    .portail-badge-attente { background-color:#ffc107; color:#000; }
-    .portail-badge-traitee { background-color:#198754; color:#fff; }
-    .portail-badge-rejetee { background-color:#dc3545; color:#fff; }
-    .portail-card { border-radius: .5rem; }
+    :root {
+      --portail-primary: #2563eb;
+      --portail-primary-dark: #1d4ed8;
+    }
+    body {
+      background: #f4f6fb;
+      font-family: 'Poppins', sans-serif;
+    }
+    .portail-navbar {
+      background: linear-gradient(135deg, var(--portail-primary), var(--portail-primary-dark));
+    }
+    .portail-navbar .navbar-brand,
+    .portail-navbar .nav-link {
+      color: #fff !important;
+    }
+    .portail-navbar .nav-link {
+      opacity: .85;
+      font-weight: 500;
+      transition: opacity .15s ease;
+    }
+    .portail-navbar .nav-link.active,
+    .portail-navbar .nav-link:hover {
+      opacity: 1;
+    }
+    .portail-navbar .navbar-toggler {
+      border-color: rgba(255,255,255,.5);
+    }
+    .portail-navbar .navbar-toggler-icon {
+      filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    .portail-card {
+      border: none;
+      border-radius: 1rem;
+      box-shadow: 0 .25rem 1rem rgba(15, 23, 42, .06);
+    }
+    .portail-stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: .75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .badge.portail-badge-attente,
+    .badge.portail-badge-traitee,
+    .badge.portail-badge-rejetee {
+      font-weight: 500;
+      padding: .45em .9em;
+      border-radius: 2rem;
+    }
+    .portail-badge-attente { background-color: #fff3cd; color: #92660a; }
+    .portail-badge-traitee { background-color: #d1f5e0; color: #0f8a47; }
+    .portail-badge-rejetee { background-color: #fde0e0; color: #c0392b; }
+    .table thead th {
+      text-transform: uppercase;
+      font-size: .72rem;
+      letter-spacing: .04em;
+      color: #6b7280;
+      border-top: 0;
+    }
+    .portail-footer {
+      color: #9ca3af;
+      font-size: .85rem;
+    }
   </style>
 </head>
 
 <body>
 
-  <header class="header sticky-top bg-white shadow-sm">
-    <div class="container d-flex align-items-center justify-content-between py-2">
-      <a href="{% url 'portail_accueil' %}" class="d-flex align-items-center text-decoration-none">
-        <h1 class="sitename h4 m-0">Mon espace client</h1>
+  <nav class="navbar navbar-expand-lg portail-navbar sticky-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="{% url 'portail_accueil' %}">
+        <i class="bi bi-shop me-2"></i>Mon espace client
       </a>
-      <nav>
-        <ul class="nav">
-          <li class="nav-item"><a class="nav-link" href="{% url 'portail_accueil' %}">Accueil</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'portail_produits' %}">Nouvelle commande</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'portail_mes_commandes' %}">Mes commandes</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'portail_versements' %}">Mes versements</a></li>
-          <li class="nav-item"><a class="nav-link text-danger" href="{% url 'logout' %}">Déconnexion</a></li>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#portailNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="portailNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'portail_accueil' %}active{% endif %}" href="{% url 'portail_accueil' %}">
+              <i class="bi bi-house me-1"></i>Accueil
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'portail_produits' %}active{% endif %}" href="{% url 'portail_produits' %}">
+              <i class="bi bi-cart-plus me-1"></i>Nouvelle commande
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'portail_mes_commandes' or request.resolver_match.url_name == 'portail_commande_detail' %}active{% endif %}" href="{% url 'portail_mes_commandes' %}">
+              <i class="bi bi-bag-check me-1"></i>Mes commandes
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'portail_versements' %}active{% endif %}" href="{% url 'portail_versements' %}">
+              <i class="bi bi-cash-coin me-1"></i>Mes versements
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">
+              <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+            </a>
+          </li>
         </ul>
-      </nav>
+      </div>
     </div>
-  </header>
+  </nav>
 
   <main class="container py-4">
     {% if messages %}
       {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        <div class="alert alert-{{ message.tags }} shadow-sm">{{ message }}</div>
       {% endfor %}
     {% endif %}
 
     {% block corp %}{% endblock %}
   </main>
 
-  <footer class="footer light-background text-center py-3 mt-5">
-    <p class="m-0">© <span>2026</span> <strong class="px-1">Laguisoft Technologie</strong></p>
+  <footer class="text-center py-4 mt-5 portail-footer">
+    © 2026 <strong>Laguisoft Technologie</strong>
   </footer>
 
   <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>

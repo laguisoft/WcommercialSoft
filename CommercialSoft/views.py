@@ -4982,22 +4982,73 @@ def portail_commande_creer(request):
     return redirect('portail_commande_detail', pk=demande.pk)
 
 
+def _parse_date_filtre(valeur):
+    from datetime import datetime as _datetime
+    try:
+        return _datetime.strptime(valeur, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
 @client_required
 def portail_mes_commandes(request):
     demandes = request.user.client_profile.demandes_commande.order_by('-date', '-id')
-    return render(request, 'CommercialSoft/portail/commandes.html', {'demandes': demandes})
+
+    statut = request.GET.get('statut', '')
+    date_debut = request.GET.get('date_debut', '')
+    date_fin = request.GET.get('date_fin', '')
+
+    if statut in ('En attente', 'Traitee', 'Rejetee'):
+        demandes = demandes.filter(statut=statut)
+    if _parse_date_filtre(date_debut):
+        demandes = demandes.filter(date__gte=date_debut)
+    if _parse_date_filtre(date_fin):
+        demandes = demandes.filter(date__lte=date_fin)
+
+    return render(request, 'CommercialSoft/portail/commandes.html', {
+        'demandes': demandes,
+        'statut': statut,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+    })
 
 
 @client_required
 def portail_commande_detail(request, pk):
     demande = get_object_or_404(CommandeClient, pk=pk, client=request.user.client_profile)
-    return render(request, 'CommercialSoft/portail/commande_detail.html', {'demande': demande})
+    lignes = list(demande.lignes.select_related('produit'))
+    total_facture = 0
+    if demande.statut == 'Traitee':
+        for ligne in lignes:
+            ligne.sous_total = (ligne.quantiteAcceptee or 0) * ligne.prixUnitaire
+            total_facture += ligne.sous_total
+    return render(request, 'CommercialSoft/portail/commande_detail.html', {
+        'demande': demande,
+        'lignes': lignes,
+        'total_facture': total_facture,
+    })
 
 
 @client_required
 def portail_versements(request):
     versements = request.user.client_profile.versements.order_by('-date', '-id')
-    return render(request, 'CommercialSoft/portail/versements.html', {'versements': versements})
+
+    date_debut = request.GET.get('date_debut', '')
+    date_fin = request.GET.get('date_fin', '')
+
+    if _parse_date_filtre(date_debut):
+        versements = versements.filter(date__gte=date_debut)
+    if _parse_date_filtre(date_fin):
+        versements = versements.filter(date__lte=date_fin)
+
+    total_versements = versements.aggregate(total=Sum('montant'))['total'] or 0
+
+    return render(request, 'CommercialSoft/portail/versements.html', {
+        'versements': versements,
+        'total_versements': total_versements,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+    })
 
 
 # ============================================================
