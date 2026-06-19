@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+from decouple import config
 from pathlib import Path
 import os
 
@@ -90,22 +90,33 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # Par defaut : MySQL (production), via DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.
 # Pour developper localement sans serveur MySQL, definir DB_ENGINE=sqlite :
 # une base SQLite (db.sqlite3, ignoree par git) est alors utilisee.
-if os.getenv('DB_ENGINE', 'mysql') == 'sqlite':
+WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
+
+DB_ENGINE = config('DB_ENGINE', default='sqlite')
+
+if DB_ENGINE == 'mysql':
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': config('DB_NAME', default='nkela_db'),
+            'USER': config('DB_USER', default='root'),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
         }
     }
 else:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT', '3306'),
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 20,  # attendre au lieu d'échouer si la base est verrouillée (polling concurrent)
+            },
         }
     }
 
