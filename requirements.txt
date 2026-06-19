@@ -16,6 +16,7 @@ pandas==3.0.3
 pillow==12.2.0
 platformdirs==4.10.0
 pylint==4.0.5
+python-decouple==3.8
 requests==2.34.2
 sqlparse==0.5.5
 tomlkit==0.15.0

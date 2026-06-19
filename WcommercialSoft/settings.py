@@ -82,16 +82,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # Configuration de la base de données via variables d'environnement.
-# Par defaut : MySQL (production), via DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.
-# Pour developper localement sans serveur MySQL, definir DB_ENGINE=sqlite :
-# une base SQLite (db.sqlite3, ignoree par git) est alors utilisee.
-WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
-
+# Par defaut : SQLite (developpement). Pour la production avec MySQL,
+# definir DB_ENGINE=mysql ainsi que DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.
 DB_ENGINE = config('DB_ENGINE', default='sqlite')
 
 if DB_ENGINE == 'mysql':
