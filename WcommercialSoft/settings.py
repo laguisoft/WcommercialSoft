@@ -89,6 +89,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 
 # Configuration de la base de données via variables d'environnement
 # (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT).
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -97,6 +98,15 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': '3306',
+    }
+}
+"""
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
