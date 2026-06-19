@@ -44,7 +44,7 @@ class Produit(models.Model):
 
 class Livraison(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE)
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     montant=models.BigIntegerField()
     numeroFacture=models.CharField(max_length=20, blank=True, null=True)
     typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret')])
@@ -82,17 +82,19 @@ class Client(models.Model):
     matricule=models.CharField(max_length=20,null=True, blank=True)
     pourcentage=models.PositiveSmallIntegerField()
     detteMaximale=models.PositiveBigIntegerField()
+    # Compte du portail client, cree et lie par le gerant
+    user=models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='client_profile')
 
     def __str__(self):
         return self.nom
-    
+
 
 class Commande(models.Model):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
     montant=models.PositiveBigIntegerField()
     remise=models.PositiveBigIntegerField(default=0)
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     typeVente=models.CharField(max_length=15, default="detail", choices=[('detail','Detail'),('en gros','En gros')])
     typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret'),('Don','Don')])
     montantAchat=models.PositiveBigIntegerField()
@@ -107,16 +109,44 @@ class CommandeProduit(models.Model):
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE, null=True)
     commande=models.ForeignKey(Commande, on_delete=models.CASCADE)
     quantite=models.PositiveIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     prix=models.PositiveBigIntegerField()
 
     class Meta:
-        unique_together = ['produit', 'commande'] 
-
- 
+        unique_together = ['produit', 'commande']
 
 
- 
+class CommandeClient(models.Model):
+    """Demande de commande passee par un client depuis le portail.
+    Reste 'En attente' tant qu'un employe n'a pas verifie les quantites
+    disponibles et valide; la validation declenche la vente reelle (Commande)."""
+    client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='demandes_commande')
+    date=models.DateField(default=timezone.now, db_index=True)
+    statut=models.CharField(max_length=15, default='En attente', choices=[
+        ('En attente', 'En attente'),
+        ('Traitee', 'Traitee'),
+        ('Rejetee', 'Rejetee'),
+    ])
+    commentaire=models.CharField(max_length=200, null=True, blank=True)
+    commande=models.OneToOneField(Commande, on_delete=models.SET_NULL, null=True, blank=True, related_name='demande_origine')
+    traitePar=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='demandes_traitees')
+    dateTraitement=models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Demande #{self.id} - {self.client.nom}"
+
+
+class CommandeClientProduit(models.Model):
+    demande=models.ForeignKey(CommandeClient, on_delete=models.CASCADE, related_name='lignes')
+    produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
+    quantiteDemandee=models.PositiveIntegerField()
+    quantiteAcceptee=models.PositiveIntegerField(null=True, blank=True)
+    prixUnitaire=models.PositiveBigIntegerField()
+
+    class Meta:
+        unique_together = ['demande', 'produit']
+
+
 class Categorie_Depense(models.Model):
     nom=models.CharField(max_length=50)
     description=models.CharField(max_length=50, null=True, blank=True)
@@ -131,7 +161,7 @@ class Depense(models.Model):
     intitule=models.CharField(max_length=100)
     quantite=models.PositiveIntegerField()
     prix=models.PositiveIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     categorie=models.ForeignKey(Categorie_Depense, on_delete=models.CASCADE)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
@@ -151,7 +181,7 @@ class Categorie_Decaissement(models.Model):
 class Decaissement(models.Model):
     motif=models.CharField(max_length=100)
     montant=models.PositiveBigIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     categorie=models.ForeignKey(Categorie_Decaissement, on_delete=models.CASCADE)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
@@ -161,7 +191,7 @@ class Decaissement(models.Model):
 class VersementClient(models.Model):
     client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='versements')
     montant=models.BigIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
 
 
@@ -170,7 +200,7 @@ class VersementClient(models.Model):
 class PretClient(models.Model):
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, related_name='prets')
     montant=models.BigIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     dateEcheance=models.DateField(default=timezone.now)
     payer=models.CharField(max_length=5, choices=[('Non','Non'),('Oui','Oui')], default='Non')
     commande=models.ForeignKey(Commande, on_delete=models.SET_NULL, null=True, blank=True)
@@ -184,7 +214,7 @@ class PretClient(models.Model):
 class DetteFournisseur(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE, related_name='detteFournisseur')
     montant=models.BigIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     facture=models.ForeignKey(Livraison, on_delete=models.CASCADE, related_name='livraison', null=True, blank=True)
 
 
@@ -192,14 +222,14 @@ class DetteFournisseur(models.Model):
 class VersementFournisseur(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE, related_name='versementFournisseur')
     montant=models.BigIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
 
 
 
 class VersementGerant(models.Model):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     montant=models.BigIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
 
 
 
@@ -220,7 +250,7 @@ class InfoBoutique(models.Model):
 class Retour(models.Model):
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
     quantite=models.PositiveIntegerField()
-    date=models.DateField(default=timezone.now)
+    date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     prix=models.PositiveBigIntegerField()
 

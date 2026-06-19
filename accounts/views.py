@@ -42,6 +42,8 @@ def login_view(request):
     if form.is_valid():
         user = form.get_user()
         login(request, user)
+        if hasattr(user, 'client_profile'):
+            return redirect('portail_accueil')
         return redirect('commerce_dashboard')
     return render(request, 'accounts/login.html', {'form': form})
 
@@ -155,6 +157,8 @@ def modifier_user(request, user_id):
 
 
 
+@login_required
+@permission_required('accounts.delete_customuser', raise_exception=True)
 def supprimer_user(request, user_id):
     user = CustomUser.objects.get(id=user_id)
     user.delete()

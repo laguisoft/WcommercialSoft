@@ -110,6 +110,7 @@ urlpatterns=[
     path('commerce/client/recherche', views.recherche_client,name="commerce_rechercheClient"),
     path('commerce/client/etat', views.pdf_etat_client,name="commerce_etatClient"),
     path('commerce/client/situation/etat', views.pdf_etat_situation_client,name="commerce_etatListeClient"),
+    path('commerce/client/compte/<int:pk>/', views.client_compte_creer, name='client_compte_creer'),
     #-- pretClient
     path('commerce/pret/Client', views.pretClient_list_create,name="commerce_pretClient"),
     path('commerce/pret/client/modification/<int:pk>/', views.pretClient_edit,name="commerce_modPretClient"),
@@ -190,5 +191,16 @@ urlpatterns=[
     path("api/reception/", views.api_reception, name="api_reception"),
     path("api/sync/livraisons/", views.api_sync_livraisons, name="api_sync_livraisons"),
 
+    #-- Portail client (commandes a distance, suivi, versements, solde)
+    path('portail/', views.portail_accueil, name='portail_accueil'),
+    path('portail/produits/', views.portail_produits, name='portail_produits'),
+    path('portail/commande/creer/', views.portail_commande_creer, name='portail_commande_creer'),
+    path('portail/commandes/', views.portail_mes_commandes, name='portail_mes_commandes'),
+    path('portail/commande/<int:pk>/', views.portail_commande_detail, name='portail_commande_detail'),
+    path('portail/versements/', views.portail_versements, name='portail_versements'),
+
+    #-- Gestion des demandes de commande par le personnel
+    path('commerce/demandes-commande', views.demandes_commande_liste, name='demandes_commande_liste'),
+    path('commerce/demandes-commande/<int:pk>/traiter/', views.demandes_commande_traiter, name='demandes_commande_traiter'),
 
 ]

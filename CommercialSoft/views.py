@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit, InfoBoutique
+from .decorators import client_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -563,9 +564,6 @@ def _mm_aa_to_date(mm_aa: str):
 
 
 @login_required
-@csrf_exempt
-@require_POST
-@csrf_exempt
 @require_POST
 @permission_required('CommercialSoft.add_livraison')
 @permission_required('CommercialSoft.add_livraisonproduit')
@@ -1491,29 +1489,38 @@ def recherche_situation_vente(request):
                 return JsonResponse({"error": "Produit introuvable"}, status=404)
 
         else:
-            # Parcourir tous les produits
+            # Parcourir tous les produits : calcul des quantités regroupé par
+            # produit en 2 requêtes au lieu d'aggréger pour chaque produit.
+            entree_filtre = {}
+            sortie_filtre = {}
+            if dateDebut:
+                entree_filtre["livraison__date__gte"] = dateDebut
+                sortie_filtre["date__gte"] = dateDebut
+            if dateFin:
+                entree_filtre["livraison__date__lte"] = dateFin
+                sortie_filtre["date__lte"] = dateFin
+
+            entrees_par_produit = dict(
+                LivraisonProduit.objects.filter(**entree_filtre)
+                .values("produit")
+                .annotate(total=Sum("quantite"))
+                .values_list("produit", "total")
+            )
+            sorties_par_produit = dict(
+                CommandeProduit.objects.filter(**sortie_filtre)
+                .values("produit")
+                .annotate(total=Sum("quantite"))
+                .values_list("produit", "total")
+            )
+
             produits = Produit.objects.all()
             for produit in produits:
-                entree = LivraisonProduit.objects.filter(produit=produit)
-                sortie = CommandeProduit.objects.filter(produit=produit)
-
-                if dateDebut:
-                    entree = entree.filter(livraison__date__gte=dateDebut)
-                    sortie = sortie.filter(date__gte=dateDebut)
-                if dateFin:
-                    entree = entree.filter(livraison__date__lte=dateDebut)
-                    sortie = sortie.filter(date__lte=dateFin)
-
-                quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
-                quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
-                stock = produit.quantite
-
                 produits_infos.append({
                     "id": produit.id,
                     "libelle": produit.libelle,
-                    "quantite_entree": quantite_entree,
-                    "quantite_sortie": quantite_sortie,
-                    "stock": stock
+                    "quantite_entree": entrees_par_produit.get(produit.id, 0),
+                    "quantite_sortie": sorties_par_produit.get(produit.id, 0),
+                    "stock": produit.quantite
                 })
 
         return JsonResponse({
@@ -1684,6 +1691,8 @@ def modifierPrixProduit(request):
     return render(request, 'CommercialSoft/modificationPrix.html')
 
 
+@login_required
+@permission_required('CommercialSoft.change_produit')
 def modifierProduitAjax(request):
 
     if request.method == "POST":
@@ -2103,6 +2112,8 @@ def categorie_decaissement_delete(request, pk):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_versementclient')
 def imprimer_recu_versement(request, versement_id):
     versement = get_object_or_404(VersementClient, id=versement_id)
 
@@ -2162,6 +2173,8 @@ def versementClient_list_create(request):
 from django.utils import timezone
 from django.db.models import Sum
 
+@login_required
+@permission_required('CommercialSoft.view_client')
 def imprimer_situation_client(request, client_id):
     client = Client.objects.get(id=client_id)
 
@@ -2825,8 +2838,9 @@ def recherche_client(request):
                 "detteMaximale": client.detteMaximale,
                 "total_pret": client.prets.aggregate(Sum('montant'))['montant__sum'] or 0,
                 "total_versement": client.versements.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) - 
+                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) -
                            (client.versements.aggregate(Sum('montant'))['montant__sum'] or 0),
+                "has_account": bool(client.user_id),
             }
             for client in clients
         ]
@@ -3155,6 +3169,8 @@ def generate_pdf_from_template(template_name, context, output_filename):
     return convert_html_to_pdf(html_content, output_filename)
 
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def recu(request, pk):
     if pk is None:
         return render(request, 'commerce/baseVente.html', {"message": "Pas d'ID fourni"})
@@ -3196,6 +3212,8 @@ from datetime import date
 
 from CommercialSoft.models import Client, InfoBoutique  # ✅ importer en haut
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def recu_offline(request):
     if request.method != "POST":
         return HttpResponse("Méthode non autorisée", status=405)
@@ -3311,6 +3329,8 @@ def generate_pdf_response_vrais(template_src, context_dict):
 
 
 # -------------------------- Vue PDF des produits disponibles -----------------------
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_Produit_disponible(request):
     if request.method == "POST":
         categorieId = request.POST.get('idCategorie')
@@ -3361,6 +3381,8 @@ def pdf_Produit_disponible(request):
 
 
 # -------------------------- Vue PDF des produits disponibles -----------------------
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_inventaire(request):
     if request.method == "POST":
         categorieId = request.POST.get('idCategorie')
@@ -3416,6 +3438,8 @@ def pdf_inventaire(request):
 
 #--------------------------liste des produits livrer -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_livraisonproduit')
 def pdf_Produit_livrer(request):
     if request.method =="POST":
         livraisonId= request.POST.get('idLivraison')
@@ -3453,7 +3477,8 @@ def pdf_Produit_livrer(request):
 # Exemple d'utilisation
 from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt  # juste pour test si CSRF gêne
+@login_required
+@permission_required('CommercialSoft.view_depense')
 def pdf_etat_depense(request):
     if request.method == "POST":
         try:
@@ -3509,7 +3534,8 @@ def pdf_etat_depense(request):
 
 
 
-@csrf_exempt  # juste pour test si CSRF gêne
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_etat_detail_vente(request):
     if request.method == "POST":
         try:
@@ -3569,6 +3595,8 @@ def pdf_etat_detail_vente(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_versementclient')
 def pdf_etat_versementClient(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -3613,6 +3641,8 @@ def pdf_etat_versementClient(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_versementfournisseur')
 def pdf_etat_versementFournisseur(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -3656,6 +3686,8 @@ def pdf_etat_versementFournisseur(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_client')
 def pdf_etat_client(request):
     if request.method =="POST":
         societeId= request.POST.get('idSociete')
@@ -3701,6 +3733,8 @@ def pdf_etat_client(request):
 
 
 #--------------------------liste des Versement des client -----------------------
+@login_required
+@permission_required('CommercialSoft.view_client')
 def pdf_etat_situation_client(request):
     if request.method == "POST":
         id_client_str = request.POST.get('idClient')
@@ -3765,6 +3799,8 @@ def pdf_etat_situation_client(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_client')
 def get_reste_client(request, id):
     total_pret = PretClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
     total_versement = VersementClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
@@ -3784,6 +3820,8 @@ def get_reste_client(request, id):
 
 #--------------------------liste des Versement des fournisseur -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_fournisseur')
 def pdf_etat_situation_fournisseur(request):
     if request.method =="POST":
         fournisseurId= request.POST.get('idFournisseur')
@@ -3837,6 +3875,8 @@ def pdf_etat_situation_fournisseur(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_etat_situation_boutique(request):
     if request.method =="POST":
         typePrix= request.POST.get('typePrix')
@@ -3889,6 +3929,8 @@ def pdf_etat_situation_boutique(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_etat_produit_perime(request):
     if request.method =="POST":
         
@@ -3921,6 +3963,8 @@ def pdf_etat_produit_perime(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_produit')
 def pdf_etat_produit_rupture(request):
     if request.method =="POST":
         
@@ -3955,6 +3999,8 @@ def pdf_etat_produit_rupture(request):
 
 #--------------------------liste des produits livrer -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_pretclient')
 def pdf_etat_pretClient(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -4004,6 +4050,8 @@ def pdf_etat_pretClient(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_versementgerant')
 def pdf_etat_versementGerant(request):
     if request.method =="POST":
         dateDebut= request.POST.get('dateDebut')
@@ -4049,6 +4097,8 @@ def pdf_etat_versementGerant(request):
 
 #--------------------------liste des Versement des client -----------------------
 # Exemple d'utilisation
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_etat_situation_vente(request):
     try:
         if request.method =="POST":
@@ -4090,29 +4140,38 @@ def pdf_etat_situation_vente(request):
                     return JsonResponse({"error": "Produit introuvable"}, status=404)
 
             else:
-                # Parcourir tous les produits
+                # Parcourir tous les produits : calcul des quantités regroupé
+                # par produit en 2 requêtes au lieu d'aggréger pour chaque produit.
+                entree_filtre = {}
+                sortie_filtre = {}
+                if dateDebut:
+                    entree_filtre["livraison__date__gte"] = dateDebut
+                    sortie_filtre["date__gte"] = dateDebut
+                if dateFin:
+                    entree_filtre["livraison__date__lte"] = dateFin
+                    sortie_filtre["date__lte"] = dateFin
+
+                entrees_par_produit = dict(
+                    LivraisonProduit.objects.filter(**entree_filtre)
+                    .values("produit")
+                    .annotate(total=Sum("quantite"))
+                    .values_list("produit", "total")
+                )
+                sorties_par_produit = dict(
+                    CommandeProduit.objects.filter(**sortie_filtre)
+                    .values("produit")
+                    .annotate(total=Sum("quantite"))
+                    .values_list("produit", "total")
+                )
+
                 produits = Produit.objects.all()
                 for produit in produits:
-                    entree = LivraisonProduit.objects.filter(produit=produit)
-                    sortie = CommandeProduit.objects.filter(produit=produit)
-
-                    if dateDebut:
-                        entree = entree.filter(livraison__date__gte=dateDebut)
-                        sortie = sortie.filter(date__gte=dateDebut)
-                    if dateFin:
-                        entree = entree.filter(livraison__date__lte=dateFin)
-                        sortie = sortie.filter(date__lte=dateFin)
-
-                    quantite_entree = entree.aggregate(total=Sum("quantite"))["total"] or 0
-                    quantite_sortie = sortie.aggregate(total=Sum("quantite"))["total"] or 0
-                    stock = produit.quantite or 0
-
                     produits_infos.append({
                         "id": produit.id,
                         "libelle": produit.libelle,
-                        "quantite_entree": quantite_entree,
-                        "quantite_sortie": quantite_sortie,
-                        "stock": stock
+                        "quantite_entree": entrees_par_produit.get(produit.id, 0),
+                        "quantite_sortie": sorties_par_produit.get(produit.id, 0),
+                        "stock": produit.quantite or 0
                     })
 
             infoBoutique=InfoBoutique.objects.first()
@@ -4128,6 +4187,8 @@ def pdf_etat_situation_vente(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_livraisonproduit')
 def pdf_etat_reception_produit(request):
     if request.method == "POST":
         try:
@@ -4232,7 +4293,6 @@ def caisse(request):
 
 
 @login_required
-@csrf_exempt
 def enregistrer_retours(request):
     if request.method == "POST":
         try:
@@ -4360,6 +4420,8 @@ def pdf_facture_proforma(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_facture_proforma(request):
     if request.method == "POST":
         try:
@@ -4417,6 +4479,8 @@ def pdf_facture_proforma(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_facture_proforma_2(request, commande_id):
     try:
         # ✅ 1️⃣ Récupération de la commande
@@ -4477,7 +4541,8 @@ def pdf_facture_proforma_2(request, commande_id):
 
 
 
-@csrf_exempt  # juste pour test si CSRF gêne
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def pdf_etat_bilan(request):
     if request.method == "POST":
         try:
@@ -4571,6 +4636,8 @@ from django.contrib import messages
 from .forms import UploadFileForm
 from .models import Societe, Client, Produit, Categorie
 
+@login_required
+@user_passes_test(est_administrateur)
 def import_excel_view(request):
     if request.method == "POST":
         form = UploadFileForm(request.POST, request.FILES)
@@ -4650,6 +4717,7 @@ def import_excel_view(request):
 
 
 #---------- Gestion horconnexion ---------------------------
+@login_required
 def api_produits(request):
     produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal"))
     clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
@@ -4771,7 +4839,7 @@ from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, Pr
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
 
-@csrf_exempt
+@login_required
 def sync_ventes(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
@@ -4849,3 +4917,233 @@ def sync_ventes(request):
 
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+# ============================================================
+# PORTAIL CLIENT : commandes a distance, suivi, versements, solde
+# ============================================================
+
+@client_required
+def portail_accueil(request):
+    client = request.user.client_profile
+    total_pret = client.prets.aggregate(total=Sum('montant'))['total'] or 0
+    total_versement = client.versements.aggregate(total=Sum('montant'))['total'] or 0
+    solde = total_pret - total_versement
+    dernieres_demandes = client.demandes_commande.order_by('-date', '-id')[:5]
+    return render(request, 'CommercialSoft/portail/accueil.html', {
+        'client': client,
+        'total_pret': total_pret,
+        'total_versement': total_versement,
+        'solde': solde,
+        'dernieres_demandes': dernieres_demandes,
+    })
+
+
+@client_required
+def portail_produits(request):
+    produits = Produit.objects.filter(quantite__gt=0).order_by('libelle')
+    return render(request, 'CommercialSoft/portail/produits.html', {'produits': produits})
+
+
+@client_required
+@require_POST
+def portail_commande_creer(request):
+    client = request.user.client_profile
+    try:
+        produits_data = json.loads(request.POST.get('jsonDataInput', '[]'))
+    except json.JSONDecodeError:
+        produits_data = []
+
+    if not produits_data:
+        messages.error(request, "Veuillez sélectionner au moins un produit.")
+        return redirect('portail_produits')
+
+    with transaction.atomic():
+        demande = CommandeClient.objects.create(
+            client=client,
+            commentaire=request.POST.get('commentaire') or None,
+        )
+        for item in produits_data:
+            produit_id = item.get('id')
+            quantite = int(item.get('quantite', 0))
+            if not produit_id or quantite <= 0:
+                continue
+            try:
+                produit = Produit.objects.get(id=produit_id)
+            except Produit.DoesNotExist:
+                continue
+            CommandeClientProduit.objects.get_or_create(
+                demande=demande,
+                produit=produit,
+                defaults={'quantiteDemandee': quantite, 'prixUnitaire': produit.prixDetail},
+            )
+
+    messages.success(request, "Votre commande a été envoyée. Elle sera traitée par notre équipe.")
+    return redirect('portail_commande_detail', pk=demande.pk)
+
+
+@client_required
+def portail_mes_commandes(request):
+    demandes = request.user.client_profile.demandes_commande.order_by('-date', '-id')
+    return render(request, 'CommercialSoft/portail/commandes.html', {'demandes': demandes})
+
+
+@client_required
+def portail_commande_detail(request, pk):
+    demande = get_object_or_404(CommandeClient, pk=pk, client=request.user.client_profile)
+    return render(request, 'CommercialSoft/portail/commande_detail.html', {'demande': demande})
+
+
+@client_required
+def portail_versements(request):
+    versements = request.user.client_profile.versements.order_by('-date', '-id')
+    return render(request, 'CommercialSoft/portail/versements.html', {'versements': versements})
+
+
+# ============================================================
+# GESTION DES DEMANDES DE COMMANDE PAR LE PERSONNEL (validation/rejet)
+# ============================================================
+
+@login_required
+@permission_required('CommercialSoft.add_commande')
+def demandes_commande_liste(request):
+    demandes = CommandeClient.objects.select_related('client').order_by('-date', '-id')
+    en_attente = demandes.filter(statut='En attente').count()
+    return render(request, 'CommercialSoft/demandesCommande.html', {
+        'demandes': demandes,
+        'en_attente': en_attente,
+    })
+
+
+@login_required
+@permission_required('CommercialSoft.add_commande')
+def demandes_commande_traiter(request, pk):
+    demande = get_object_or_404(CommandeClient, pk=pk)
+    lignes = list(demande.lignes.select_related('produit'))
+
+    if request.method == 'POST':
+        if demande.statut != 'En attente':
+            messages.error(request, "Cette demande a déjà été traitée.")
+            return redirect('demandes_commande_liste')
+
+        action = request.POST.get('action')
+
+        if action == 'rejeter':
+            demande.statut = 'Rejetee'
+            demande.traitePar = request.user
+            demande.dateTraitement = timezone.now()
+            demande.save()
+            messages.success(request, "Demande rejetée.")
+            return redirect('demandes_commande_liste')
+
+        typeVente = request.POST.get('typeVente', 'detail')
+        typePayement = request.POST.get('typePayement', 'Espece')
+        remise = int(request.POST.get('remise') or 0)
+
+        quantites_acceptees = {}
+        for ligne in lignes:
+            quantite = int(request.POST.get(f'quantite_{ligne.id}') or 0)
+            quantites_acceptees[ligne.id] = max(0, min(quantite, ligne.produit.quantite))
+
+        if not any(quantites_acceptees.values()):
+            messages.error(request, "Aucune quantité acceptée : la demande n'a pas été validée.")
+            return redirect('demandes_commande_traiter', pk=pk)
+
+        with transaction.atomic():
+            commande = Commande.objects.create(
+                user=request.user,
+                client=demande.client,
+                montant=0,
+                remise=remise,
+                typeVente=typeVente,
+                typePayement=typePayement,
+                montantAchat=0,
+            )
+
+            montant_total = 0
+            montant_achat = 0
+
+            for ligne in lignes:
+                quantite_acceptee = quantites_acceptees[ligne.id]
+                ligne.quantiteAcceptee = quantite_acceptee
+                ligne.save()
+
+                if quantite_acceptee <= 0:
+                    continue
+
+                produit = ligne.produit
+                produit.quantite -= quantite_acceptee
+                produit.save()
+
+                CommandeProduit.objects.create(
+                    commande=commande,
+                    produit=produit,
+                    quantite=quantite_acceptee,
+                    prix=ligne.prixUnitaire,
+                )
+
+                montant_total += ligne.prixUnitaire * quantite_acceptee
+                montant_achat += produit.prixAchat * quantite_acceptee
+
+            commande.montant = montant_total
+            commande.montantAchat = montant_achat
+            commande.save()
+
+            if typePayement == 'Pret':
+                PretClient.objects.create(
+                    client=demande.client,
+                    montant=commande.montant,
+                    dateEcheance=timezone.now().date(),
+                    payer='Non',
+                    commande=commande,
+                    user=request.user,
+                )
+
+            demande.statut = 'Traitee'
+            demande.commande = commande
+            demande.traitePar = request.user
+            demande.dateTraitement = timezone.now()
+            demande.save()
+
+        messages.success(request, "Demande validée : la vente a été enregistrée.")
+        return redirect('commerce_recu', pk=commande.id)
+
+    return render(request, 'CommercialSoft/demandeCommandeTraiter.html', {
+        'demande': demande,
+        'lignes': lignes,
+    })
+
+
+# ============================================================
+# CREATION DU COMPTE PORTAIL D'UN CLIENT (par le gerant)
+# ============================================================
+
+@login_required
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_client')
+def client_compte_creer(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if request.method == 'POST':
+        if client.user_id:
+            messages.error(request, "Ce client possède déjà un compte portail.")
+            return redirect('commerce_listeClient')
+
+        username = request.POST.get('username', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+
+        if not username or not password1:
+            messages.error(request, "Nom d'utilisateur et mot de passe requis.")
+        elif password1 != password2:
+            messages.error(request, "Les mots de passe ne correspondent pas.")
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, "Ce nom d'utilisateur est déjà utilisé.")
+        else:
+            user = User.objects.create_user(username=username, password=password1, is_staff=False)
+            client.user = user
+            client.save()
+            messages.success(request, f"Compte portail créé pour {client.nom}.")
+            return redirect('commerce_listeClient')
+
+    return render(request, 'CommercialSoft/clientCompte.html', {'client': client})

@@ -1237,7 +1237,10 @@ async function syncVentes() {
     try {
       let response = await fetch("/commerce/api/sync/ventes/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
         body: JSON.stringify(vente),
       });
 
