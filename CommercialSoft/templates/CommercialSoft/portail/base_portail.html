@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Mon espace client - Commercial soft</title>
+
+  <link href="{% static 'clinique/assets/img/favicon.png' %}" rel="icon">
+  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+
+  {% block css %}{% endblock %}
+
+  <style>
+    .portail-badge-attente { background-color:#ffc107; color:#000; }
+    .portail-badge-traitee { background-color:#198754; color:#fff; }
+    .portail-badge-rejetee { background-color:#dc3545; color:#fff; }
+    .portail-card { border-radius: .5rem; }
+  </style>
+</head>
+
+<body>
+
+  <header class="header sticky-top bg-white shadow-sm">
+    <div class="container d-flex align-items-center justify-content-between py-2">
+      <a href="{% url 'portail_accueil' %}" class="d-flex align-items-center text-decoration-none">
+        <h1 class="sitename h4 m-0">Mon espace client</h1>
+      </a>
+      <nav>
+        <ul class="nav">
+          <li class="nav-item"><a class="nav-link" href="{% url 'portail_accueil' %}">Accueil</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'portail_produits' %}">Nouvelle commande</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'portail_mes_commandes' %}">Mes commandes</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'portail_versements' %}">Mes versements</a></li>
+          <li class="nav-item"><a class="nav-link text-danger" href="{% url 'logout' %}">Déconnexion</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container py-4">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    {% block corp %}{% endblock %}
+  </main>
+
+  <footer class="footer light-background text-center py-3 mt-5">
+    <p class="m-0">© <span>2026</span> <strong class="px-1">Laguisoft Technologie</strong></p>
+  </footer>
+
+  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  {% block js %}{% endblock %}
+
+</body>
+</html>

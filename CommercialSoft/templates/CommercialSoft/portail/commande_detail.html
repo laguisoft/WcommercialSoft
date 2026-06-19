@@ -1,0 +1,57 @@
+{% extends "CommercialSoft/portail/base_portail.html" %}
+
+{% block corp %}
+<h2 class="h4 mb-3">Commande #{{ demande.id }}</h2>
+
+<div class="card portail-card mb-3">
+  <div class="card-body">
+    <p class="mb-1"><strong>Date :</strong> {{ demande.date }}</p>
+    <p class="mb-1">
+      <strong>Statut :</strong>
+      <span class="badge {% if demande.statut == 'En attente' %}portail-badge-attente{% elif demande.statut == 'Traitee' %}portail-badge-traitee{% else %}portail-badge-rejetee{% endif %}">
+        {{ demande.statut }}
+      </span>
+    </p>
+    {% if demande.commentaire %}<p class="mb-1"><strong>Commentaire :</strong> {{ demande.commentaire }}</p>{% endif %}
+    {% if demande.statut == 'En attente' %}
+      <p class="text-muted mt-2 mb-0">Votre commande est en attente de vérification des quantités disponibles par notre équipe.</p>
+    {% elif demande.statut == 'Traitee' %}
+      <p class="text-success mt-2 mb-0">Votre commande a été traitée. Les quantités acceptées pour chaque produit sont indiquées ci-dessous.</p>
+    {% else %}
+      <p class="text-danger mt-2 mb-0">Cette demande a été rejetée.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card portail-card">
+  <div class="card-header">Produits</div>
+  <div class="table-responsive">
+    <table class="table m-0">
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Prix unitaire</th>
+          <th>Quantité demandée</th>
+          <th>Quantité acceptée</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in demande.lignes.all %}
+        <tr>
+          <td>{{ ligne.produit.libelle }}</td>
+          <td>{{ ligne.prixUnitaire|floatformat:0 }}</td>
+          <td>{{ ligne.quantiteDemandee }}</td>
+          <td>
+            {% if ligne.quantiteAcceptee is None %}
+              <span class="text-muted">En attente</span>
+            {% else %}
+              {{ ligne.quantiteAcceptee }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-6 offset-md-3">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Compte portail - {{ client.nom }}</h3>
+          </div>
+          <div class="card-body">
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+
+            {% if client.user_id %}
+              <div class="alert alert-info">Ce client possède déjà un compte portail ({{ client.user.username }}).</div>
+            {% else %}
+              <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                  <label>Nom d'utilisateur</label>
+                  <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="form-group">
+                  <label>Mot de passe</label>
+                  <input type="password" name="password1" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label>Confirmation du mot de passe</label>
+                  <input type="password" name="password2" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Créer le compte</button>
+                <a href="{% url 'commerce_listeClient' %}" class="btn btn-light">Annuler</a>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -82,10 +82,12 @@ class Client(models.Model):
     matricule=models.CharField(max_length=20,null=True, blank=True)
     pourcentage=models.PositiveSmallIntegerField()
     detteMaximale=models.PositiveBigIntegerField()
+    # Compte du portail client, cree et lie par le gerant
+    user=models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='client_profile')
 
     def __str__(self):
         return self.nom
-    
+
 
 class Commande(models.Model):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -111,12 +113,40 @@ class CommandeProduit(models.Model):
     prix=models.PositiveBigIntegerField()
 
     class Meta:
-        unique_together = ['produit', 'commande'] 
-
- 
+        unique_together = ['produit', 'commande']
 
 
- 
+class CommandeClient(models.Model):
+    """Demande de commande passee par un client depuis le portail.
+    Reste 'En attente' tant qu'un employe n'a pas verifie les quantites
+    disponibles et valide; la validation declenche la vente reelle (Commande)."""
+    client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='demandes_commande')
+    date=models.DateField(default=timezone.now, db_index=True)
+    statut=models.CharField(max_length=15, default='En attente', choices=[
+        ('En attente', 'En attente'),
+        ('Traitee', 'Traitee'),
+        ('Rejetee', 'Rejetee'),
+    ])
+    commentaire=models.CharField(max_length=200, null=True, blank=True)
+    commande=models.OneToOneField(Commande, on_delete=models.SET_NULL, null=True, blank=True, related_name='demande_origine')
+    traitePar=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='demandes_traitees')
+    dateTraitement=models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Demande #{self.id} - {self.client.nom}"
+
+
+class CommandeClientProduit(models.Model):
+    demande=models.ForeignKey(CommandeClient, on_delete=models.CASCADE, related_name='lignes')
+    produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
+    quantiteDemandee=models.PositiveIntegerField()
+    quantiteAcceptee=models.PositiveIntegerField(null=True, blank=True)
+    prixUnitaire=models.PositiveBigIntegerField()
+
+    class Meta:
+        unique_together = ['demande', 'produit']
+
+
 class Categorie_Depense(models.Model):
     nom=models.CharField(max_length=50)
     description=models.CharField(max_length=50, null=True, blank=True)

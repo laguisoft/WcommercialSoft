@@ -42,6 +42,8 @@ def login_view(request):
     if form.is_valid():
         user = form.get_user()
         login(request, user)
+        if hasattr(user, 'client_profile'):
+            return redirect('portail_accueil')
         return redirect('commerce_dashboard')
     return render(request, 'accounts/login.html', {'form': form})
 

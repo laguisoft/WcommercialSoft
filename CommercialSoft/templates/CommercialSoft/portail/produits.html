@@ -1,0 +1,128 @@
+{% extends "CommercialSoft/portail/base_portail.html" %}
+
+{% block corp %}
+<h2 class="h4 mb-3">Nouvelle commande</h2>
+<p class="text-muted">Choisissez les produits et les quantités souhaitées. Votre demande sera vérifiée et validée par notre équipe avant la livraison.</p>
+
+<div class="row">
+  <div class="col-lg-7">
+    <input type="text" id="rechercheProduit" class="form-control mb-3" placeholder="Rechercher un produit...">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>Prix</th>
+            <th style="width:110px">Quantité</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="listeProduits">
+          {% for produit in produits %}
+          <tr data-libelle="{{ produit.libelle|lower }}">
+            <td>{{ produit.libelle }}</td>
+            <td>{{ produit.prixDetail|floatformat:0 }}</td>
+            <td><input type="number" min="1" max="{{ produit.quantite }}" value="1" class="form-control form-control-sm qte-input"></td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-primary btn-ajouter"
+                data-id="{{ produit.id }}" data-libelle="{{ produit.libelle }}" data-prix="{{ produit.prixDetail }}">
+                Ajouter
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-3">Aucun produit disponible.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card portail-card sticky-top" style="top: 1rem;">
+      <div class="card-header">Mon panier</div>
+      <div class="card-body">
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Produit</th><th>Qté</th><th>Sous-total</th><th></th></tr>
+          </thead>
+          <tbody id="panier"></tbody>
+        </table>
+        <p class="fw-bold text-end m-0">Total : <span id="panierTotal">0</span></p>
+
+        <form method="post" action="{% url 'portail_commande_creer' %}" id="formCommande" class="mt-3">
+          {% csrf_token %}
+          <input type="hidden" name="jsonDataInput" id="jsonDataInput">
+          <textarea name="commentaire" class="form-control mb-2" placeholder="Commentaire (optionnel)"></textarea>
+          <button type="submit" class="btn btn-success w-100" id="btnEnvoyer" disabled>Envoyer la commande</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+  const panier = {};
+
+  function formatNombre(n) {
+    return n.toLocaleString('fr-FR');
+  }
+
+  function rendrePanier() {
+    const corps = document.getElementById('panier');
+    corps.innerHTML = '';
+    let total = 0;
+    Object.values(panier).forEach(item => {
+      const sousTotal = item.prix * item.quantite;
+      total += sousTotal;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.libelle}</td>
+        <td>${item.quantite}</td>
+        <td>${formatNombre(sousTotal)}</td>
+        <td><button type="button" class="btn btn-sm btn-link text-danger btn-retirer" data-id="${item.id}">&times;</button></td>
+      `;
+      corps.appendChild(tr);
+    });
+    document.getElementById('panierTotal').textContent = formatNombre(total);
+    document.getElementById('btnEnvoyer').disabled = Object.keys(panier).length === 0;
+
+    corps.querySelectorAll('.btn-retirer').forEach(btn => {
+      btn.addEventListener('click', () => {
+        delete panier[btn.dataset.id];
+        rendrePanier();
+      });
+    });
+  }
+
+  document.querySelectorAll('.btn-ajouter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const ligne = btn.closest('tr');
+      const quantite = parseInt(ligne.querySelector('.qte-input').value || '0', 10);
+      if (quantite <= 0) return;
+      panier[id] = {
+        id: id,
+        libelle: btn.dataset.libelle,
+        prix: parseFloat(btn.dataset.prix),
+        quantite: quantite,
+      };
+      rendrePanier();
+    });
+  });
+
+  document.getElementById('rechercheProduit').addEventListener('input', (e) => {
+    const terme = e.target.value.toLowerCase();
+    document.querySelectorAll('#listeProduits tr[data-libelle]').forEach(tr => {
+      tr.style.display = tr.dataset.libelle.includes(terme) ? '' : 'none';
+    });
+  });
+
+  document.getElementById('formCommande').addEventListener('submit', (e) => {
+    const items = Object.values(panier).map(item => ({ id: item.id, quantite: item.quantite }));
+    document.getElementById('jsonDataInput').value = JSON.stringify(items);
+  });
+</script>
+{% endblock %}

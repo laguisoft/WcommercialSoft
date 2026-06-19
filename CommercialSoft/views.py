@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit, InfoBoutique
+from .decorators import client_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -2837,8 +2838,9 @@ def recherche_client(request):
                 "detteMaximale": client.detteMaximale,
                 "total_pret": client.prets.aggregate(Sum('montant'))['montant__sum'] or 0,
                 "total_versement": client.versements.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) - 
+                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) -
                            (client.versements.aggregate(Sum('montant'))['montant__sum'] or 0),
+                "has_account": bool(client.user_id),
             }
             for client in clients
         ]
@@ -4915,3 +4917,233 @@ def sync_ventes(request):
 
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+# ============================================================
+# PORTAIL CLIENT : commandes a distance, suivi, versements, solde
+# ============================================================
+
+@client_required
+def portail_accueil(request):
+    client = request.user.client_profile
+    total_pret = client.prets.aggregate(total=Sum('montant'))['total'] or 0
+    total_versement = client.versements.aggregate(total=Sum('montant'))['total'] or 0
+    solde = total_pret - total_versement
+    dernieres_demandes = client.demandes_commande.order_by('-date', '-id')[:5]
+    return render(request, 'CommercialSoft/portail/accueil.html', {
+        'client': client,
+        'total_pret': total_pret,
+        'total_versement': total_versement,
+        'solde': solde,
+        'dernieres_demandes': dernieres_demandes,
+    })
+
+
+@client_required
+def portail_produits(request):
+    produits = Produit.objects.filter(quantite__gt=0).order_by('libelle')
+    return render(request, 'CommercialSoft/portail/produits.html', {'produits': produits})
+
+
+@client_required
+@require_POST
+def portail_commande_creer(request):
+    client = request.user.client_profile
+    try:
+        produits_data = json.loads(request.POST.get('jsonDataInput', '[]'))
+    except json.JSONDecodeError:
+        produits_data = []
+
+    if not produits_data:
+        messages.error(request, "Veuillez sélectionner au moins un produit.")
+        return redirect('portail_produits')
+
+    with transaction.atomic():
+        demande = CommandeClient.objects.create(
+            client=client,
+            commentaire=request.POST.get('commentaire') or None,
+        )
+        for item in produits_data:
+            produit_id = item.get('id')
+            quantite = int(item.get('quantite', 0))
+            if not produit_id or quantite <= 0:
+                continue
+            try:
+                produit = Produit.objects.get(id=produit_id)
+            except Produit.DoesNotExist:
+                continue
+            CommandeClientProduit.objects.get_or_create(
+                demande=demande,
+                produit=produit,
+                defaults={'quantiteDemandee': quantite, 'prixUnitaire': produit.prixDetail},
+            )
+
+    messages.success(request, "Votre commande a été envoyée. Elle sera traitée par notre équipe.")
+    return redirect('portail_commande_detail', pk=demande.pk)
+
+
+@client_required
+def portail_mes_commandes(request):
+    demandes = request.user.client_profile.demandes_commande.order_by('-date', '-id')
+    return render(request, 'CommercialSoft/portail/commandes.html', {'demandes': demandes})
+
+
+@client_required
+def portail_commande_detail(request, pk):
+    demande = get_object_or_404(CommandeClient, pk=pk, client=request.user.client_profile)
+    return render(request, 'CommercialSoft/portail/commande_detail.html', {'demande': demande})
+
+
+@client_required
+def portail_versements(request):
+    versements = request.user.client_profile.versements.order_by('-date', '-id')
+    return render(request, 'CommercialSoft/portail/versements.html', {'versements': versements})
+
+
+# ============================================================
+# GESTION DES DEMANDES DE COMMANDE PAR LE PERSONNEL (validation/rejet)
+# ============================================================
+
+@login_required
+@permission_required('CommercialSoft.add_commande')
+def demandes_commande_liste(request):
+    demandes = CommandeClient.objects.select_related('client').order_by('-date', '-id')
+    en_attente = demandes.filter(statut='En attente').count()
+    return render(request, 'CommercialSoft/demandesCommande.html', {
+        'demandes': demandes,
+        'en_attente': en_attente,
+    })
+
+
+@login_required
+@permission_required('CommercialSoft.add_commande')
+def demandes_commande_traiter(request, pk):
+    demande = get_object_or_404(CommandeClient, pk=pk)
+    lignes = list(demande.lignes.select_related('produit'))
+
+    if request.method == 'POST':
+        if demande.statut != 'En attente':
+            messages.error(request, "Cette demande a déjà été traitée.")
+            return redirect('demandes_commande_liste')
+
+        action = request.POST.get('action')
+
+        if action == 'rejeter':
+            demande.statut = 'Rejetee'
+            demande.traitePar = request.user
+            demande.dateTraitement = timezone.now()
+            demande.save()
+            messages.success(request, "Demande rejetée.")
+            return redirect('demandes_commande_liste')
+
+        typeVente = request.POST.get('typeVente', 'detail')
+        typePayement = request.POST.get('typePayement', 'Espece')
+        remise = int(request.POST.get('remise') or 0)
+
+        quantites_acceptees = {}
+        for ligne in lignes:
+            quantite = int(request.POST.get(f'quantite_{ligne.id}') or 0)
+            quantites_acceptees[ligne.id] = max(0, min(quantite, ligne.produit.quantite))
+
+        if not any(quantites_acceptees.values()):
+            messages.error(request, "Aucune quantité acceptée : la demande n'a pas été validée.")
+            return redirect('demandes_commande_traiter', pk=pk)
+
+        with transaction.atomic():
+            commande = Commande.objects.create(
+                user=request.user,
+                client=demande.client,
+                montant=0,
+                remise=remise,
+                typeVente=typeVente,
+                typePayement=typePayement,
+                montantAchat=0,
+            )
+
+            montant_total = 0
+            montant_achat = 0
+
+            for ligne in lignes:
+                quantite_acceptee = quantites_acceptees[ligne.id]
+                ligne.quantiteAcceptee = quantite_acceptee
+                ligne.save()
+
+                if quantite_acceptee <= 0:
+                    continue
+
+                produit = ligne.produit
+                produit.quantite -= quantite_acceptee
+                produit.save()
+
+                CommandeProduit.objects.create(
+                    commande=commande,
+                    produit=produit,
+                    quantite=quantite_acceptee,
+                    prix=ligne.prixUnitaire,
+                )
+
+                montant_total += ligne.prixUnitaire * quantite_acceptee
+                montant_achat += produit.prixAchat * quantite_acceptee
+
+            commande.montant = montant_total
+            commande.montantAchat = montant_achat
+            commande.save()
+
+            if typePayement == 'Pret':
+                PretClient.objects.create(
+                    client=demande.client,
+                    montant=commande.montant,
+                    dateEcheance=timezone.now().date(),
+                    payer='Non',
+                    commande=commande,
+                    user=request.user,
+                )
+
+            demande.statut = 'Traitee'
+            demande.commande = commande
+            demande.traitePar = request.user
+            demande.dateTraitement = timezone.now()
+            demande.save()
+
+        messages.success(request, "Demande validée : la vente a été enregistrée.")
+        return redirect('commerce_recu', pk=commande.id)
+
+    return render(request, 'CommercialSoft/demandeCommandeTraiter.html', {
+        'demande': demande,
+        'lignes': lignes,
+    })
+
+
+# ============================================================
+# CREATION DU COMPTE PORTAIL D'UN CLIENT (par le gerant)
+# ============================================================
+
+@login_required
+@user_passes_test(est_admin_ou_gestionnaire)
+@permission_required('CommercialSoft.change_client')
+def client_compte_creer(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+
+    if request.method == 'POST':
+        if client.user_id:
+            messages.error(request, "Ce client possède déjà un compte portail.")
+            return redirect('commerce_listeClient')
+
+        username = request.POST.get('username', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+
+        if not username or not password1:
+            messages.error(request, "Nom d'utilisateur et mot de passe requis.")
+        elif password1 != password2:
+            messages.error(request, "Les mots de passe ne correspondent pas.")
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, "Ce nom d'utilisateur est déjà utilisé.")
+        else:
+            user = User.objects.create_user(username=username, password=password1, is_staff=False)
+            client.user = user
+            client.save()
+            messages.success(request, f"Compte portail créé pour {client.nom}.")
+            return redirect('commerce_listeClient')
+
+    return render(request, 'CommercialSoft/clientCompte.html', {'client': client})
