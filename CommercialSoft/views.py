@@ -4727,6 +4727,14 @@ def api_produits(request):
     }, safe=False)
 
 
+@login_required
+def api_demandes_commande_en_attente(request):
+    if not request.user.has_perm('CommercialSoft.add_commande'):
+        return JsonResponse({"count": 0}, status=403)
+    count = CommandeClient.objects.filter(statut='En attente').count()
+    return JsonResponse({"count": count})
+
+
 
 # ---- Service worker à la racine ----
 # CommercialSoft/views.py

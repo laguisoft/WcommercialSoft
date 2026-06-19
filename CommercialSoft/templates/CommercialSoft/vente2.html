@@ -116,11 +116,11 @@
           <div class="contact-info d-flex align-items-center">
             <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
           </div>
-          {% if demandes_commande_en_attente_count %}
-          <div class="contact-info d-flex align-items-center">
-            <a href="{% url 'demandes_commande_liste' %}" class="commande-attente-topbar" target="_blank" title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
+          {% if perms.CommercialSoft.add_commande %}
+          <div class="contact-info d-flex align-items-center" id="commande-attente-topbar-wrap"{% if not demandes_commande_en_attente_count %} style="display:none;"{% endif %}>
+            <a href="{% url 'demandes_commande_liste' %}" id="commande-attente-topbar" class="commande-attente-topbar" target="_blank" title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
               <i class="bi bi-bell-fill"></i>
-              {{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} en attente
+              <span id="commande-attente-topbar-texte">{{ demandes_commande_en_attente_count|default:0 }} commande{{ demandes_commande_en_attente_count|pluralize }} en attente</span>
             </a>
           </div>
           {% endif %}
@@ -1612,7 +1612,33 @@ document.addEventListener("keydown", function(e) {
 });
 </script>
 
-
+{% if perms.CommercialSoft.add_commande %}
+<script>
+  (function () {
+    function refreshCommandeAttente() {
+      fetch("{% url 'api_demandes_commande_en_attente' %}", { credentials: 'same-origin' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          var wrap = document.getElementById('commande-attente-topbar-wrap');
+          var lien = document.getElementById('commande-attente-topbar');
+          var texte = document.getElementById('commande-attente-topbar-texte');
+          if (!wrap || !lien || !texte) return;
+          if (data.count > 0) {
+            var pluriel = data.count > 1 ? 's' : '';
+            texte.textContent = data.count + ' commande' + pluriel + ' en attente';
+            lien.title = data.count + ' commande' + pluriel + ' client' + pluriel + ' en attente de validation';
+            wrap.style.display = '';
+          } else {
+            wrap.style.display = 'none';
+          }
+        })
+        .catch(function () {});
+    }
+    setInterval(refreshCommandeAttente, 20000);
+  })();
+</script>
+{% endif %}
 
 </body>
 

@@ -187,6 +187,7 @@ urlpatterns=[
     path("api/sync/ventes/", views.sync_ventes, name="sync_ventes"),
     #path("api/sync/livraisons/", views.sync_livraisons, name="api_sync_livraisons"),
     path("api/produits/", views.api_produits, name="api_produits"),
+    path("api/demandes-commande/en-attente/", views.api_demandes_commande_en_attente, name="api_demandes_commande_en_attente"),
 
     path("api/reception/", views.api_reception, name="api_reception"),
     path("api/sync/livraisons/", views.api_sync_livraisons, name="api_sync_livraisons"),
