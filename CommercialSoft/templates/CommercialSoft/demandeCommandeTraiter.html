@@ -37,18 +37,22 @@
                     <th class="text-center">Quantité demandée</th>
                     <th class="text-center" style="width:140px">Prix unitaire</th>
                     <th class="text-center" style="width:140px">Quantité à vendre</th>
+                    {% if demande.statut == 'En attente' %}<th class="text-center" style="width:120px">Action</th>{% endif %}
                   </tr>
                 </thead>
                 <tbody>
                   {% for ligne in lignes %}
-                  <tr>
-                    <td>{{ ligne.produit.libelle }}</td>
+                  <tr id="ligne-{{ ligne.id }}">
+                    <td>
+                      <span id="libelle-{{ ligne.id }}">{{ ligne.produit.libelle }}</span>
+                      <span id="badge-indisponible-{{ ligne.id }}" class="badge bg-secondary ms-1 d-none">Indisponible</span>
+                    </td>
                     <td class="text-center">{{ ligne.produit.quantite }}</td>
                     <td class="text-center">{{ ligne.quantiteDemandee }}</td>
                     <td class="text-center">
                       {% if demande.statut == 'En attente' %}
                         <input type="number" min="0" class="form-control form-control-sm prix-input"
-                          name="prix_{{ ligne.id }}"
+                          name="prix_{{ ligne.id }}" id="prix_{{ ligne.id }}"
                           data-prix-detail="{{ ligne.produit.prixDetail|floatformat:0 }}"
                           data-prix-en-gros="{{ ligne.produit.prixEnGros|floatformat:0 }}"
                           value="{{ ligne.prixUnitaire|floatformat:0 }}">
@@ -59,12 +63,19 @@
                     <td class="text-center">
                       {% if demande.statut == 'En attente' %}
                         <input type="number" min="0" max="{{ ligne.produit.quantite }}" class="form-control form-control-sm"
-                          name="quantite_{{ ligne.id }}"
+                          name="quantite_{{ ligne.id }}" id="quantite_{{ ligne.id }}"
                           value="{% if ligne.quantiteDemandee < ligne.produit.quantite %}{{ ligne.quantiteDemandee }}{% else %}{{ ligne.produit.quantite }}{% endif %}">
                       {% else %}
                         {{ ligne.quantiteAcceptee|default:0 }}
                       {% endif %}
                     </td>
+                    {% if demande.statut == 'En attente' %}
+                    <td class="text-center">
+                      <button type="button" class="btn btn-sm btn-outline-danger btn-retirer-produit" data-ligne-id="{{ ligne.id }}">
+                        <i class="bi bi-x-circle me-1"></i>Retirer
+                      </button>
+                    </td>
+                    {% endif %}
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -123,6 +134,37 @@
     document.querySelectorAll('.prix-input').forEach(function (input) {
       const prix = typeVente === 'en gros' ? input.dataset.prixEnGros : input.dataset.prixDetail;
       input.value = prix;
+    });
+  });
+
+  document.querySelectorAll('.btn-retirer-produit').forEach(function (bouton) {
+    bouton.addEventListener('click', function () {
+      const id = this.dataset.ligneId;
+      const ligne = document.getElementById('ligne-' + id);
+      const quantiteInput = document.getElementById('quantite_' + id);
+      const prixInput = document.getElementById('prix_' + id);
+      const libelle = document.getElementById('libelle-' + id);
+      const badge = document.getElementById('badge-indisponible-' + id);
+      const retire = ligne.classList.toggle('table-secondary');
+
+      if (retire) {
+        quantiteInput.dataset.valeurPrecedente = quantiteInput.value;
+        quantiteInput.value = 0;
+        quantiteInput.disabled = true;
+        prixInput.disabled = true;
+        libelle.classList.add('text-decoration-line-through', 'text-muted');
+        badge.classList.remove('d-none');
+        this.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i>Annuler';
+        this.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+      } else {
+        quantiteInput.disabled = false;
+        quantiteInput.value = quantiteInput.dataset.valeurPrecedente || 0;
+        prixInput.disabled = false;
+        libelle.classList.remove('text-decoration-line-through', 'text-muted');
+        badge.classList.add('d-none');
+        this.innerHTML = '<i class="bi bi-x-circle me-1"></i>Retirer';
+        this.classList.replace('btn-outline-secondary', 'btn-outline-danger');
+      }
     });
   });
 </script>
