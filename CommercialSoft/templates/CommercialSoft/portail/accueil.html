@@ -1,83 +1,104 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
 
 {% block corp %}
-<h2 class="h4 mb-1">Bonjour {{ client.nom }}</h2>
-<p class="text-muted mb-4">Voici un aperçu de votre compte.</p>
+<section id="hero" class="hero section light-background m-0 p-0">
+  <div class="container position-relative">
 
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card portail-card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="portail-stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-credit-card"></i></div>
-        <div>
-          <h6 class="text-muted mb-1">Total prêts / commandes à crédit</h6>
-          <p class="h4 m-0">{{ total_pret|floatformat:0 }}</p>
+    <div class="welcome position-relative col-md-12 text-center">
+      <h2>Bonjour {{ client.nom }}</h2>
+      <p>Voici un aperçu de votre compte</p>
+    </div><!-- End Welcome -->
+
+    <section id="stats" class="stats section light-background">
+      <div class="container" data-aos="fade-up" data-aos-delay="100">
+        <div class="row gy-4">
+
+          <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center">
+            <i class="fas fa-credit-card"></i>
+            <div class="stats-item">
+              <span data-purecounter-start="0" data-purecounter-end="{{ total_pret|floatformat:0 }}" data-purecounter-duration="1" class="purecounter"></span>
+              <p>Total prêts / commandes à crédit</p>
+            </div>
+          </div><!-- End Stats Item -->
+
+          <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center">
+            <i class="fas fa-wallet"></i>
+            <div class="stats-item">
+              <span data-purecounter-start="0" data-purecounter-end="{{ total_versement|floatformat:0 }}" data-purecounter-duration="1" class="purecounter"></span>
+              <p>Total versé</p>
+            </div>
+          </div><!-- End Stats Item -->
+
+          <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center">
+            <i class="fas fa-piggy-bank"></i>
+            <div class="stats-item">
+              <span data-purecounter-start="0" data-purecounter-end="{{ solde|floatformat:0 }}" data-purecounter-duration="1" class="purecounter"></span>
+              <p>Solde restant dû</p>
+            </div>
+          </div><!-- End Stats Item -->
+
+        </div>
+      </div>
+    </section><!-- /Stats Section -->
+  </div>
+</section><!-- /Hero Section -->
+
+<section class="content pt-0">
+  <div class="container-fluid">
+    {% if messages %}
+      <div>
+      {% for message in messages %}
+        <div class="bg-{{ message.tags }} text-center h-15">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-md-12 mb-3 d-flex gap-2">
+        <a href="{% url 'portail_produits' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Passer une nouvelle commande</a>
+        <a href="{% url 'portail_mes_commandes' %}" class="btn btn-outline-secondary">Voir toutes mes commandes</a>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Mes dernières commandes</h3>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-hover table-striped m-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Produits demandés</th>
+                  <th>Statut</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for demande in dernieres_demandes %}
+                <tr>
+                  <td>{{ demande.id }}</td>
+                  <td>{{ demande.date }}</td>
+                  <td>{{ demande.lignes.count }}</td>
+                  <td>
+                    <span class="badge {% if demande.statut == 'En attente' %}portail-badge-attente{% elif demande.statut == 'Traitee' %}portail-badge-traitee{% else %}portail-badge-rejetee{% endif %}">
+                      {{ demande.statut }}
+                    </span>
+                  </td>
+                  <td><a href="{% url 'portail_commande_detail' demande.id %}" class="btn btn-sm btn-outline-primary">Détail</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Aucune commande pour le moment.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="card portail-card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="portail-stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-wallet2"></i></div>
-        <div>
-          <h6 class="text-muted mb-1">Total versé</h6>
-          <p class="h4 m-0">{{ total_versement|floatformat:0 }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card portail-card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="portail-stat-icon {% if solde > 0 %}bg-danger bg-opacity-10 text-danger{% else %}bg-success bg-opacity-10 text-success{% endif %}">
-          <i class="bi bi-piggy-bank"></i>
-        </div>
-        <div>
-          <h6 class="text-muted mb-1">Solde restant dû</h6>
-          <p class="h4 m-0 {% if solde > 0 %}text-danger{% else %}text-success{% endif %}">{{ solde|floatformat:0 }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="d-flex gap-2 mb-4">
-  <a href="{% url 'portail_produits' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Passer une nouvelle commande</a>
-  <a href="{% url 'portail_mes_commandes' %}" class="btn btn-outline-secondary">Voir toutes mes commandes</a>
-</div>
-
-<div class="card portail-card">
-  <div class="card-header bg-white fw-semibold">Mes dernières commandes</div>
-  <div class="table-responsive">
-    <table class="table table-hover m-0">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Date</th>
-          <th>Produits demandés</th>
-          <th>Statut</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for demande in dernieres_demandes %}
-        <tr>
-          <td>{{ demande.id }}</td>
-          <td>{{ demande.date }}</td>
-          <td>{{ demande.lignes.count }}</td>
-          <td>
-            <span class="badge {% if demande.statut == 'En attente' %}portail-badge-attente{% elif demande.statut == 'Traitee' %}portail-badge-traitee{% else %}portail-badge-rejetee{% endif %}">
-              {{ demande.statut }}
-            </span>
-          </td>
-          <td><a href="{% url 'portail_commande_detail' demande.id %}" class="btn btn-sm btn-outline-primary">Détail</a></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-4">Aucune commande pour le moment.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+</section>
 {% endblock %}

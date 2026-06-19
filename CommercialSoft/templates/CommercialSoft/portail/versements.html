@@ -1,56 +1,85 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
 
 {% block corp %}
-<h2 class="h4 mb-1">Mes versements</h2>
-<p class="text-muted mb-4">Historique de vos paiements.</p>
+<section class="content pt-0">
+  <div class="container-fluid">
+    {% if messages %}
+      <div>
+      {% for message in messages %}
+        <div class="bg-{{ message.tags }} text-center h-15">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
 
-<div class="card portail-card mb-3">
-  <div class="card-body">
-    <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label small text-muted mb-1">Du</label>
-        <input type="date" name="date_debut" value="{{ date_debut }}" class="form-control">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Filtrer mes versements</h3>
+          </div>
+          <form method="get">
+            <div class="card-body">
+              <div class="row align-items-end">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Du</label>
+                    <input type="date" name="date_debut" value="{{ date_debut }}" class="form-control">
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Au</label>
+                    <input type="date" name="date_fin" value="{{ date_fin }}" class="form-control">
+                  </div>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                  <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+                  <a href="{% url 'portail_versements' %}" class="btn btn-outline-secondary">Réinitialiser</a>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
-      <div class="col-md-4">
-        <label class="form-label small text-muted mb-1">Au</label>
-        <input type="date" name="date_fin" value="{{ date_fin }}" class="form-control">
-      </div>
-      <div class="col-md-4 d-flex gap-2">
-        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filtrer</button>
-        <a href="{% url 'portail_versements' %}" class="btn btn-outline-secondary">Réinitialiser</a>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
-<div class="card portail-card">
-  <div class="table-responsive">
-    <table class="table table-hover m-0">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Date</th>
-          <th>Montant</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for versement in versements %}
-        <tr>
-          <td>{{ versement.id }}</td>
-          <td>{{ versement.date }}</td>
-          <td>{{ versement.montant|floatformat:0 }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="3" class="text-center text-muted py-4">Aucun versement ne correspond à votre recherche.</td></tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr class="fw-bold">
-          <td colspan="2" class="text-end">Total</td>
-          <td>{{ total_versements|floatformat:0 }}</td>
-        </tr>
-      </tfoot>
-    </table>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Mes versements</h3>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-hover table-striped m-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Date</th>
+                  <th>Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for versement in versements %}
+                <tr>
+                  <td>{{ versement.id }}</td>
+                  <td>{{ versement.date }}</td>
+                  <td>{{ versement.montant|floatformat:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center text-muted py-4">Aucun versement ne correspond à votre recherche.</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="fw-bold">
+                  <td colspan="2" class="text-end">Total</td>
+                  <td>{{ total_versements|floatformat:0 }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</section>
 {% endblock %}

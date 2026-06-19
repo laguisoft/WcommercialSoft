@@ -71,6 +71,7 @@
         </a>
 
         <nav id="navmenu" class="navmenu">
+          {% block navmenu %}
           <ul>
             <li><a href="{% url 'commerce_dashboard' %}">Home<br></a></li>
             {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
@@ -213,6 +214,7 @@
               </ul>
             </li>
           </ul>
+          {% endblock %}
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 

@@ -1,83 +1,112 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
 
 {% block corp %}
-<h2 class="h4 mb-3">Commande #{{ demande.id }}</h2>
+<section class="content pt-0">
+  <div class="container-fluid">
+    {% if messages %}
+      <div>
+      {% for message in messages %}
+        <div class="bg-{{ message.tags }} text-center h-15">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
 
-<div class="card portail-card mb-3">
-  <div class="card-body">
-    <p class="mb-1"><strong>Date :</strong> {{ demande.date }}</p>
-    <p class="mb-1">
-      <strong>Statut :</strong>
-      <span class="badge {% if demande.statut == 'En attente' %}portail-badge-attente{% elif demande.statut == 'Traitee' %}portail-badge-traitee{% else %}portail-badge-rejetee{% endif %}">
-        {{ demande.statut }}
-      </span>
-    </p>
-    {% if demande.commentaire %}<p class="mb-1"><strong>Commentaire :</strong> {{ demande.commentaire }}</p>{% endif %}
-    {% if demande.statut == 'En attente' %}
-      <p class="text-muted mt-2 mb-0"><i class="bi bi-hourglass-split me-1"></i>Votre commande est en attente de vérification des quantités disponibles par notre équipe.</p>
-    {% elif demande.statut == 'Traitee' %}
-      <p class="text-success mt-2 mb-0"><i class="bi bi-check-circle me-1"></i>Votre commande a été traitée. Voici votre facture avec les quantités et les prix retenus.</p>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Commande #{{ demande.id }}</h3>
+          </div>
+          <div class="card-body">
+            <p class="mb-1"><strong>Date :</strong> {{ demande.date }}</p>
+            <p class="mb-1">
+              <strong>Statut :</strong>
+              <span class="badge {% if demande.statut == 'En attente' %}portail-badge-attente{% elif demande.statut == 'Traitee' %}portail-badge-traitee{% else %}portail-badge-rejetee{% endif %}">
+                {{ demande.statut }}
+              </span>
+            </p>
+            {% if demande.commentaire %}<p class="mb-1"><strong>Commentaire :</strong> {{ demande.commentaire }}</p>{% endif %}
+            {% if demande.statut == 'En attente' %}
+              <p class="text-muted mt-2 mb-0"><i class="bi bi-hourglass-split me-1"></i>Votre commande est en attente de vérification des quantités disponibles par notre équipe.</p>
+            {% elif demande.statut == 'Traitee' %}
+              <p class="text-success mt-2 mb-0"><i class="bi bi-check-circle me-1"></i>Votre commande a été traitée. Voici votre facture avec les quantités et les prix retenus.</p>
+            {% else %}
+              <p class="text-danger mt-2 mb-0"><i class="bi bi-x-circle me-1"></i>Cette demande a été rejetée.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if demande.statut == 'Traitee' %}
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title"><i class="bi bi-receipt me-2"></i>Facture</h3>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-striped m-0">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Quantité</th>
+                  <th>Prix unitaire</th>
+                  <th>Sous-total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ligne in lignes %}
+                {% if ligne.quantiteAcceptee %}
+                <tr>
+                  <td>{{ ligne.produit.libelle }}</td>
+                  <td>{{ ligne.quantiteAcceptee }}</td>
+                  <td>{{ ligne.prixUnitaire|floatformat:0 }}</td>
+                  <td>{{ ligne.sous_total|floatformat:0 }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="fw-bold">
+                  <td colspan="3" class="text-end">Total</td>
+                  <td>{{ total_facture|floatformat:0 }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
     {% else %}
-      <p class="text-danger mt-2 mb-0"><i class="bi bi-x-circle me-1"></i>Cette demande a été rejetée.</p>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Produits demandés</h3>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-striped m-0">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Quantité demandée</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ligne in lignes %}
+                <tr>
+                  <td>{{ ligne.produit.libelle }}</td>
+                  <td>{{ ligne.quantiteDemandee }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
     {% endif %}
   </div>
-</div>
-
-{% if demande.statut == 'Traitee' %}
-<div class="card portail-card">
-  <div class="card-header bg-white fw-semibold"><i class="bi bi-receipt me-2"></i>Facture</div>
-  <div class="table-responsive">
-    <table class="table m-0">
-      <thead>
-        <tr>
-          <th>Produit</th>
-          <th>Quantité</th>
-          <th>Prix unitaire</th>
-          <th>Sous-total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ligne in lignes %}
-        {% if ligne.quantiteAcceptee %}
-        <tr>
-          <td>{{ ligne.produit.libelle }}</td>
-          <td>{{ ligne.quantiteAcceptee }}</td>
-          <td>{{ ligne.prixUnitaire|floatformat:0 }}</td>
-          <td>{{ ligne.sous_total|floatformat:0 }}</td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr class="fw-bold">
-          <td colspan="3" class="text-end">Total</td>
-          <td>{{ total_facture|floatformat:0 }}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-</div>
-{% else %}
-<div class="card portail-card">
-  <div class="card-header bg-white fw-semibold">Produits demandés</div>
-  <div class="table-responsive">
-    <table class="table m-0">
-      <thead>
-        <tr>
-          <th>Produit</th>
-          <th>Quantité demandée</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ligne in lignes %}
-        <tr>
-          <td>{{ ligne.produit.libelle }}</td>
-          <td>{{ ligne.quantiteDemandee }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
+</section>
 {% endblock %}

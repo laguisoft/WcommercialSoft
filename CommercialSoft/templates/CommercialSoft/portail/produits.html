@@ -1,78 +1,198 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
 
-{% block corp %}
-<h2 class="h4 mb-1">Nouvelle commande</h2>
-<p class="text-muted mb-4">Choisissez les produits et les quantités souhaitées. Votre demande sera vérifiée et validée par notre équipe avant la livraison.</p>
+{% block css %}
+{{ block.super }}
+<style>
+  .suggestions {
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    position: absolute;
+    background: white;
+    width: 100%;
+    z-index: 1000;
+  }
+  .suggestions li {
+    padding: 5px;
+    cursor: pointer;
+  }
+  .suggestions li:hover {
+    background: #eee;
+  }
+  .suggestions li.active-suggestion {
+    background-color: #007bff;
+    color: white;
+  }
+</style>
+{% endblock %}
 
-<div class="row g-3">
-  <div class="col-lg-7">
-    <div class="card portail-card mb-3">
-      <div class="card-body">
-        <div class="input-group">
-          <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-          <input type="text" id="rechercheProduit" class="form-control" placeholder="Rechercher un produit...">
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    {% if messages %}
+      <div>
+      {% for message in messages %}
+        <div class="bg-{{ message.tags }} text-center h-15">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-md-5">
+        <div class="card card-primary" style="height: 67vh; overflow: hidden;">
+          <div class="card-header">
+            <h3 class="card-title">Nouvelle commande</h3>
+          </div>
+          <div style="height: calc(67vh - 56px); overflow-y: auto;">
+            <div class="card-body">
+              <div class="form-group position-relative">
+                <label>Produit</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
+                </div>
+                <ul id="suggestions" class="suggestions"></ul>
+              </div>
+              <div class="row align-items-end">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Quantité</label>
+                    <input type="number" class="form-control" id="quantite" value="1" min="1">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Stock</label>
+                    <input type="number" disabled="true" class="form-control" id="stock">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer clearfix text-center">
+            <button type="button" class="btn btn-primary" id="ajoutBouton">Ajouter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-7">
+        <div class="card card-primary" style="height: 67vh; overflow: hidden;">
+          <div class="card-header d-flex justify-content-between">
+            <h3 class="card-title mb-0">Mon panier</h3>
+          </div>
+          <div class="card-body p-0" style="height: calc(100% - 50px); overflow-y: auto;">
+            <table class="table table-bordered table-hover table-striped table-sm mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 10px" class="text-center">#</th>
+                  <th class="text-center">Libellé produit</th>
+                  <th class="text-center">Quantité</th>
+                  <th style="width: 40px" class="text-center">#</th>
+                </tr>
+              </thead>
+              <tbody id="panier">
+                <tr id="panierVide"><td colspan="4" class="text-center text-muted py-3">Votre panier est vide.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-    <div class="card portail-card">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle m-0">
-          <thead>
-            <tr>
-              <th>Produit</th>
-              <th style="width:120px">Quantité</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="listeProduits">
-            {% for produit in produits %}
-            <tr data-libelle="{{ produit.libelle|lower }}">
-              <td>{{ produit.libelle }}</td>
-              <td><input type="number" min="1" max="{{ produit.quantite }}" value="1" class="form-control form-control-sm qte-input"></td>
-              <td>
-                <button type="button" class="btn btn-sm btn-outline-primary btn-ajouter"
-                  data-id="{{ produit.id }}" data-libelle="{{ produit.libelle }}">
-                  <i class="bi bi-plus-lg me-1"></i>Ajouter
-                </button>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" class="text-center text-muted py-4">Aucun produit disponible.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+
+    <div class="row">
+      <div class="col-md-8">
+        <div class="form-group">
+          <label>Commentaire (optionnel)</label>
+          <textarea id="commentaire" class="form-control" rows="2"></textarea>
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div class="col-lg-5">
-    <div class="card portail-card sticky-top" style="top: 1rem;">
-      <div class="card-header bg-white fw-semibold"><i class="bi bi-cart3 me-2"></i>Mon panier</div>
-      <div class="card-body">
-        <table class="table table-sm align-middle">
-          <thead>
-            <tr><th>Produit</th><th>Qté</th><th></th></tr>
-          </thead>
-          <tbody id="panier">
-            <tr id="panierVide"><td colspan="3" class="text-center text-muted py-3">Votre panier est vide.</td></tr>
-          </tbody>
-        </table>
-
-        <form method="post" action="{% url 'portail_commande_creer' %}" id="formCommande" class="mt-3">
+      <div class="col-md-4 d-flex align-items-end justify-content-end">
+        <form method="post" action="{% url 'portail_commande_creer' %}" id="formCommande">
           {% csrf_token %}
           <input type="hidden" name="jsonDataInput" id="jsonDataInput">
-          <textarea name="commentaire" class="form-control mb-2" placeholder="Commentaire (optionnel)"></textarea>
-          <button type="submit" class="btn btn-success w-100" id="btnEnvoyer" disabled><i class="bi bi-send me-1"></i>Envoyer la commande</button>
+          <input type="hidden" name="commentaire" id="commentaireInput">
+          <button type="submit" class="btn btn-success" id="btnEnvoyer" disabled><i class="bi bi-send me-1"></i>Envoyer la commande</button>
         </form>
       </div>
     </div>
+
+    {% for produit in produits %}
+    <span class="d-none produit-data" data-id="{{ produit.id }}" data-libelle="{{ produit.libelle }}" data-stock="{{ produit.quantite }}"></span>
+    {% endfor %}
   </div>
-</div>
+</section>
 {% endblock %}
 
 {% block js %}
+{{ block.super }}
 <script>
+  const produitsCache = Array.from(document.querySelectorAll('.produit-data')).map(el => ({
+    id: el.dataset.id,
+    libelle: el.dataset.libelle,
+    stock: el.dataset.stock,
+  }));
+
   const panier = {};
+  let produitSelectionne = null;
+  let currentFocus = -1;
+
+  const input = document.getElementById('produitSearch');
+  const suggestions = document.getElementById('suggestions');
+
+  input.addEventListener('input', function () {
+    const query = this.value.toLowerCase();
+    suggestions.innerHTML = '';
+    currentFocus = -1;
+    produitSelectionne = null;
+    if (query.length < 1) return;
+
+    const results = produitsCache.filter(p => p.libelle.toLowerCase().includes(query)).slice(0, 50);
+    results.forEach((p, index) => {
+      const li = document.createElement('li');
+      li.textContent = p.libelle;
+      li.dataset.index = index;
+      li.onclick = () => {
+        selectionnerProduit(p);
+        suggestions.innerHTML = '';
+      };
+      suggestions.appendChild(li);
+    });
+  });
+
+  input.addEventListener('keydown', function (e) {
+    const items = suggestions.getElementsByTagName('li');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      currentFocus = (currentFocus + 1) % items.length;
+      activerSuggestion(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      currentFocus = (currentFocus - 1 + items.length) % items.length;
+      activerSuggestion(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (currentFocus > -1 && items[currentFocus]) {
+        items[currentFocus].click();
+      }
+    }
+  });
+
+  function activerSuggestion(items) {
+    for (let i = 0; i < items.length; i++) items[i].classList.remove('active-suggestion');
+    if (currentFocus >= 0) {
+      items[currentFocus].classList.add('active-suggestion');
+      items[currentFocus].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  function selectionnerProduit(produit) {
+    produitSelectionne = produit;
+    input.value = produit.libelle;
+    document.getElementById('stock').value = produit.stock;
+  }
 
   function rendrePanier() {
     const corps = document.getElementById('panier');
@@ -80,14 +200,19 @@
     const items = Object.values(panier);
 
     if (items.length === 0) {
-      corps.innerHTML = '<tr id="panierVide"><td colspan="3" class="text-center text-muted py-3">Votre panier est vide.</td></tr>';
+      corps.innerHTML = '<tr id="panierVide"><td colspan="4" class="text-center text-muted py-3">Votre panier est vide.</td></tr>';
     } else {
-      items.forEach(item => {
+      items.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
+          <td class="text-center">${index + 1}</td>
           <td>${item.libelle}</td>
-          <td>${item.quantite}</td>
-          <td><button type="button" class="btn btn-sm btn-link text-danger btn-retirer" data-id="${item.id}"><i class="bi bi-trash"></i></button></td>
+          <td class="text-center" style="width:20%;">
+            <input type="number" class="form-control form-control-sm text-center qte-input" value="${item.quantite}" min="1" data-id="${item.id}">
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger btn-retirer" data-id="${item.id}"><i class="bi bi-trash"></i></button>
+          </td>
         `;
         corps.appendChild(tr);
       });
@@ -101,33 +226,42 @@
         rendrePanier();
       });
     });
+
+    corps.querySelectorAll('.qte-input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const qte = parseInt(inp.value || '0', 10);
+        if (qte > 0) panier[inp.dataset.id].quantite = qte;
+      });
+    });
   }
 
-  document.querySelectorAll('.btn-ajouter').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      const ligne = btn.closest('tr');
-      const quantite = parseInt(ligne.querySelector('.qte-input').value || '0', 10);
-      if (quantite <= 0) return;
-      panier[id] = {
-        id: id,
-        libelle: btn.dataset.libelle,
+  document.getElementById('ajoutBouton').addEventListener('click', () => {
+    if (!produitSelectionne) return;
+    const quantite = parseInt(document.getElementById('quantite').value || '0', 10);
+    if (quantite <= 0) return;
+
+    if (panier[produitSelectionne.id]) {
+      panier[produitSelectionne.id].quantite += quantite;
+    } else {
+      panier[produitSelectionne.id] = {
+        id: produitSelectionne.id,
+        libelle: produitSelectionne.libelle,
         quantite: quantite,
       };
-      rendrePanier();
-    });
-  });
+    }
+    rendrePanier();
 
-  document.getElementById('rechercheProduit').addEventListener('input', (e) => {
-    const terme = e.target.value.toLowerCase();
-    document.querySelectorAll('#listeProduits tr[data-libelle]').forEach(tr => {
-      tr.style.display = tr.dataset.libelle.includes(terme) ? '' : 'none';
-    });
+    document.getElementById('quantite').value = 1;
+    document.getElementById('stock').value = '';
+    input.value = '';
+    produitSelectionne = null;
+    input.focus();
   });
 
   document.getElementById('formCommande').addEventListener('submit', (e) => {
     const items = Object.values(panier).map(item => ({ id: item.id, quantite: item.quantite }));
     document.getElementById('jsonDataInput').value = JSON.stringify(items);
+    document.getElementById('commentaireInput').value = document.getElementById('commentaire').value;
   });
 </script>
 {% endblock %}
