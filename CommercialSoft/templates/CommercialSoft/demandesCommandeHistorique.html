@@ -5,6 +5,8 @@
 {% block css %}
     <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
 {% endblock %}
 
 {% block corp %}
@@ -19,7 +21,7 @@
           <form method="get">
             <div class="card-body">
               <div class="row align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                   <div class="form-group">
                     <label>Statut</label>
                     <select name="statut" class="form-control">
@@ -32,19 +34,35 @@
                 </div>
                 <div class="col-md-3">
                   <div class="form-group">
+                    <label>Client</label>
+                    <select name="client" class="form-control select2bs4" style="width: 100%;">
+                      <option value="" {% if not client_id %}selected{% endif %}>Tous</option>
+                      {% for c in clients %}
+                      <option value="{{ c.id }}" {% if client_id == c.id|stringformat:'s' %}selected{% endif %}>{{ c.nom }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="form-group">
                     <label>Du</label>
                     <input type="date" name="date_debut" value="{{ date_debut }}" class="form-control">
                   </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                   <div class="form-group">
                     <label>Au</label>
                     <input type="date" name="date_fin" value="{{ date_fin }}" class="form-control">
                   </div>
                 </div>
-                <div class="col-md-3 d-flex gap-2">
-                  <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filtrer</button>
-                  <a href="{% url 'demandes_commande_historique' %}" class="btn btn-outline-secondary">Réinitialiser</a>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>&nbsp;</label>
+                    <div class="d-flex gap-2">
+                      <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+                      <a href="{% url 'demandes_commande_historique' %}" class="btn btn-outline-secondary">Réinitialiser</a>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -108,4 +126,18 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block js %}
+{{ block.super }}
+<script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $('.select2bs4').select2({
+      theme: 'bootstrap4',
+      width: '100%'
+    });
+  });
+</script>
 {% endblock %}

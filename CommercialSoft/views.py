@@ -5073,6 +5073,7 @@ def demandes_commande_historique(request):
     statut = request.GET.get('statut', '')
     date_debut = request.GET.get('date_debut', '')
     date_fin = request.GET.get('date_fin', '')
+    client_id = request.GET.get('client', '')
 
     if statut in ('En attente', 'Traitee', 'Rejetee'):
         demandes = demandes.filter(statut=statut)
@@ -5080,12 +5081,18 @@ def demandes_commande_historique(request):
         demandes = demandes.filter(date__gte=date_debut)
     if _parse_date_filtre(date_fin):
         demandes = demandes.filter(date__lte=date_fin)
+    if client_id.isdigit():
+        demandes = demandes.filter(client_id=client_id)
+
+    clients = Client.objects.filter(demandes_commande__isnull=False).distinct().order_by('nom')
 
     return render(request, 'CommercialSoft/demandesCommandeHistorique.html', {
         'demandes': demandes,
         'statut': statut,
         'date_debut': date_debut,
         'date_fin': date_fin,
+        'client_id': client_id,
+        'clients': clients,
     })
 
 
