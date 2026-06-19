@@ -20,9 +20,9 @@
 
 {% block navmenu %}
 <ul>
-  <li><a href="{% url 'portail_accueil' %}" {% if request.resolver_match.url_name == 'portail_accueil' %}class="active"{% endif %}><i class="bi bi-house me-1"></i>Accueil</a></li>
-  <li><a href="{% url 'portail_produits' %}" {% if request.resolver_match.url_name == 'portail_produits' %}class="active"{% endif %}><i class="bi bi-cart-plus me-1"></i>Nouvelle commande</a></li>
-  <li><a href="{% url 'portail_mes_commandes' %}" {% if request.resolver_match.url_name == 'portail_mes_commandes' or request.resolver_match.url_name == 'portail_commande_detail' %}class="active"{% endif %}><i class="bi bi-bag-check me-1"></i>Mes commandes</a></li>
-  <li><a href="{% url 'portail_versements' %}" {% if request.resolver_match.url_name == 'portail_versements' %}class="active"{% endif %}><i class="bi bi-cash-coin me-1"></i>Mes versements</a></li>
+  <li><a href="{% url 'portail_accueil' %}" {% if request.resolver_match.url_name == 'portail_accueil' %}class="active"{% endif %}>Accueil</a></li>
+  <li><a href="{% url 'portail_produits' %}" {% if request.resolver_match.url_name == 'portail_produits' %}class="active"{% endif %}>Nouvelle commande</a></li>
+  <li><a href="{% url 'portail_mes_commandes' %}" {% if request.resolver_match.url_name == 'portail_mes_commandes' or request.resolver_match.url_name == 'portail_commande_detail' %}class="active"{% endif %}>Mes commandes</a></li>
+  <li><a href="{% url 'portail_versements' %}" {% if request.resolver_match.url_name == 'portail_versements' %}class="active"{% endif %}>Mes versements</a></li>
 </ul>
 {% endblock %}

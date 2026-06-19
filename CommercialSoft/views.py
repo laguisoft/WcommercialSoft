@@ -5092,9 +5092,12 @@ def demandes_commande_traiter(request, pk):
         remise = int(request.POST.get('remise') or 0)
 
         quantites_acceptees = {}
+        prix_retenus = {}
         for ligne in lignes:
             quantite = int(request.POST.get(f'quantite_{ligne.id}') or 0)
             quantites_acceptees[ligne.id] = max(0, min(quantite, ligne.produit.quantite))
+            prix = int(request.POST.get(f'prix_{ligne.id}') or 0)
+            prix_retenus[ligne.id] = prix if prix > 0 else ligne.prixUnitaire
 
         if not any(quantites_acceptees.values()):
             messages.error(request, "Aucune quantité acceptée : la demande n'a pas été validée.")
@@ -5117,6 +5120,7 @@ def demandes_commande_traiter(request, pk):
             for ligne in lignes:
                 quantite_acceptee = quantites_acceptees[ligne.id]
                 ligne.quantiteAcceptee = quantite_acceptee
+                ligne.prixUnitaire = prix_retenus[ligne.id]
                 ligne.save()
 
                 if quantite_acceptee <= 0:
