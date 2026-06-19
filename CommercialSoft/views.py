@@ -5026,6 +5026,7 @@ def portail_commande_detail(request, pk):
         'demande': demande,
         'lignes': lignes,
         'total_facture': total_facture,
+        'boutique': InfoBoutique.objects.first(),
     })
 
 

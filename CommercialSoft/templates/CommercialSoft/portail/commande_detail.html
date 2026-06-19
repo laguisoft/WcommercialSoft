@@ -1,17 +1,27 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
 
 {% block corp %}
+<style>
+  @media print {
+    #header, #footer, .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    body, main.main { margin: 0 !important; padding: 0 !important; }
+    @page { size: A4; margin: 15mm; }
+  }
+  .print-only { display: none; }
+  .ligne-indisponible td { color: #999; }
+</style>
 <section class="content pt-0">
   <div class="container-fluid">
     {% if messages %}
-      <div>
+      <div class="no-print">
       {% for message in messages %}
         <div class="bg-{{ message.tags }} text-center h-15">{{ message }}</div>
       {% endfor %}
       </div>
     {% endif %}
 
-    <div class="row">
+    <div class="row no-print">
       <div class="col-md-12">
         <div class="card card-primary">
           <div class="card-header">
@@ -42,10 +52,21 @@
     <div class="row">
       <div class="col-md-12">
         <div class="card card-primary">
-          <div class="card-header">
+          <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="card-title"><i class="bi bi-receipt me-2"></i>Facture</h3>
+            <button type="button" class="btn btn-sm btn-primary no-print" onclick="window.print();">
+              <i class="bi bi-printer me-1"></i>Imprimer la facture
+            </button>
           </div>
           <div class="card-body p-0">
+            <div class="print-only p-3">
+              <h4 class="mb-0">{{ boutique.nom }}</h4>
+              <p class="mb-1">{{ boutique.ville }}{% if boutique.emplacement %}, {{ boutique.emplacement }}{% endif %}{% if boutique.telephone %} — {{ boutique.telephone }}{% endif %}</p>
+              <hr>
+              <p class="mb-1"><strong>Facture N° :</strong> {{ demande.id }}</p>
+              <p class="mb-1"><strong>Client :</strong> {{ demande.client.nom }}{% if demande.client.telephone %} — {{ demande.client.telephone }}{% endif %}</p>
+              <p class="mb-3"><strong>Date :</strong> {{ demande.date }}</p>
+            </div>
             <table class="table table-striped m-0">
               <thead>
                 <tr>
@@ -65,6 +86,12 @@
                   <td>{{ ligne.quantiteAcceptee }}</td>
                   <td>{{ ligne.prixUnitaire|floatformat:0 }}</td>
                   <td>{{ ligne.sous_total|floatformat:0 }}</td>
+                </tr>
+                {% else %}
+                <tr class="ligne-indisponible">
+                  <td>{{ ligne.produit.libelle }}</td>
+                  <td>{{ ligne.quantiteDemandee }}</td>
+                  <td colspan="3" class="text-center"><span class="badge bg-secondary">Indisponible</span></td>
                 </tr>
                 {% endif %}
                 {% endfor %}
