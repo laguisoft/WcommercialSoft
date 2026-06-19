@@ -213,6 +213,8 @@
               const detUrl = "{% url 'commerce_detailClient' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_modClient' 0 %}".replace("0", data.id);
               const recuUrl = "{% url 'imprimer_situation_client' 0 %}".replace("0", data.id);
+              const compteUrl = "{% url 'client_compte_creer' 0 %}".replace("0", data.id);
+              const compteLabel = data.has_account ? "Compte portail (existe)" : "Créer compte portail";
               patientsTable.append(`
                 <tr>
                         <td class="text-center">${data.id}</td>
@@ -238,6 +240,9 @@
                               </a>
                               <a class="dropdown-item" href="${recuUrl}" title="Modifier">
                                 <i class="fas fa-edit text-warning"></i> Imprimer situation
+                              </a>
+                              <a class="dropdown-item" href="${compteUrl}" title="Compte portail">
+                                <i class="fas fa-user-lock text-primary"></i> ${compteLabel}
                               </a>
                             </div>
                           </div>

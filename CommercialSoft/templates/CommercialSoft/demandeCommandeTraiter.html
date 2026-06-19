@@ -1,0 +1,105 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Demande #{{ demande.id }} - {{ demande.client.nom }}</h3>
+          </div>
+          <div class="card-body">
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+
+            {% if demande.statut != 'En attente' %}
+              <div class="alert alert-info">Statut de la demande : <strong>{{ demande.statut }}</strong>{% if demande.traitePar %} (par {{ demande.traitePar }} le {{ demande.dateTraitement }}){% endif %}</div>
+            {% endif %}
+
+            <form method="post" id="formTraiter">
+              {% csrf_token %}
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th class="text-center">Stock disponible</th>
+                    <th class="text-center">Quantité demandée</th>
+                    <th class="text-center">Prix unitaire</th>
+                    <th class="text-center" style="width:140px">Quantité à vendre</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ligne in lignes %}
+                  <tr>
+                    <td>{{ ligne.produit.libelle }}</td>
+                    <td class="text-center">{{ ligne.produit.quantite }}</td>
+                    <td class="text-center">{{ ligne.quantiteDemandee }}</td>
+                    <td class="text-center">{{ ligne.prixUnitaire|floatformat:0 }}</td>
+                    <td class="text-center">
+                      {% if demande.statut == 'En attente' %}
+                        <input type="number" min="0" max="{{ ligne.produit.quantite }}" class="form-control form-control-sm"
+                          name="quantite_{{ ligne.id }}"
+                          value="{% if ligne.quantiteDemandee < ligne.produit.quantite %}{{ ligne.quantiteDemandee }}{% else %}{{ ligne.produit.quantite }}{% endif %}">
+                      {% else %}
+                        {{ ligne.quantiteAcceptee|default:0 }}
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              {% if demande.statut == 'En attente' %}
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Type de vente</label>
+                    <select name="typeVente" class="form-control">
+                      <option value="detail">Detail</option>
+                      <option value="en gros">En gros</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Type de payement</label>
+                    <select name="typePayement" class="form-control">
+                      <option value="Espece">Espece</option>
+                      <option value="Pret">Pret</option>
+                      <option value="Don">Don</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Remise</label>
+                    <input type="number" min="0" name="remise" class="form-control" value="0">
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer text-center">
+                <button type="submit" name="action" value="valider" class="btn btn-primary">Valider et enregistrer la vente</button>
+                <button type="submit" name="action" value="rejeter" class="btn btn-danger"
+                  onclick="return confirm('Rejeter cette demande de commande ?');">Rejeter</button>
+              </div>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

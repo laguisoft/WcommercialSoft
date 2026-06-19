@@ -1,0 +1,38 @@
+{% extends "CommercialSoft/portail/base_portail.html" %}
+
+{% block corp %}
+<h2 class="h4 mb-3">Mes commandes</h2>
+
+<div class="card portail-card">
+  <div class="table-responsive">
+    <table class="table table-hover m-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Produits demandés</th>
+          <th>Statut</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for demande in demandes %}
+        <tr>
+          <td>{{ demande.id }}</td>
+          <td>{{ demande.date }}</td>
+          <td>{{ demande.lignes.count }}</td>
+          <td>
+            <span class="badge {% if demande.statut == 'En attente' %}portail-badge-attente{% elif demande.statut == 'Traitee' %}portail-badge-traitee{% else %}portail-badge-rejetee{% endif %}">
+              {{ demande.statut }}
+            </span>
+          </td>
+          <td><a href="{% url 'portail_commande_detail' demande.id %}">Détail</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-3">Vous n'avez encore passé aucune commande.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
