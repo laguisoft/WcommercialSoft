@@ -5058,11 +5058,34 @@ def portail_versements(request):
 @login_required
 @permission_required('CommercialSoft.add_commande')
 def demandes_commande_liste(request):
-    demandes = CommandeClient.objects.select_related('client').order_by('-date', '-id')
-    en_attente = demandes.filter(statut='En attente').count()
+    demandes = CommandeClient.objects.select_related('client').filter(statut='En attente').order_by('-date', '-id')
     return render(request, 'CommercialSoft/demandesCommande.html', {
         'demandes': demandes,
-        'en_attente': en_attente,
+        'en_attente': demandes.count(),
+    })
+
+
+@login_required
+@permission_required('CommercialSoft.add_commande')
+def demandes_commande_historique(request):
+    demandes = CommandeClient.objects.select_related('client').order_by('-date', '-id')
+
+    statut = request.GET.get('statut', '')
+    date_debut = request.GET.get('date_debut', '')
+    date_fin = request.GET.get('date_fin', '')
+
+    if statut in ('En attente', 'Traitee', 'Rejetee'):
+        demandes = demandes.filter(statut=statut)
+    if _parse_date_filtre(date_debut):
+        demandes = demandes.filter(date__gte=date_debut)
+    if _parse_date_filtre(date_fin):
+        demandes = demandes.filter(date__lte=date_fin)
+
+    return render(request, 'CommercialSoft/demandesCommandeHistorique.html', {
+        'demandes': demandes,
+        'statut': statut,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
     })
 
 

@@ -201,6 +201,7 @@ urlpatterns=[
 
     #-- Gestion des demandes de commande par le personnel
     path('commerce/demandes-commande', views.demandes_commande_liste, name='demandes_commande_liste'),
+    path('commerce/demandes-commande/historique', views.demandes_commande_historique, name='demandes_commande_historique'),
     path('commerce/demandes-commande/<int:pk>/traiter/', views.demandes_commande_traiter, name='demandes_commande_traiter'),
 
 ]

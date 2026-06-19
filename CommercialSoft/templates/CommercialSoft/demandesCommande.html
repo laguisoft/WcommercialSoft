@@ -13,8 +13,9 @@
     <div class="row">
       <div class="col-md-12">
         <div class="card card-primary">
-          <div class="card-header">
-            <h3 class="card-title">Demandes de commande des clients ({{ en_attente }} en attente)</h3>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Demandes de commande en attente ({{ en_attente }})</h3>
+            <a href="{% url 'demandes_commande_historique' %}" class="btn btn-sm btn-outline-secondary">Historique de toutes les commandes</a>
           </div>
           <div class="card-body">
             {% if messages %}
@@ -29,7 +30,6 @@
                   <th>Client</th>
                   <th class="text-center">Date</th>
                   <th class="text-center">Produits</th>
-                  <th class="text-center">Statut</th>
                   <th class="text-center">Action</th>
                 </tr>
               </thead>
@@ -41,24 +41,11 @@
                   <td class="text-center">{{ demande.date }}</td>
                   <td class="text-center">{{ demande.lignes.count }}</td>
                   <td class="text-center">
-                    {% if demande.statut == 'En attente' %}
-                      <span class="badge bg-warning">En attente</span>
-                    {% elif demande.statut == 'Traitee' %}
-                      <span class="badge bg-success">Traitée</span>
-                    {% else %}
-                      <span class="badge bg-danger">Rejetée</span>
-                    {% endif %}
-                  </td>
-                  <td class="text-center">
-                    {% if demande.statut == 'En attente' %}
-                      <a href="{% url 'demandes_commande_traiter' demande.id %}" class="btn btn-sm btn-primary">Traiter</a>
-                    {% else %}
-                      <a href="{% url 'demandes_commande_traiter' demande.id %}" class="btn btn-sm btn-light">Détail</a>
-                    {% endif %}
+                    <a href="{% url 'demandes_commande_traiter' demande.id %}" class="btn btn-sm btn-primary">Traiter</a>
                   </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center">Aucune demande de commande.</td></tr>
+                <tr><td colspan="5" class="text-center">Aucune demande de commande en attente.</td></tr>
                 {% endfor %}
               </tbody>
             </table>

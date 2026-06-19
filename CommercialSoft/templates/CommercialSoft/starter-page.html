@@ -29,6 +29,51 @@
   <!-- Main CSS File -->
   <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
 
+  <style>
+    .commande-attente-badge {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1040;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background-color: #dc3545;
+      color: #fff;
+      font-size: 1.3rem;
+      text-decoration: none;
+      box-shadow: 0 2px 10px rgba(220, 53, 69, .5);
+      animation: commande-attente-blink 1.6s ease-in-out infinite;
+    }
+    .commande-attente-badge:hover {
+      color: #fff;
+    }
+    .commande-attente-count {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 4px;
+      border-radius: 50%;
+      background: #fff;
+      color: #dc3545;
+      font-size: .7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 2px #dc3545;
+    }
+    @keyframes commande-attente-blink {
+      0%, 100% { box-shadow: 0 2px 10px rgba(220, 53, 69, .5); transform: scale(1); }
+      50% { box-shadow: 0 2px 22px rgba(220, 53, 69, .95); transform: scale(1.08); }
+    }
+  </style>
+
   {% block css %}
 
   {% endblock %}
@@ -113,6 +158,7 @@
               <ul>
                 <li><a href="{% url 'commerce_vente' %}">Nouvelle vente</a></li>
                 <li><a href="{% url 'demandes_commande_liste' %}">Demandes de commande</a></li>
+                <li><a href="{% url 'demandes_commande_historique' %}">Historique commandes clients</a></li>
                 <li class="dropdown"><a href="#"><span>Liste des ventes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
                     <li><a href="{% url 'commerce_produitVendu' %}">Produits vendus</a></li>
@@ -227,9 +273,9 @@
   </header>
 
   {% if demandes_commande_en_attente_count %}
-  <a href="{% url 'demandes_commande_liste' %}" class="alert alert-warning text-center mb-0 py-2 d-block" style="border-radius:0;">
-    <i class="bi bi-exclamation-triangle-fill me-1"></i>
-    {{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation
+  <a href="{% url 'demandes_commande_liste' %}" class="commande-attente-badge" title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
+    <i class="bi bi-bell-fill"></i>
+    <span class="commande-attente-count">{{ demandes_commande_en_attente_count }}</span>
   </a>
   {% endif %}
 

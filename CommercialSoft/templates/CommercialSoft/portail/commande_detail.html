@@ -50,7 +50,8 @@
               <thead>
                 <tr>
                   <th>Produit</th>
-                  <th>Quantité</th>
+                  <th>Quantité commandée</th>
+                  <th>Quantité acceptée</th>
                   <th>Prix unitaire</th>
                   <th>Sous-total</th>
                 </tr>
@@ -60,6 +61,7 @@
                 {% if ligne.quantiteAcceptee %}
                 <tr>
                   <td>{{ ligne.produit.libelle }}</td>
+                  <td>{{ ligne.quantiteDemandee }}</td>
                   <td>{{ ligne.quantiteAcceptee }}</td>
                   <td>{{ ligne.prixUnitaire|floatformat:0 }}</td>
                   <td>{{ ligne.sous_total|floatformat:0 }}</td>
@@ -69,7 +71,7 @@
               </tbody>
               <tfoot>
                 <tr class="fw-bold">
-                  <td colspan="3" class="text-end">Total</td>
+                  <td colspan="4" class="text-end">Total</td>
                   <td>{{ total_facture|floatformat:0 }}</td>
                 </tr>
               </tfoot>
