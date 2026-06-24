@@ -188,7 +188,7 @@
                 </tr>
             </table>
         </div>
-        <h2 style="text-align: center; color: black;font-size: 13px; padding: 0px; margin: 0px; margin: 0; ">{{ commande.date }}</h2>
+        <h2 style="text-align: center; color: black;font-size: 13px; padding: 0px; margin: 0px; margin: 0; ">{{ commande.date|date:"d/m/Y" }} à {{ commande.date|time:"H:i" }}</h2>
         
         <h1 style="color: black;font-size: 14px; padding: 0px; margin: 0px;">N° : {{commande.id}}</h1>
         {% if commande.client %}

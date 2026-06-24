@@ -94,7 +94,7 @@ class Commande(models.Model):
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
     montant=models.PositiveBigIntegerField()
     remise=models.PositiveBigIntegerField(default=0)
-    date=models.DateField(default=timezone.now, db_index=True)
+    date=models.DateTimeField(default=timezone.now, db_index=True)
     typeVente=models.CharField(max_length=15, default="detail", choices=[('detail','Detail'),('en gros','En gros')])
     typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret'),('Don','Don')])
     montantAchat=models.PositiveBigIntegerField()
