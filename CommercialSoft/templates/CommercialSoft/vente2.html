@@ -854,7 +854,7 @@ async function validerVente() {
     let venteData = {
       id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
       lignes: panier,
-      date: document.getElementById("idCommande").value || new Date().toISOString().slice(0, 10),
+      date: getDateTimeNow(),
       remise,
       montant,
       typeVente,
@@ -910,6 +910,16 @@ input.focus();
   
 }
 
+
+function getDateTimeNow() {
+  let now = new Date();
+  let j = String(now.getDate()).padStart(2, '0');
+  let m = String(now.getMonth() + 1).padStart(2, '0');
+  let a = now.getFullYear();
+  let h = String(now.getHours()).padStart(2, '0');
+  let min = String(now.getMinutes()).padStart(2, '0');
+  return `${j}/${m}/${a} à ${h}:${min}`;
+}
 
 function imprimerRecuLocal(venteData, boutique) {
   let contenu = `
@@ -1091,7 +1101,7 @@ async function proforma() {
 
   let venteDataRecu = {
     lignes: panier,
-    date: document.getElementById("idCommande").value,
+    date: getDateTimeNow(),
     remise,
     montant: parseInt(montant, 10) || 0,
     typeVente,

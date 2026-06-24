@@ -4404,7 +4404,7 @@ def pdf_facture_proforma(request):
                 'listes': donnees,
                 'boutique': infoBoutique,
                 'total': total_formate,
-                'date': timezone.now().strftime("%Y-%m-%d"),
+                'date': timezone.now().strftime("%d/%m/%Y à %H:%M"),
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
@@ -4461,7 +4461,7 @@ def pdf_facture_proforma(request):
                 'total': total_formate,
                 'remise': remise_formate,
                 'total_net': total_net_formate,
-                'date': timezone.now().strftime("%Y-%m-%d"),
+                'date': timezone.now().strftime("%d/%m/%Y à %H:%M"),
                 'client': Client.objects.get(id=idClient).nom if idClient else nom_client,
                 'numero_client': Client.objects.get(id=idClient).telephone if idClient else tel_client,
             }
@@ -4523,7 +4523,7 @@ def pdf_facture_proforma_2(request, commande_id):
             'total': total_formate,
             'remise': remise_formate,
             'total_net': total_net_formate,
-            'date': commande.date.strftime("%Y-%m-%d") if hasattr(commande, 'date') else timezone.now().strftime("%Y-%m-%d"),
+            'date': commande.date.strftime("%d/%m/%Y à %H:%M") if hasattr(commande, 'date') else timezone.now().strftime("%d/%m/%Y à %H:%M"),
             'client': client.nom if client else "",
             'numero_client': client.telephone if client else "",
         }
