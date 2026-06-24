@@ -241,11 +241,14 @@
               </div>
             </div>
             <div class="col-md-3" id="lgClient">
-              <div class="form-group d-flex align-items-center">
-                <label class="mb-0 col-md-3" >Client</label> <!-- Ajuste le width si nécessaire -->
-                <div class="col-md-9" style="flex-grow: 1;"> <!-- Cette div prendra l'espace restant -->
+              <div class="form-group d-flex align-items-center gap-1">
+                <label class="mb-0 col-md-3">Client</label>
+                <div class="col-md-9" style="flex-grow: 1;">
                   {{ pret_form.client }}
                 </div>
+                <button type="button" class="btn btn-success btn-sm" title="Nouveau client" onclick="ouvrirModalNouveauClient()" style="white-space:nowrap;">
+                  <i class="fas fa-plus"></i>
+                </button>
               </div>
             </div>
             <div class="col-md-3" id="lgEcheance">
@@ -822,7 +825,7 @@ $(function() {
   });
 </script>
 
-
+{% include "CommercialSoft/includes/modal_nouveau_client.html" %}
 
 </body>
 
