@@ -819,6 +819,9 @@ async function validerVente() {
   let ventes = await localforage.getItem("ventes") || [];
   let remise = parseFloat(document.getElementById("remise").value) || 0;
   let client = parseInt(document.getElementById("id_client").value) || null;
+  let selectClient = document.getElementById("id_client");
+  let clientNom = (selectClient.options[selectClient.selectedIndex] && client) ? selectClient.options[selectClient.selectedIndex].text : "";
+  if (clientNom === "---------") clientNom = "";
   let typeVente = document.getElementById("typeVente").value;
   let typePayementVal = document.getElementById("typePayement").value;
   let user = parseInt(document.getElementById("user_id").value);
@@ -860,6 +863,7 @@ async function validerVente() {
       typeVente,
       typePayement: typePayementVal,
       client,
+      clientNom,
       user,
       dateEcheance: dateEcheance,
       commentaire: commentaire,
@@ -1008,7 +1012,7 @@ function imprimerRecuLocal(venteData, boutique) {
             <td style="text-align: rigth; border: none;"><h3>${venteData.date}</h3></td>
           </tr>
         </table>
-        <h3 style="padding:10px">Client : ${boutique.nomClientSimple || venteData.clientNom}</h3>
+        ${venteData.typePayement === "Pret" && venteData.clientNom ? `<h3 style="padding:4px 0;">Client : ${venteData.clientNom}</h3>` : ""}
 
         <h2 style="text-align: center; padding: 15px">Liste des produits</h2>
 
