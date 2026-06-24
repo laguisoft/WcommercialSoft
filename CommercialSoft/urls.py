@@ -111,6 +111,7 @@ urlpatterns=[
     path('commerce/client/etat', views.pdf_etat_client,name="commerce_etatClient"),
     path('commerce/client/situation/etat', views.pdf_etat_situation_client,name="commerce_etatListeClient"),
     path('commerce/client/compte/<int:pk>/', views.client_compte_creer, name='client_compte_creer'),
+    path('commerce/client/api/creer/', views.api_creer_client, name='api_creer_client'),
     #-- pretClient
     path('commerce/pret/Client', views.pretClient_list_create,name="commerce_pretClient"),
     path('commerce/pret/client/modification/<int:pk>/', views.pretClient_edit,name="commerce_modPretClient"),

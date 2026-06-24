@@ -2867,6 +2867,32 @@ def client_delete(request, pk):
     return redirect('commerce_client')
 
 
+@login_required
+@permission_required('CommercialSoft.add_client')
+def api_creer_client(request):
+    if request.method != "POST":
+        return JsonResponse({"erreur": "Méthode non autorisée"}, status=405)
+    try:
+        data = json.loads(request.body)
+        nom = data.get("nom", "").strip()
+        telephone = data.get("telephone", "").strip()
+        if not nom:
+            return JsonResponse({"erreur": "Le nom est obligatoire"}, status=400)
+        if Client.objects.filter(nom__iexact=nom).exists():
+            return JsonResponse({"erreur": f"Un client nommé « {nom} » existe déjà"}, status=400)
+        societe = Societe.objects.first()
+        client = Client.objects.create(
+            nom=nom,
+            telephone=telephone or None,
+            societe=societe,
+            pourcentage=0,
+            detteMaximale=0,
+        )
+        return JsonResponse({"id": client.id, "nom": client.nom})
+    except Exception as e:
+        return JsonResponse({"erreur": str(e)}, status=500)
+
+
 
 
 
