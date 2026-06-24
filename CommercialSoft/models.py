@@ -96,7 +96,7 @@ class Commande(models.Model):
     remise=models.PositiveBigIntegerField(default=0)
     date=models.DateTimeField(default=timezone.now, db_index=True)
     typeVente=models.CharField(max_length=15, default="detail", choices=[('detail','Detail'),('en gros','En gros')])
-    typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret'),('Don','Don')])
+    typePayement=models.CharField(max_length=20, default="Espece", choices=[('Espece','Espece'),('Pret','Pret'),('Don','Don'),('Orange Money','Orange Money')])
     montantAchat=models.PositiveBigIntegerField()
     # pour la gestion hors ligne
     client_uid = models.CharField(max_length=64, unique=True, null=True, blank=True)
