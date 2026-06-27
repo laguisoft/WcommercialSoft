@@ -120,7 +120,7 @@
           <div class="contact-info d-flex align-items-center" id="commande-attente-topbar-wrap"{% if not demandes_commande_en_attente_count %} style="display:none;"{% endif %}>
             <a href="{% url 'demandes_commande_liste' %}" id="commande-attente-topbar" class="commande-attente-topbar" target="_blank" title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
               <i class="bi bi-bell-fill"></i>
-              <span id="commande-attente-topbar-texte">{{ demandes_commande_en_attente_count|default:0 }} commande{{ demandes_commande_en_attente_count|pluralize }} en attente</span>
+              <span id="commande-attente-topbar-texte">{% if demandes_commande_en_attente_count %}{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} en attente{% endif %}</span>
             </a>
           </div>
           {% endif %}
@@ -1649,7 +1649,10 @@ document.addEventListener("keydown", function(e) {
             wrap.style.display = 'none';
           }
         })
-        .catch(function () {});
+        .catch(function () {
+          var wrap = document.getElementById('commande-attente-topbar-wrap');
+          if (wrap) wrap.style.display = 'none';
+        });
     }
     refreshCommandeAttente();
     setInterval(refreshCommandeAttente, 20000);
