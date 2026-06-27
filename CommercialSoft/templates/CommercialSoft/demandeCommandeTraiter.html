@@ -116,7 +116,7 @@
 
               <div class="card-footer text-center">
                 <button type="submit" name="action" value="valider" class="btn btn-primary">Valider et enregistrer la vente</button>
-                <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#modalRejet">Rejeter</button>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRejet">Rejeter</button>
               </div>
               {% endif %}
             </form>
@@ -127,7 +127,7 @@
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Rejeter la demande</h5>
-        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <form method="post">
         {% csrf_token %}
@@ -136,7 +136,7 @@
           <textarea name="motifRejet" class="form-control" rows="4" maxlength="500" placeholder="Ex: produit épuisé, quantité insuffisante..."></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
           <button type="submit" name="action" value="rejeter" class="btn btn-danger">Confirmer le rejet</button>
         </div>
       </form>
