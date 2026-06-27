@@ -32,6 +32,9 @@
               <p class="text-success mt-2 mb-0"><i class="bi bi-check-circle me-1"></i>Votre commande a été traitée. Voici votre facture avec les quantités et les prix retenus.</p>
             {% else %}
               <p class="text-danger mt-2 mb-0"><i class="bi bi-x-circle me-1"></i>Cette demande a été rejetée.</p>
+              {% if demande.motifRejet %}
+              <p class="text-danger mt-1 mb-0"><strong>Motif :</strong> {{ demande.motifRejet }}</p>
+              {% endif %}
             {% endif %}
           </div>
         </div>
