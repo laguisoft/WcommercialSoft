@@ -1633,20 +1633,20 @@ document.addEventListener("keydown", function(e) {
   (function () {
     function refreshCommandeAttente() {
       fetch("{% url 'api_demandes_commande_en_attente' %}", { credentials: 'same-origin' })
-        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (res) { return res.json(); })
         .then(function (data) {
-          if (!data) return;
           var wrap = document.getElementById('commande-attente-topbar-wrap');
           var lien = document.getElementById('commande-attente-topbar');
           var texte = document.getElementById('commande-attente-topbar-texte');
           if (!wrap || !lien || !texte) return;
-          if (data.count > 0) {
+          if (data && data.count > 0) {
             var pluriel = data.count > 1 ? 's' : '';
             texte.textContent = data.count + ' commande' + pluriel + ' en attente';
             lien.title = data.count + ' commande' + pluriel + ' client' + pluriel + ' en attente de validation';
             wrap.style.display = '';
           } else {
             wrap.style.display = 'none';
+            texte.textContent = '';
           }
         })
         .catch(function () {
