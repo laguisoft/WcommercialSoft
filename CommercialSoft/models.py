@@ -128,6 +128,7 @@ class CommandeClient(models.Model):
         ('Rejetee', 'Rejetee'),
     ])
     commentaire=models.CharField(max_length=200, null=True, blank=True)
+    motifRejet=models.TextField(max_length=500, null=True, blank=True)
     commande=models.OneToOneField(Commande, on_delete=models.SET_NULL, null=True, blank=True, related_name='demande_origine')
     traitePar=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='demandes_traitees')
     dateTraitement=models.DateTimeField(null=True, blank=True)

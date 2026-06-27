@@ -5165,6 +5165,7 @@ def demandes_commande_traiter(request, pk):
             demande.statut = 'Rejetee'
             demande.traitePar = request.user
             demande.dateTraitement = timezone.now()
+            demande.motifRejet = request.POST.get('motifRejet', '').strip() or None
             demande.save()
             messages.success(request, "Demande rejetée.")
             return redirect('demandes_commande_liste')
