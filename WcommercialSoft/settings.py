@@ -88,7 +88,6 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # Configuration de la base de données via variables d'environnement.
 # Par defaut : SQLite (developpement). Pour la production avec MySQL,
 # definir DB_ENGINE=mysql ainsi que DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.
-
 """
 DB_ENGINE = config('DB_ENGINE', default='sqlite')
 
@@ -107,9 +106,7 @@ if DB_ENGINE == 'mysql':
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             },
         }
-    }
-
-   
+    }   
 else:
     DATABASES = {
         'default': {
@@ -120,7 +117,9 @@ else:
             },
         }
     }
-"""
+
+
+
 
 DATABASES = {
         'default': {
@@ -133,6 +132,18 @@ DATABASES = {
         }
     }
 
+"""
+
+
+DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 20,  # attendre au lieu d'échouer si la base est verrouillée (polling concurrent)
+            },
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
