@@ -1635,6 +1635,7 @@ document.addEventListener("keydown", function(e) {
       fetch("{% url 'api_demandes_commande_en_attente' %}", { credentials: 'same-origin' })
         .then(function (res) { return res.json(); })
         .then(function (data) {
+          console.log('[CommandeAttente] API réponse:', data);
           var wrap = document.getElementById('commande-attente-topbar-wrap');
           var lien = document.getElementById('commande-attente-topbar');
           var texte = document.getElementById('commande-attente-topbar-texte');
