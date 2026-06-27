@@ -117,7 +117,7 @@
             <i class="bi  d-flex align-items-center"><a href="{% url 'commerce_dashboard' %}">Acueil</a></i>
           </div>
           {% if perms.CommercialSoft.add_commande %}
-          <div class="contact-info d-flex align-items-center" id="commande-attente-topbar-wrap"{% if not demandes_commande_en_attente_count %} style="display:none;"{% endif %}>
+          <div class="contact-info d-flex align-items-center{% if not demandes_commande_en_attente_count %} d-none{% endif %}" id="commande-attente-topbar-wrap">
             <a href="{% url 'demandes_commande_liste' %}" id="commande-attente-topbar" class="commande-attente-topbar" target="_blank" title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
               <i class="bi bi-bell-fill"></i>
               <span id="commande-attente-topbar-texte">{% if demandes_commande_en_attente_count %}{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} en attente{% endif %}</span>
@@ -1635,6 +1635,7 @@ document.addEventListener("keydown", function(e) {
       fetch("{% url 'api_demandes_commande_en_attente' %}", { credentials: 'same-origin' })
         .then(function (res) { return res.json(); })
         .then(function (data) {
+          console.log('[CommandeAttente] API réponse:', data);
           var wrap = document.getElementById('commande-attente-topbar-wrap');
           var lien = document.getElementById('commande-attente-topbar');
           var texte = document.getElementById('commande-attente-topbar-texte');
@@ -1643,15 +1644,15 @@ document.addEventListener("keydown", function(e) {
             var pluriel = data.count > 1 ? 's' : '';
             texte.textContent = data.count + ' commande' + pluriel + ' en attente';
             lien.title = data.count + ' commande' + pluriel + ' client' + pluriel + ' en attente de validation';
-            wrap.style.display = '';
+            wrap.classList.remove('d-none');
           } else {
-            wrap.style.display = 'none';
+            wrap.classList.add('d-none');
             texte.textContent = '';
           }
         })
         .catch(function () {
           var wrap = document.getElementById('commande-attente-topbar-wrap');
-          if (wrap) wrap.style.display = 'none';
+          if (wrap) wrap.classList.add('d-none');
         });
     }
     refreshCommandeAttente();
