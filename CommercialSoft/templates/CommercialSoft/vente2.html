@@ -1297,6 +1297,7 @@ async function syncVentes() {
         await localforage.setItem("ventes", ventes);
       } else {
         console.warn(`⚠️ Erreur sur la vente ${i + 1}:`, result.error);
+        if (result.traceback) console.error('[TRACEBACK]', result.traceback);
       }
     } catch (err) {
       console.error("❌ Erreur réseau, arrêt de la synchronisation !");

@@ -4967,7 +4967,8 @@ def sync_ventes(request):
         return JsonResponse({"success": True, "message": "✅ Vente synchronisée avec succès !"})
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+        import traceback
+        return JsonResponse({"success": False, "error": str(e), "traceback": traceback.format_exc()}, status=400)
 
 
 # ============================================================
