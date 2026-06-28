@@ -4874,6 +4874,20 @@ from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, Pr
 User = get_user_model()  # ✅ Récupère ton CustomUser
 
 @login_required
+def _parse_date_vente(date_str):
+    """Accepte yyyy-MM-dd (ISO) ou dd/MM/yyyy (ancien format), retourne un objet date."""
+    from datetime import datetime
+    if not date_str:
+        return timezone.now().date()
+    date_str = date_str.replace('\xa0', ' ').strip()
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+        try:
+            return datetime.strptime(date_str[:10], fmt).date()
+        except ValueError:
+            continue
+    return timezone.now().date()
+
+
 def sync_ventes(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
@@ -4900,7 +4914,7 @@ def sync_ventes(request):
             client =  client,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
-            date = vente.get("date") or timezone.now().date(),
+            date = _parse_date_vente(vente.get("date")),
             #date = date(2025, 10, 14),  # Pour test
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),
