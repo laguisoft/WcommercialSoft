@@ -4873,7 +4873,6 @@ from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, Pr
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
 
-@login_required
 def _parse_date_vente(date_str):
     """Accepte yyyy-MM-dd (ISO) ou dd/MM/yyyy (ancien format), retourne un objet date."""
     from datetime import datetime
