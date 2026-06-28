@@ -4894,10 +4894,13 @@ def sync_ventes(request):
 
     try:
         vente = json.loads(request.body)  # une seule vente envoyée
-        if not vente:
-            return JsonResponse({"success": False, "message": "vente deja synchronisé"}, status=400)
+        # Correction double-sérialisation : si vente est une string, on la parse à nouveau
+        if isinstance(vente, str):
+            vente = json.loads(vente)
+        if not vente or not isinstance(vente, dict):
+            return JsonResponse({"success": False, "message": "données invalides"}, status=400)
 
-        user_id=int(vente.get("user")) if vente.get("user") else request.user.id
+        user_id = int(vente.get("user")) if vente.get("user") else request.user.id
         id_local = vente.get("id_local")
         client_id = vente.get("client")
         if vente.get("typePayement") == "Pret":
@@ -4938,7 +4941,7 @@ def sync_ventes(request):
                 produit=produit,
                 quantite=quantite,
                 prix=prix,
-                date=vente.get("date", timezone.now().date()),
+                date=_parse_date_vente(vente.get("date")),
             )
 
             montant_achat += produit.prixAchat * quantite
@@ -4954,8 +4957,8 @@ def sync_ventes(request):
                 PretClient.objects.create(
                     client=client,
                     montant=montant_pret,
-                    date=vente.get("date", timezone.now().date()),
-                    dateEcheance=vente.get("dateEcheance", timezone.now().date()),
+                    date=_parse_date_vente(vente.get("date")),
+                    dateEcheance=_parse_date_vente(vente.get("dateEcheance")),
                     commande=commande,
                     commentaire=vente.get("commentaire"),
                     user=User.objects.get(id=user_id),
