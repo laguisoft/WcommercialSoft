@@ -859,7 +859,7 @@ async function validerVente() {
     let venteData = {
       id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
       lignes: panier,
-      date: getDateTimeNow(),
+      date: new Date().toISOString().slice(0, 10),
       remise,
       montant,
       typeVente,
