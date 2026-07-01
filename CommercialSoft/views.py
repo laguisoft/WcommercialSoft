@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit, InfoBoutique
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
 from .decorators import client_required
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -83,7 +83,7 @@ def login_view(request):
 
 @login_required
 def dashboard(request):
-    info_boutique = InfoBoutique.objects.first()
+    info_boutique = request.entreprise
     total_produits = Produit.objects.count()
     produits_perimes = Produit.objects.filter(datePeremption__lt=now()).count()
     produits_rupture = Produit.objects.filter(quantite__lte=F('seuil')).count()
@@ -120,6 +120,7 @@ def fournisseur_list_create(request):
         if form.is_valid():
             four = form.save(commit=False)
             four.date = timezone.now().date()
+            four.entreprise = request.entreprise
             four.save()  # Sauvegarder après modification
             messages.success(request, "Fournisseur créée avec succès !")
             return redirect('commerce_fournisseur')
@@ -232,6 +233,7 @@ def categorie_list_create(request):
     if request.method == "POST":
         form = CategorieForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Categorie créée avec succès !")
             return redirect('commerce_categorie')
@@ -288,6 +290,7 @@ def produit_list_create(request):
     if request.method == "POST":
         form = ProduitForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Produit créée avec succès !")
             return redirect('commerce_produit')
@@ -465,6 +468,7 @@ def reception_create(request):
             with transaction.atomic():  # évite les données partielles
                 try:
                     # ✅ Enregistrer la livraison
+                    livraison_form.instance.entreprise = request.entreprise
                     livraison = livraison_form.save()
 
                     # ✅ Traiter chaque ligne du formset
@@ -474,6 +478,7 @@ def reception_create(request):
 
                         livraison_produit = form.save(commit=False)
                         livraison_produit.livraison = livraison
+                        livraison_produit.entreprise = request.entreprise
 
                         # ✅ Mise à jour du stock produit
                         produit_id=livraison_produit.produit.id
@@ -759,7 +764,7 @@ def reception_create(request):
     livraison_form = LivraisonForm()
     detteFournisseur_form = DetteFournisseurForm()
     produits = Produit.objects.all()
-    boutique= InfoBoutique.objects.first()
+    boutique= request.entreprise
     return render(request, 'CommercialSoft/reception2.html', {
         'commande_form': livraison_form,
         'pret_form': detteFournisseur_form,
@@ -826,6 +831,7 @@ def detail_reception(request, pk):
         if form.is_valid():  # Vérifier la validité AVANT d'utiliser form
             produit = form.save(commit=False)
             produit.livraison = livraison
+            produit.entreprise = request.entreprise
             produit.save()
             return redirect('commerce_detailReception', pk=pk)  # Rediriger après un POST réussi
 
@@ -1136,6 +1142,7 @@ def vente_creates(request):
                     commande = commande_form.save(commit=False)
                     commande.user = request.user
                     commande.montantAchat = 0
+                    commande.entreprise = request.entreprise
                     commande.save()
 
                     montantAchat = 0
@@ -1182,6 +1189,7 @@ def vente_creates(request):
                             pret.montant = commande.montant
                             pret.date = commande.date
                             pret.payer = "Non"
+                            pret.entreprise = request.entreprise
                             pret.save()
                             commande.client = pret.client
                             commande.save()
@@ -1212,7 +1220,7 @@ def vente_creates(request):
     commande_form = CommandeForm()
     pret_form = pretClientForm()
     produits = Produit.objects.all()
-    boutique= InfoBoutique.objects.first()
+    boutique= request.entreprise
     return render(request, 'CommercialSoft/vente2.html', {
         'commande_form': commande_form,
         'pret_form': pret_form,
@@ -1784,6 +1792,7 @@ def depense_list_create(request):
         if form.is_valid():
             depense= form.save(commit=False)  # Sauvegarder après modification
             depense.user=request.user
+            depense.entreprise = request.entreprise
             depense.save()
             messages.success(request, "Dépense créée avec succès !")
             return redirect('commerce_depense')
@@ -1895,6 +1904,7 @@ def categorie_depense_list_create(request):
     if request.method == "POST":
         form = CategorieDepenseForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Categorie créée avec succès !")
             return redirect('commerce_categorieDepense')
@@ -1958,6 +1968,7 @@ def decaissement_list_create(request):
         if form.is_valid():
             decais= form.save(commit=False)  # Sauvegarder après modification
             decais.user=request.user
+            decais.entreprise = request.entreprise
             decais.save()
             messages.success(request, "Décaissement créée avec succès !")
             return redirect('commerce_decaissement')
@@ -2064,6 +2075,7 @@ def categorie_decaissement_list_create(request):
     if request.method == "POST":
         form = CategorieDecaissementForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Categorie créée avec succès !")
             return redirect('commerce_categorieDecaissement')
@@ -2157,6 +2169,7 @@ def versementClient_list_create(request):
         if form.is_valid():
             versement= form.save(commit=False)  # Sauvegarder après modification
             versement.user=request.user
+            versement.entreprise = request.entreprise
             versement.save()
             messages.success(request, "Versement créée avec succès !")
             return redirect('imprimer_recu_versement', versement.id)
@@ -2298,6 +2311,7 @@ def versementGerant_list_create(request):
     if request.method == "POST":
         form = VersementGerantForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Versement créée avec succès !")
             return redirect('commerce_versementGerant')
@@ -2402,6 +2416,7 @@ def pretClient_list_create(request):
         if form.is_valid():
             dette = form.save(commit=False)
             dette.user=request.user
+            dette.entreprise = request.entreprise
             dette.save()  # Sauvegarder après modification
             messages.success(request, "pret créée avec succès !")
             return redirect('commerce_pretClient')
@@ -2551,6 +2566,7 @@ def versementFournisseur_list_create(request):
     if request.method == "POST":
         form = VersementFournisseurForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Versement créée avec succès !")
             return redirect('commerce_versementFournisseur')
@@ -2670,6 +2686,7 @@ def detteFournisseur_list_create(request):
     if request.method == "POST":
         form = DetteFournisseurForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Dette créée avec succès !")
             return redirect('commerce_detteFournisseur')
@@ -2774,6 +2791,7 @@ def client_list_create(request):
     if request.method == "POST":
         form = clientForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Client créée avec succès !")
             return redirect('commerce_client')
@@ -2912,6 +2930,7 @@ def societe_list_create(request):
     if request.method == "POST":
         form = societeForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "societe créée avec succès !")
             return redirect('commerce_societe')
@@ -3216,7 +3235,7 @@ def recu(request, pk):
     total_formatte = intcomma(total).replace(",", ".")
     net=total-commande.remise 
     net_formatte = intcomma(net).replace(",", ".")
-    infoBoutique=InfoBoutique.objects.first()
+    infoBoutique=request.entreprise
     context = {'listes': produits,'total':total_formatte,'net':net_formatte,'remise':commande.remise,'boutique':infoBoutique,'commande':commande}
     
     # Chemin vers le fichier HTML dans le répertoire templates
@@ -3242,7 +3261,7 @@ from django.shortcuts import render
 from django.contrib.humanize.templatetags.humanize import intcomma
 from datetime import date
 
-from CommercialSoft.models import Client, InfoBoutique  # ✅ importer en haut
+from CommercialSoft.models import Client  # ✅ importer en haut
 
 @login_required
 @permission_required('CommercialSoft.view_commande')
@@ -3288,8 +3307,7 @@ def recu_offline(request):
             except Client.DoesNotExist:
                 commande["client"] = f"Client #{client_id}"
 
-        from CommercialSoft.models import InfoBoutique
-        infoBoutique = InfoBoutique.objects.first()
+        infoBoutique = request.entreprise
 
         context = {
             "listes": produits,
@@ -3401,7 +3419,7 @@ def pdf_Produit_disponible(request):
         ]
 
         
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfProduitDisponible.html", context)
 
@@ -3448,7 +3466,7 @@ def pdf_inventaire(request):
         ]
 
         
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfInventaire.html", context)
 
@@ -3496,7 +3514,7 @@ def pdf_Produit_livrer(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfProduitLivrer.html", context)
 
@@ -3544,7 +3562,7 @@ def pdf_etat_depense(request):
             montant_total = sum(p["montant"] for p in produits_data)
             montant_formate = "{:,.0f}".format(montant_total).replace(",", " ")
 
-            infoBoutique = InfoBoutique.objects.first()
+            infoBoutique = request.entreprise
 
             context = {
                 'listes': produits_data,
@@ -3608,7 +3626,7 @@ def pdf_etat_detail_vente(request):
             montant_total = sum(p["montant"] for p in produits_data)
             montant_formate = "{:,.0f}".format(montant_total).replace(",", " ")
 
-            infoBoutique = InfoBoutique.objects.first()
+            infoBoutique = request.entreprise
 
             context = {
                 'listes': produits_data,
@@ -3660,7 +3678,7 @@ def pdf_etat_versementClient(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementClient.html", context)
 
@@ -3706,7 +3724,7 @@ def pdf_etat_versementFournisseur(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementFournisseur.html", context)
 
@@ -3754,7 +3772,7 @@ def pdf_etat_client(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
           
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatClient.html", context)
@@ -3814,7 +3832,7 @@ def pdf_etat_situation_client(request):
         def formater(montant):
             return "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique = InfoBoutique.objects.first()
+        infoBoutique = request.entreprise
         context = {
             'listes': produits_data,
             'montantPret': formater(montant_pret),
@@ -3894,7 +3912,7 @@ def pdf_etat_situation_fournisseur(request):
         montantVersement_formate = "{:,.0f}".format(montantVersement).replace(",", " ")
         balance_formate = "{:,.0f}".format(balance).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montantPret': montantPret_formate,'montantVersement':montantVersement_formate, 'balance':balance_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationFournisseur.html", context)
 
@@ -3947,7 +3965,7 @@ def pdf_etat_situation_boutique(request):
         montant_formate = "{:,.0f}".format(montantTotal).replace(",", " ")
         benefice_formate = "{:,.0f}".format(benefice).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'benefice':benefice_formate,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationBoutique.html", context)
@@ -3982,7 +4000,7 @@ def pdf_etat_produit_perime(request):
             for produit in produits
         ]
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitPerime.html", context)
@@ -4016,7 +4034,7 @@ def pdf_etat_produit_rupture(request):
             for produit in produits
         ]
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitRupture.html", context)
@@ -4067,7 +4085,7 @@ def pdf_etat_pretClient(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatPretClient.html", context)
@@ -4116,7 +4134,7 @@ def pdf_etat_versementGerant(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=InfoBoutique.objects.first()
+        infoBoutique=request.entreprise
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementGerant.html", context)
 
@@ -4206,7 +4224,7 @@ def pdf_etat_situation_vente(request):
                         "stock": produit.quantite or 0
                     })
 
-            infoBoutique=InfoBoutique.objects.first()
+            infoBoutique=request.entreprise
             context = {'listes': produits_infos, 'boutique':infoBoutique}
             return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationVente.html", context)
     except Exception as e:
@@ -4255,7 +4273,7 @@ def pdf_etat_reception_produit(request):
                     "date_livraison": lp.livraison.date.strftime("%Y-%m-%d"),
                 })
 
-            infoBoutique=InfoBoutique.objects.first()
+            infoBoutique=request.entreprise
             context = {'listes': resultats, 'boutique':infoBoutique}
             return generate_pdf_response_vrais("CommercialSoft/pdfReceptionProduit.html", context)
 
@@ -4426,7 +4444,7 @@ def pdf_facture_proforma(request):
             data_json = request.POST.get('data')
             donnees = json.loads(data_json)
 
-            infoBoutique = InfoBoutique.objects.first()
+            infoBoutique = request.entreprise
 
             # Calcul du total
             total = sum(item.get("montant", 0) for item in donnees)
@@ -4460,7 +4478,7 @@ def pdf_facture_proforma(request):
             data_json = request.POST.get('data')
             data = json.loads(data_json)
 
-            infoBoutique = InfoBoutique.objects.first()
+            infoBoutique = request.entreprise
 
             # Liste des articles
             donnees = data.get("produits", [])
@@ -4519,7 +4537,7 @@ def pdf_facture_proforma_2(request, commande_id):
         commande = get_object_or_404(Commande, id=commande_id)
 
         # ✅ 2️⃣ Informations de la boutique
-        infoBoutique = InfoBoutique.objects.first()
+        infoBoutique = request.entreprise
 
         # ✅ 3️⃣ Liste des lignes de la commande
         lignes = CommandeProduit.objects.filter(commande=commande)
@@ -4629,7 +4647,7 @@ def pdf_etat_bilan(request):
             else:
                 intervalle= "du "+dateDebut+" au "+dateFin
 
-            infoBoutique = InfoBoutique.objects.first()
+            infoBoutique = request.entreprise
 
 
             def formater(montant):
@@ -5083,7 +5101,7 @@ def portail_commande_detail(request, pk):
         'demande': demande,
         'lignes': lignes,
         'total_facture': total_facture,
-        'boutique': InfoBoutique.objects.first(),
+        'boutique': request.entreprise,
     })
 
 
@@ -5099,7 +5117,7 @@ def portail_facture_pdf(request, pk):
         'demande': demande,
         'lignes': lignes,
         'total_facture': total_facture,
-        'boutique': InfoBoutique.objects.first(),
+        'boutique': request.entreprise,
     }
     return generate_pdf_response_vrais("CommercialSoft/portail/factureA4.html", context)
 
