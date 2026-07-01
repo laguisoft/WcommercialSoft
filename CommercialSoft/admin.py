@@ -40,7 +40,7 @@ class LivraisonAdmin(admin.ModelAdmin):
 
 @admin.register(LivraisonProduit)
 class LivraisonProduitAdmin(admin.ModelAdmin):
-    list_display = ('livraison','quantite', 'prix','prixDetail','peremption')
+    list_display = ('livraison','quantite', 'prix','prixEnGros','prixDetail','peremption')
     search_fields = ('livraison',)
     list_filter = ('livraison',)
     ordering = ('livraison',)

@@ -59,7 +59,8 @@ class LivraisonProduit(models.Model):
     livraison=models.ForeignKey(Livraison, on_delete=models.CASCADE)
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
     quantite=models.PositiveIntegerField()
-    prix=models.PositiveBigIntegerField() 
+    prix=models.PositiveBigIntegerField()
+    prixEnGros=models.PositiveBigIntegerField(default=0, blank=True)
     prixDetail=models.PositiveBigIntegerField()
     peremption=models.DateField(null=True, blank=True)
 

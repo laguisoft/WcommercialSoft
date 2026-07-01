@@ -85,11 +85,12 @@ class LivraisonForm(forms.ModelForm):
 class LivraisonProduitForm(forms.ModelForm):
     class Meta:
         model = LivraisonProduit
-        fields = ['produit','quantite','prix','prixDetail','peremption']
+        fields = ['produit','quantite','prix','prixEnGros','prixDetail','peremption']
         widgets = {
             'produit': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idProduit"}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control', 'id':"quantite"}),
             'prix': forms.NumberInput(attrs={'class': 'form-control','id':'prixAchat'}),
+            'prixEnGros': forms.NumberInput(attrs={'class': 'form-control','id':'prixEnGros'}),
             'prixDetail': forms.NumberInput(attrs={'class': 'form-control','id':"prixDetail"}),
             'peremption': forms.TextInput(attrs={'class': 'form-control', 'id':'peremption','placeholder': 'MM/AA', 'maxlength': '5', 'inputmode': 'numeric','pattern': r'\d{2}/\d{2}','autocomplete': 'off'}),
         }

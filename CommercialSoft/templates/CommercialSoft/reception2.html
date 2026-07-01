@@ -79,6 +79,13 @@
 
               <div class="col-md-2">
                 <div class="form-group">
+                  <label>Prix en gros</label>
+                  <input type="number" class="form-control" id="prixEnGrosR" min="0">
+                </div>
+              </div>
+
+              <div class="col-md-2">
+                <div class="form-group">
                   <label>Prix détail</label>
                   <input type="number" class="form-control" id="prixDetailR" min="0">
                 </div>
@@ -202,6 +209,7 @@
                   <th class="text-center">Prix d'achat</th>
                   <th class="text-center">Montant</th>
                   <th class="text-center">Péremption</th>
+                  <th class="text-center">Prix en gros</th>
                   <th class="text-center">Prix vente</th>
                   <th class="text-center" style="width:40px">#</th>
                 </tr>
@@ -252,6 +260,7 @@ const sugR = document.getElementById("suggestionsR");
 const sugCatR = document.getElementById("suggestionsRcat");
 
 const prixAchatR = document.getElementById("prixAchatR");
+const prixEnGrosR = document.getElementById("prixEnGrosR");
 const prixDetailR = document.getElementById("prixDetailR");
 const quantiteR = document.getElementById("quantiteR");
 const peremptionR = document.getElementById("peremptionR");
@@ -542,6 +551,7 @@ function remplirInfosProduit(p) {
   produitSelectionneR = p;
   inputR.value = p.libelle;
   prixAchatR.value = p.prixAchat;
+  prixEnGrosR.value = p.prixEnGros;
   prixDetailR.value = p.prixDetail;
   stockR.value = p.quantite;
   quantiteR.value = 1;
@@ -572,6 +582,7 @@ function ajouterLigneReception(p = null) {
 
   let qte = parseInt(quantiteR.value || "1");
   let pa = parseFloat(prixAchatR.value || "0");
+  let peg = parseFloat(prixEnGrosR.value || "0");
   let pd = parseFloat(prixDetailR.value || "0");
   let per = (peremptionR.value || "").trim();
 
@@ -595,7 +606,7 @@ function ajouterLigneReception(p = null) {
 
   const exist = panierR.find(it => it.produit_id === p.id);
   if (exist) exist.quantite += qte;
-  else panierR.push({ produit_id:p.id, nom:p.libelle, quantite:qte, prix:pa, prixDetail:pd, peremption:per,categorie: categorieID });
+  else panierR.push({ produit_id:p.id, nom:p.libelle, quantite:qte, prix:pa, prixEnGros:peg, prixDetail:pd, peremption:per,categorie: categorieID });
 
   // formset caché
   const fs = document.getElementById("formset-container");
@@ -605,6 +616,7 @@ function ajouterLigneReception(p = null) {
       <input type="hidden" name="livraisonproduit_set-${count}-produit" value="${p.id}">
       <input type="hidden" name="livraisonproduit_set-${count}-quantite" value="${qte}">
       <input type="hidden" name="livraisonproduit_set-${count}-prix" value="${pa}">
+      <input type="hidden" name="livraisonproduit_set-${count}-prixEnGros" value="${peg}">
       <input type="hidden" name="livraisonproduit_set-${count}-prixDetail" value="${pd}">
       <input type="hidden" name="livraisonproduit_set-${count}-peremption" value="${per}">
       <input type="hidden" name="livraisonproduit_set-${count}-categorie" value="${categorieID}">
@@ -616,7 +628,7 @@ function ajouterLigneReception(p = null) {
   afficherPanierR();
 
   // reset champs
-  prixAchatR.value = ""; prixDetailR.value = ""; quantiteR.value = 1; stockR.value = ""; peremptionR.value = "";
+  prixAchatR.value = ""; prixEnGrosR.value = ""; prixDetailR.value = ""; quantiteR.value = 1; stockR.value = ""; peremptionR.value = "";
   inputR.value = ""; produitSelectionneR = null; inputR.focus();
 }
 
@@ -635,6 +647,7 @@ function afficherPanierR() {
       <td class="text-center">${Number(item.prix).toLocaleString('fr-FR')}</td>
       <td class="text-center">${m.toLocaleString('fr-FR')}</td>
       <td class="text-center">${item.peremption || ""}</td>
+      <td class="text-center">${Number(item.prixEnGros||0).toLocaleString('fr-FR')}</td>
       <td class="text-center">${Number(item.prixDetail||0).toLocaleString('fr-FR')}</td>
       <td class="text-center"><button class="btn btn-sm btn-danger btn-removeR"><i class="fas fa-trash"></i></button></td>`;
     tbody.appendChild(tr);
@@ -678,6 +691,7 @@ function rebuildHiddenFormset() {
         <input type="hidden" name="livraisonproduit_set-${i}-produit" value="${it.produit_id}">
         <input type="hidden" name="livraisonproduit_set-${i}-quantite" value="${it.quantite}">
         <input type="hidden" name="livraisonproduit_set-${i}-prix" value="${it.prix}">
+        <input type="hidden" name="livraisonproduit_set-${i}-prixEnGros" value="${it.prixEnGros}">
         <input type="hidden" name="livraisonproduit_set-${i}-prixDetail" value="${it.prixDetail}">
         <input type="hidden" name="livraisonproduit_set-${i}-peremption" value="${it.peremption}">
       </div>

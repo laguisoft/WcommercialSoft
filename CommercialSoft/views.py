@@ -483,6 +483,8 @@ def reception_create(request):
                         produit.prixAchat = livraison_produit.prix
                         produit.quantite += livraison_produit.quantite
                         produit.prixDetail = livraison_produit.prixDetail
+                        if livraison_produit.prixEnGros:
+                            produit.prixEnGros = livraison_produit.prixEnGros
                         produit.save()
 
                         # ✅ Enregistrer la ligne de livraison
@@ -610,6 +612,7 @@ def api_sync_livraisons(request):
                 pid = li.get("produit_id")
                 qte = int(li.get("quantite") or 0)
                 prix = int(float(li.get("prix") or 0))
+                prixEnGros = int(float(li.get("prixEnGros") or 0))
                 prixDetail = int(float(li.get("prixDetail") or 0))
                 per_mm_aa = (li.get("peremption") or "").strip()
                 if not pid or qte <= 0 or prix <= 0:
@@ -635,6 +638,7 @@ def api_sync_livraisons(request):
                     produit=pr,
                     quantite=qte,
                     prix=prix,
+                    prixEnGros=prixEnGros,
                     prixDetail=prixDetail,
                     peremption=per_date
                 )
@@ -645,6 +649,8 @@ def api_sync_livraisons(request):
                 pr.prixAchat = prix
                 if prixDetail > 0:
                     pr.prixDetail = prixDetail
+                if prixEnGros > 0:
+                    pr.prixEnGros = prixEnGros
                 pr.save()
 
             if typePayement == "Pret":

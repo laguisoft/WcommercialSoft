@@ -182,10 +182,18 @@
                       <div class="row">
                         <div class="col-md-6">
                           <div class="form-group">
+                            <label for="prixEnGros">Prix en gros</label>
+                            {{ form.prixEnGros }}
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
                             <label for="prixDetail">Prix detail</label>
                             {{ form.prixDetail }}
                           </div>
                         </div>
+                      </div>
+                      <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                               <label for="peremption">Date peremption</label>
@@ -294,6 +302,7 @@
                 success: function (data) {
                     if (data.success) {
                         $('#prixAchat').val(data.prix_achat);
+                        $('#prixEnGros').val(data.prix_en_gros);
                         $('#prixDetail').val(data.prix_detail);
                     } else {
                         toastr.error("Erreur lors de la récupération des prix du produit.");
@@ -306,6 +315,7 @@
         } else {
             // Réinitialiser les champs si aucun produit n'est sélectionné
             $('#prixAchat').val('');
+            $('#prixEnGros').val('');
             $('#prixDetail').val('');
         }
     });
