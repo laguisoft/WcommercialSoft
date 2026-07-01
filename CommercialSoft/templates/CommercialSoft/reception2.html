@@ -54,8 +54,8 @@
             {% endif %}
 
             <!-- Recherche produit (autocomplétion comme la vente) -->
-            <div class="row align-items-center">
-              <div class="col-md-3">
+            <div class="row align-items-center flex-nowrap" style="overflow-x:auto;">
+              <div class="col-md-3 flex-shrink-0">
                 <div class="form-group position-relative">
                   <label>Produit</label>
                   <input type="text" class="form-control" id="produitSearchR" placeholder="Rechercher un produit..." autocomplete="off">
@@ -63,35 +63,35 @@
                 </div>
               </div>
 
-              <div class="col-md-1">
+              <div class="col-md-1 flex-shrink-0">
                 <div class="form-group">
                   <label>Quantité</label>
                   <input type="number" class="form-control" id="quantiteR" value="1" min="1">
                 </div>
               </div>
 
-              <div class="col-md-2">
+              <div class="col-md-1 flex-shrink-0">
                 <div class="form-group">
                   <label>Prix d'achat</label>
                   <input type="number" class="form-control" id="prixAchatR" min="0">
                 </div>
               </div>
 
-              <div class="col-md-2">
+              <div class="col-md-1 flex-shrink-0">
                 <div class="form-group">
                   <label>Prix en gros</label>
                   <input type="number" class="form-control" id="prixEnGrosR" min="0">
                 </div>
               </div>
 
-              <div class="col-md-2">
+              <div class="col-md-1 flex-shrink-0">
                 <div class="form-group">
                   <label>Prix détail</label>
                   <input type="number" class="form-control" id="prixDetailR" min="0">
                 </div>
               </div>
 
-              <div class="col-md-1">
+              <div class="col-md-1 flex-shrink-0">
                 <div class="form-group">
                   <label>Péremption</label>
                   <input type="text" class="form-control" id="peremptionR" placeholder="MM/AA" maxlength="5" inputmode="numeric" autocomplete="off">
@@ -99,7 +99,7 @@
               </div>
 
 
-              <div class="col-md-2">
+              <div class="col-md-2 flex-shrink-0">
                 <div class="form-group position-relative">
                   <label>Categorie</label>
                   <input type="text" class="form-control" id="categorieSearchR" placeholder="Rechercher un produit..." autocomplete="off">
@@ -107,17 +107,17 @@
                 </div>
               </div>
 
-              
+
               <div class="col-md-2 d-none">
                 <div class="form-check mt-4">
                   <input class="form-check-input" type="checkbox" id="useTVA" data-tva="18" disabled>
                   <label class="form-check-label" for="useTVA">TVA 18%</label>
                 </div>
               </div>
-              
 
 
-              <div class="col-md-1 text-end">
+
+              <div class="col-md-1 flex-shrink-0 text-end">
                 <!-- même id que ton bouton “Ajouter” d’origine -->
                 <button class="btn btn-primary" id="idAjouter">Ajouter</button>
               </div>
