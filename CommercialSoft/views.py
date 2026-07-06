@@ -4998,7 +4998,7 @@ def portail_accueil(request):
 
 @client_required
 def portail_produits(request):
-    produits = Produit.objects.filter(quantite__gt=0).order_by('libelle')
+    produits = Produit.objects.all().order_by('libelle')
     return render(request, 'CommercialSoft/portail/produits.html', {'produits': produits})
 
 
