@@ -1,0 +1,515 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    <style>
+        .suggestions {
+            border: 1px solid #ccc;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            position: absolute;
+            background: white;
+            width: 100%;
+            z-index: 1000;
+        }
+        .suggestions li {
+            padding: 5px;
+            cursor: pointer;
+        }
+        .suggestions li:hover {
+            background: #eee;
+        }
+        .suggestions li.active-suggestion {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+
+    <div class="row">
+      <div class="col-md-12">
+        <div id="messageErreur"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Modifier la commande N° {{ commande.id }}</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="idDate">Date</label>
+                  <input type="date" class="form-control" id="idDate" value="{{ commande.date|date:'Y-m-d' }}">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="typeVente">Type vente</label>
+                  <select class="form-control select2bs4" id="typeVente" style="width: 100%;">
+                    <option value="detail" {% if commande.typeVente == "detail" %}selected{% endif %}>Détail</option>
+                    <option value="en gros" {% if commande.typeVente == "en gros" %}selected{% endif %}>En gros</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="typePayement">Type payement</label>
+                  <select class="form-control select2bs4" id="typePayement" style="width: 100%;">
+                    <option value="Espece" {% if commande.typePayement == "Espece" %}selected{% endif %}>Espece</option>
+                    <option value="Pret" {% if commande.typePayement == "Pret" %}selected{% endif %}>Pret</option>
+                    <option value="Don" {% if commande.typePayement == "Don" %}selected{% endif %}>Don</option>
+                    <option value="Orange Money" {% if commande.typePayement == "Orange Money" %}selected{% endif %}>Orange Money</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="remise">Remise</label>
+                  <input type="number" class="form-control" id="remise" min="0" value="{{ commande.remise }}">
+                </div>
+              </div>
+            </div>
+
+            <div class="row" id="lgPret">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="id_client">Client</label>
+                  <select class="form-control select2bs4" id="id_client" style="width: 100%;">
+                    <option value="">--------</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="dateEcheance">Echeance</label>
+                  <input type="date" class="form-control" id="dateEcheance" value="{% if pret %}{{ pret.dateEcheance|date:'Y-m-d' }}{% endif %}">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="commentaire">Commentaire</label>
+                  <input type="text" class="form-control" id="commentaire" value="{% if pret %}{{ pret.commentaire|default:'' }}{% endif %}">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-5">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Ajouter un produit</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group position-relative">
+              <label>Produit</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
+                <div class="input-group-append">
+                  <button class="btn btn-secondary" type="button" id="actualiser"><i class="fas fa-sync"></i></button>
+                </div>
+              </div>
+              <ul id="suggestions" class="suggestions"></ul>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Stock</label>
+                  <input type="number" disabled class="form-control" id="stock">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Quantité</label>
+                  <input type="number" class="form-control" id="quantite" value="1" min="1">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Prix unitaire</label>
+                  <input type="number" class="form-control" id="prixDetail" min="0">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer clearfix text-center">
+            <button type="button" class="btn btn-primary" id="ajoutBouton">Ajouter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-7">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Produits de la commande</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover table-striped table-sm">
+                <thead>
+                  <tr>
+                    <th class="text-center">#</th>
+                    <th class="text-center">Libelle</th>
+                    <th class="text-center">Quantité</th>
+                    <th class="text-center">Prix unitaire</th>
+                    <th class="text-center">Montant</th>
+                    <th class="text-center">#</th>
+                  </tr>
+                </thead>
+                <tbody id="liste-lignes"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer">
+            <h4 class="text-success text-right" id="montantTotalAffiche">Net à payer : 0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12 text-center">
+        <button type="button" class="btn btn-primary btn-lg" id="btnEnregistrer">Enregistrer les modifications</button>
+      </div>
+    </div>
+
+  </div><!-- /.container-fluid -->
+</section>
+<!-- /.content -->
+{% endblock %}
+
+
+{% block js %}
+
+    <!-- jQuery -->
+    <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+
+    <script>
+    $(document).ready(function () {
+        bsCustomFileInput.init();
+        $('.select2bs4').select2({ theme: 'bootstrap4' });
+    });
+
+    const COMMANDE_ID = {{ commande.id }};
+    const CLIENT_ACTUEL_ID = {{ commande.client_id|default:"null" }};
+    let lignes = JSON.parse('{{ lignes_json|escapejs }}');
+    let produitsCache = [];
+    let currentFocus = -1;
+    let produitSelectionne = null;
+    const input = document.getElementById("produitSearch");
+    const suggestions = document.getElementById("suggestions");
+
+    // --- Charger produits & clients, en tenant compte des quantités déjà réservées par cette commande ---
+    async function chargerProduits() {
+        try {
+            const response = await fetch("{% url 'api_produits' %}");
+            const data = await response.json();
+            produitsCache = data.produits;
+
+            // Les produits de cette commande ont déjà décrémenté le stock : on ajoute
+            // virtuellement la quantité déjà commandée pour refléter le stock réellement disponible.
+            lignes.forEach(ligne => {
+                const produit = produitsCache.find(p => p.id === ligne.produit_id);
+                if (produit) {
+                    produit.quantite = parseFloat(produit.quantite) + parseFloat(ligne.quantite);
+                }
+            });
+
+            remplirSelectClients(data.clients);
+        } catch (e) {
+            toastr.error("Impossible de charger la liste des produits.");
+        }
+    }
+
+    function remplirSelectClients(clients) {
+        const select = document.getElementById("id_client");
+        select.innerHTML = '<option value="">--------</option>';
+        clients.forEach(c => {
+            const option = document.createElement("option");
+            option.value = c.id;
+            option.textContent = c.nom;
+            if (CLIENT_ACTUEL_ID && c.id === CLIENT_ACTUEL_ID) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+        $('#id_client').trigger('change');
+    }
+
+    // --- Recherche produit ---
+    input.addEventListener("input", function () {
+        const query = this.value.toLowerCase();
+        suggestions.innerHTML = "";
+        currentFocus = -1;
+        produitSelectionne = null;
+        if (query.length < 1) return;
+
+        const results = produitsCache.filter(p => {
+            const libelle = (p.libelle || "").toLowerCase();
+            const code = String(p.codebare || "").trim();
+            if (/^\d+$/.test(query)) {
+                return code.startsWith(query);
+            }
+            return libelle.includes(query) || code.includes(query);
+        }).slice(0, 100);
+
+        results.forEach((p, index) => {
+            const li = document.createElement("li");
+            li.textContent = p.libelle;
+            li.dataset.index = index;
+            li.onclick = () => {
+                remplirInfosProduit(p);
+                suggestions.innerHTML = "";
+            };
+            suggestions.appendChild(li);
+        });
+    });
+
+    input.addEventListener("keydown", function (e) {
+        const items = suggestions.getElementsByTagName("li");
+        if (!items.length) return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            currentFocus = (currentFocus + 1) % items.length;
+            activerSuggestion(items);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            currentFocus = (currentFocus - 1 + items.length) % items.length;
+            activerSuggestion(items);
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (currentFocus > -1 && items[currentFocus]) {
+                items[currentFocus].click();
+            }
+        }
+    });
+
+    function activerSuggestion(items) {
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove("active-suggestion");
+        }
+        if (currentFocus >= 0) {
+            items[currentFocus].classList.add("active-suggestion");
+            items[currentFocus].scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+    }
+
+    function prixSelonTypeVente(produit) {
+        const typeVente = document.getElementById("typeVente").value;
+        return (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+    }
+
+    function remplirInfosProduit(produit) {
+        produitSelectionne = produit;
+        input.value = produit.libelle;
+        document.getElementById("prixDetail").value = prixSelonTypeVente(produit);
+        document.getElementById("stock").value = produit.quantite;
+    }
+
+    // --- Ajouter une ligne ---
+    function ajouterLigne() {
+        if (!produitSelectionne) {
+            toastr.error("Veuillez sélectionner un produit avant d'ajouter !");
+            return;
+        }
+        const quantite = parseInt(document.getElementById("quantite").value) || 1;
+        const prix = parseFloat(document.getElementById("prixDetail").value) || 0;
+
+        const ligneExistante = lignes.find(l => l.produit_id === produitSelectionne.id);
+        if (ligneExistante) {
+            ligneExistante.quantite += quantite;
+            ligneExistante.prix = prix;
+            ligneExistante.total = ligneExistante.quantite * ligneExistante.prix;
+        } else {
+            lignes.push({
+                produit_id: produitSelectionne.id,
+                nom: produitSelectionne.libelle,
+                quantite: quantite,
+                prix: prix,
+                total: quantite * prix,
+            });
+        }
+
+        afficherLignes();
+
+        document.getElementById("quantite").value = 1;
+        document.getElementById("prixDetail").value = "";
+        document.getElementById("stock").value = "";
+        input.value = "";
+        produitSelectionne = null;
+        input.focus();
+    }
+
+    $('#ajoutBouton').on('click', function (e) {
+        e.preventDefault();
+        ajouterLigne();
+    });
+
+    // --- Affichage des lignes ---
+    function afficherLignes() {
+        const tbody = document.getElementById("liste-lignes");
+        tbody.innerHTML = "";
+        lignes.forEach((ligne, index) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="text-center">${index + 1}</td>
+                <td>${ligne.nom}</td>
+                <td class="text-center">
+                    <input type="number" class="form-control form-control-sm text-center" style="width:90px;margin:auto;"
+                           value="${ligne.quantite}" min="1" oninput="changerQuantite(${index}, this.value)">
+                </td>
+                <td class="text-center">
+                    <input type="number" class="form-control form-control-sm text-center" style="width:110px;margin:auto;"
+                           value="${ligne.prix}" min="0" oninput="changerPrix(${index}, this.value)">
+                </td>
+                <td class="text-center">${(ligne.quantite * ligne.prix).toLocaleString("fr-FR")}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+        mettreAJourTotal();
+    }
+
+    function changerQuantite(index, valeur) {
+        const quantite = parseInt(valeur) || 1;
+        lignes[index].quantite = quantite;
+        lignes[index].total = lignes[index].quantite * lignes[index].prix;
+        mettreAJourTotal();
+    }
+
+    function changerPrix(index, valeur) {
+        const prix = parseFloat(valeur) || 0;
+        lignes[index].prix = prix;
+        lignes[index].total = lignes[index].quantite * lignes[index].prix;
+        mettreAJourTotal();
+    }
+
+    function supprimerLigne(index) {
+        lignes.splice(index, 1);
+        afficherLignes();
+    }
+
+    function mettreAJourTotal() {
+        const total = lignes.reduce((acc, l) => acc + (l.quantite * l.prix), 0);
+        const remise = parseFloat(document.getElementById("remise").value) || 0;
+        const net = Math.max(total - remise, 0);
+        document.getElementById("montantTotalAffiche").textContent = "Net à payer : " + net.toLocaleString("fr-FR");
+    }
+
+    document.getElementById("remise").addEventListener("input", mettreAJourTotal);
+
+    // --- Type vente : recalcule le prix de tous les produits de la commande ---
+    $('#typeVente').on('change', function () {
+        const typeVente = $(this).val();
+        lignes.forEach(ligne => {
+            const produit = produitsCache.find(p => p.id === ligne.produit_id);
+            if (produit) {
+                ligne.prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+                ligne.total = ligne.quantite * ligne.prix;
+            }
+        });
+        if (produitSelectionne) {
+            document.getElementById("prixDetail").value = prixSelonTypeVente(produitSelectionne);
+        }
+        afficherLignes();
+    });
+
+    // --- Affichage des champs Pret selon le type de payement ---
+    function togglePret() {
+        const isPret = (document.getElementById('typePayement').value === 'Pret');
+        document.getElementById('lgPret').style.display = isPret ? 'flex' : 'none';
+        document.getElementById('id_client').required = isPret;
+    }
+    $('#typePayement').on('change', togglePret);
+    togglePret();
+
+    $('#actualiser').on('click', function () {
+        chargerProduits();
+    });
+
+    // --- Enregistrement ---
+    $('#btnEnregistrer').on('click', function () {
+        if (lignes.length === 0) {
+            toastr.error("Veuillez ajouter au moins un produit.");
+            return;
+        }
+        const typePayement = document.getElementById("typePayement").value;
+        const clientId = document.getElementById("id_client").value;
+        if (typePayement === "Pret" && !clientId) {
+            toastr.error("Veuillez sélectionner un client pour un prêt.");
+            return;
+        }
+
+        $.ajax({
+            url: "{% url 'commerce_modVente' commande.id %}",
+            type: "POST",
+            data: {
+                date: document.getElementById("idDate").value,
+                typeVente: document.getElementById("typeVente").value,
+                typePayement: typePayement,
+                remise: document.getElementById("remise").value || 0,
+                client: clientId,
+                dateEcheance: document.getElementById("dateEcheance").value,
+                commentaire: document.getElementById("commentaire").value,
+                jsonDataInput: JSON.stringify(lignes),
+                csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+            success: function (response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    setTimeout(function () {
+                        window.location.href = "{% url 'commerce_produitVendu' %}";
+                    }, 1000);
+                } else {
+                    toastr.error(response.message);
+                }
+            },
+            error: function (xhr) {
+                const message = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Une erreur est survenue.";
+                toastr.error(message);
+            }
+        });
+    });
+
+    afficherLignes();
+    chargerProduits();
+    </script>
+
+{% endblock %}

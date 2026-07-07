@@ -1738,18 +1738,128 @@ def modifierProduitAjax(request):
 @permission_required('CommercialSoft.change_commande')
 def modifier_commande(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
+
     if request.method == "POST":
-        form = CommandeForm(request.POST, instance=commande)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Vente modifiée avec succès!")
-            return redirect('commerce_produitVendu')
-        else:
-            messages.error(request, "Erreur lors de la mise à jour de la produit.")
-    else:
-        form = CommandeForm(instance=commande)
-    
-    return render(request, 'CommercialSoft/modification.html', {'form': form})
+        try:
+            lignes = json.loads(request.POST.get('jsonDataInput', '[]'))
+        except json.JSONDecodeError:
+            lignes = []
+
+        date = _parse_date_vente(request.POST.get('date')) if request.POST.get('date') else commande.date
+        typeVente = request.POST.get('typeVente', commande.typeVente)
+        typePayement = request.POST.get('typePayement', commande.typePayement)
+        try:
+            remise = int(request.POST.get('remise') or 0)
+        except ValueError:
+            remise = 0
+        client_id = request.POST.get('client') or None
+
+        if not lignes:
+            return JsonResponse({"success": False, "message": "Veuillez ajouter au moins un produit."}, status=400)
+
+        if typePayement == "Pret" and not client_id:
+            return JsonResponse({"success": False, "message": "Veuillez sélectionner un client pour un prêt."}, status=400)
+
+        boutique = InfoBoutique.objects.first()
+        verifier_stock = not (boutique and boutique.quantiteNegative)
+
+        try:
+            with transaction.atomic():
+                # Réajoute au stock les quantités des anciennes lignes avant de les remplacer
+                for ancienneLigne in commande.commandeproduit_set.select_related('produit').all():
+                    if ancienneLigne.produit:
+                        ancienneLigne.produit.quantite += ancienneLigne.quantite
+                        ancienneLigne.produit.save()
+                commande.commandeproduit_set.all().delete()
+
+                montantTotal = 0
+                montantAchat = 0
+                for item in lignes:
+                    produit_id = item.get('produit_id')
+                    quantite = int(item.get('quantite', 0))
+                    prix = int(item.get('prix', 0))
+                    if not produit_id or quantite <= 0:
+                        continue
+
+                    produit = Produit.objects.get(id=produit_id)
+                    if verifier_stock and quantite > produit.quantite:
+                        raise ValueError(f"La quantité de {produit.libelle} dépasse le stock disponible ({produit.quantite}).")
+
+                    produit.quantite -= quantite
+                    produit.save()
+
+                    CommandeProduit.objects.create(
+                        commande=commande,
+                        produit=produit,
+                        quantite=quantite,
+                        prix=prix,
+                        date=date,
+                    )
+                    montantTotal += prix * quantite
+                    montantAchat += produit.prixAchat * quantite
+
+                commande.date = date
+                commande.typeVente = typeVente
+                commande.typePayement = typePayement
+                commande.remise = remise
+                commande.montant = montantTotal
+                commande.montantAchat = montantAchat
+
+                if typePayement == "Pret":
+                    client = Client.objects.get(id=client_id)
+                    commande.client = client
+
+                    dateEcheance = _parse_date_vente(request.POST.get('dateEcheance')) if request.POST.get('dateEcheance') else None
+                    commentaire = request.POST.get('commentaire') or ""
+                    pret = PretClient.objects.filter(commande=commande).first()
+                    if pret:
+                        pret.client = client
+                        pret.montant = montantTotal - remise
+                        if dateEcheance:
+                            pret.dateEcheance = dateEcheance
+                        pret.commentaire = commentaire
+                        pret.save()
+                    else:
+                        PretClient.objects.create(
+                            client=client,
+                            montant=montantTotal - remise,
+                            date=date,
+                            dateEcheance=dateEcheance or date,
+                            commande=commande,
+                            commentaire=commentaire,
+                            user=request.user,
+                        )
+
+                commande.save()
+        except Produit.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Produit introuvable."}, status=400)
+        except Client.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Client introuvable."}, status=400)
+        except ValueError as e:
+            return JsonResponse({"success": False, "message": str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({"success": False, "message": f"Erreur d'enregistrement: {e}"}, status=400)
+
+        return JsonResponse({"success": True, "message": "Commande modifiée avec succès !"})
+
+    lignesInitiales = [
+        {
+            "produit_id": ligne.produit_id,
+            "nom": ligne.produit.libelle if ligne.produit else "",
+            "quantite": ligne.quantite,
+            "prix": ligne.prix,
+            "total": ligne.quantite * ligne.prix,
+        }
+        for ligne in commande.commandeproduit_set.select_related('produit').all()
+    ]
+    pret = PretClient.objects.filter(commande=commande).first()
+
+    context = {
+        'commande': commande,
+        'lignes_json': json.dumps(lignesInitiales),
+        'pret': pret,
+    }
+    return render(request, 'CommercialSoft/modificationCommande.html', context)
 
 
 
