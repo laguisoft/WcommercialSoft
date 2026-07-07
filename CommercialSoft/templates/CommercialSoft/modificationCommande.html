@@ -71,6 +71,7 @@
                   <select class="form-control select2bs4" id="typeVente" style="width: 100%;">
                     <option value="detail" {% if commande.typeVente == "detail" %}selected{% endif %}>Détail</option>
                     <option value="en gros" {% if commande.typeVente == "en gros" %}selected{% endif %}>En gros</option>
+                    <option value="achat" {% if commande.typeVente == "achat" %}selected{% endif %}>Prix achat</option>
                   </select>
                 </div>
               </div>
@@ -330,7 +331,9 @@
 
     function prixSelonTypeVente(produit) {
         const typeVente = document.getElementById("typeVente").value;
-        return (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+        if (typeVente === "en gros") return produit.prixEnGros;
+        if (typeVente === "achat") return produit.prixAchat;
+        return produit.prixDetail;
     }
 
     function remplirInfosProduit(produit) {
@@ -437,11 +440,10 @@
 
     // --- Type vente : recalcule le prix de tous les produits de la commande ---
     $('#typeVente').on('change', function () {
-        const typeVente = $(this).val();
         lignes.forEach(ligne => {
             const produit = produitsCache.find(p => p.id === ligne.produit_id);
             if (produit) {
-                ligne.prix = (typeVente === "en gros") ? produit.prixEnGros : produit.prixDetail;
+                ligne.prix = prixSelonTypeVente(produit);
                 ligne.total = ligne.quantite * ligne.prix;
             }
         });
