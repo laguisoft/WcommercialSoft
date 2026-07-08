@@ -13,7 +13,8 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 import json
 User = get_user_model()
@@ -87,7 +88,13 @@ def dashboard(request):
     total_produits = Produit.objects.count()
     produits_perimes = Produit.objects.filter(datePeremption__lt=now()).count()
     produits_rupture = Produit.objects.filter(quantite__lte=F('seuil')).count()
-    total_dettes = PretClient.objects.count()
+
+    total_pret_subquery = PretClient.objects.filter(client=OuterRef('pk')).values('client').annotate(total=Sum('montant')).values('total')
+    total_versement_subquery = VersementClient.objects.filter(client=OuterRef('pk')).values('client').annotate(total=Sum('montant')).values('total')
+    total_dettes = Client.objects.annotate(
+        total_pret=Coalesce(Subquery(total_pret_subquery), 0),
+        total_versement=Coalesce(Subquery(total_versement_subquery), 0),
+    ).filter(total_pret__gt=F('total_versement')).count()
 
     context = {
         'nom_agent': request.user.username,
