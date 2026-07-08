@@ -2,6 +2,26 @@
 
 {% block corp %}
 {% load static %}
+  <style>
+    @keyframes dashboardAlertBlink {
+      0%, 100% {
+        background-color: transparent;
+        box-shadow: none;
+      }
+      50% {
+        background-color: rgba(220, 53, 69, 0.15);
+        box-shadow: 0 0 12px rgba(220, 53, 69, 0.6);
+      }
+    }
+    .stats-alert {
+      animation: dashboardAlertBlink 1s infinite;
+      border-radius: 10px;
+    }
+    .stats-alert .purecounter,
+    .stats-alert i {
+      color: #dc3545 !important;
+    }
+  </style>
   <section id="hero" class="hero section light-background m-0 p-0">
 
 
@@ -26,7 +46,7 @@
               </div>
             </div><!-- End Stats Item -->
     
-            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center{% if produits_perimes > 0 %} stats-alert{% endif %}">
               <i class="fa-regular fa-hospital"></i>
               <div class="stats-item">
                 <span data-purecounter-start="0" data-purecounter-end="{{produits_perimes}}" data-purecounter-duration="1" class="purecounter"></span>
@@ -42,7 +62,7 @@
               </div>
             </div><!-- End Stats Item -->
     
-            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center{% if produits_rupture > 0 %} stats-alert{% endif %}">
               <i class="fas fa-award"></i>
               <div class="stats-item">
                 <span data-purecounter-start="0" data-purecounter-end="{{produits_rupture}}" data-purecounter-duration="1" class="purecounter"></span>

@@ -52,7 +52,7 @@
                         
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="utilisateur">Type payement</label>
+                                <label for="payement">Type payement</label>
                                 <select class="form-control select2bs4" id="payement" style="width: 100%;">
                                   <option value="0">--------</option>
                                   <option value="Espece">Espece</option>
@@ -64,15 +64,31 @@
                         </div>
 
                         <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="utilisateur">Utilisateur</label>
+                                <select class="form-control select2bs4" id="utilisateur" style="width: 100%;">
+                                  <option value="0">--------</option>
+                                  {% if users %}
+                                    {% for user in users %}
+                                     <option value="{{user.id}}">{{user.first_name}} {{user.last_name}}</option>
+                                    {% endfor %}
+                                {% else %}
+                                <option>Aucun utilisateur trouve</option>
+                                {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="dateDebut">Date debut</label>
-                            <input type="date" class="form-control" id="dateDebut"> 
+                            <input type="date" class="form-control" id="dateDebut">
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="quantite">Date Fin</label>
-                            <input type="date" class="form-control" id="dateFin"> 
+                            <input type="date" class="form-control" id="dateFin">
                           </div>
                         </div>
 
@@ -110,6 +126,7 @@
                           <th class="text-center">Date</th>
                           <th class="text-center">Type</th>
                           <th class="text-center">Payement</th>
+                          <th class="text-center">Utilisateur</th>
                           <th class="text-center">Client</th>
                           <th class="text-center">Montant Achat</th>
                           <th style="width: 40px;" class="text-center">#</th>
@@ -264,6 +281,7 @@
       const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
       const payement = $('#payement').val();  // ID de l'examen sélectionné
+      const utilisateur = $('#utilisateur').val();  // ID de l'utilisateur sélectionné
       const dateDebut = $('#dateDebut').val();  // ID de la consultation
       const dateFin = $('#dateFin').val();  // ID de la consultation
 
@@ -275,6 +293,7 @@
         type: "POST",
         data: {
             payement: payement,
+            idUser: utilisateur,
             dateDebut: dateDebut,
             dateFin: dateFin,
             csrfmiddlewaretoken: csrfToken
@@ -296,6 +315,7 @@
                   <td class="text-center">${data.date}</td>
                   <td class="text-center">${data.type}</td>
                   <td class="text-center">${data.payement}</td>
+                  <td class="text-center">${data.user}</td>
                   <td class="text-center">${data.client}</td>
                   <td class="text-center">${data.montantAchat}</td>
                   <td class="text-center">
