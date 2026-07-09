@@ -13,7 +13,7 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, OuterRef, Subquery
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, OuterRef, Subquery, Q
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 import json
@@ -3247,15 +3247,35 @@ def recherche_client_special(request):
     if request.method != "POST":
         return JsonResponse({"error": "Requête invalide"}, status=400)
 
-    telephone = request.POST.get('telephone', '').strip()
-    if not telephone:
-        return JsonResponse({"error": "Numero de telephone requis"}, status=400)
-    if not telephone.isdigit():
-        return JsonResponse({"error": "Le numero de telephone doit contenir uniquement des chiffres"}, status=400)
+    terme = request.POST.get('recherche', '').strip()
+    if not terme:
+        return JsonResponse({"error": "Veuillez saisir un nom, prenom ou numero de telephone"}, status=400)
 
-    client = ClientSpecial.objects.filter(telephone=telephone).first()
+    clients = ClientSpecial.objects.filter(
+        Q(nom__icontains=terme) | Q(prenom__icontains=terme) | Q(telephone__icontains=terme)
+    ).order_by('nom')
+
+    resultats = [
+        {
+            "id": client.id,
+            "nom": client.nom,
+            "prenom": client.prenom or "",
+            "telephone": client.telephone,
+            "nombreAchats": CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True).count(),
+        }
+        for client in clients
+    ]
+
+    return JsonResponse({"clients": resultats})
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def detail_client_special(request):
+    client_id = request.GET.get('id')
+    client = ClientSpecial.objects.filter(id=client_id).first()
     if not client:
-        return JsonResponse({"error": "Aucun client trouve pour ce numero"}, status=404)
+        return JsonResponse({"error": "Client introuvable"}, status=404)
 
     commandes = Commande.objects.filter(clientSpecial=client).order_by('-date')
 
