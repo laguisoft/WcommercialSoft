@@ -143,6 +143,47 @@
     <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
 
     <script type="text/javascript">
+    // Remplit les tableaux "Recapitulatif par produit" et "Historique detaille des achats"
+    // (les achats sont deja tries du plus recent au plus ancien par le backend)
+    function afficherRecapEtAchats(response) {
+      $('#clientSpecialResultRow').show();
+
+      const recapTable = $('#liste-recap-produit');
+      recapTable.empty();
+      if (response.recap && response.recap.length > 0) {
+        response.recap.forEach(item => {
+          recapTable.append(`
+            <tr>
+              <td>${item.produit}</td>
+              <td class="text-center">${item.nombreAchats}</td>
+              <td class="text-center">${item.quantiteTotale}</td>
+            </tr>
+          `);
+        });
+      } else {
+        recapTable.append('<tr><td colspan="3" class="text-center">Aucun achat trouve.</td></tr>');
+      }
+
+      const achatsTable = $('#liste-achats-special');
+      achatsTable.empty();
+      if (response.achats && response.achats.length > 0) {
+        response.achats.forEach(item => {
+          achatsTable.append(`
+            <tr>
+              <td class="text-center">${item.commande_id}</td>
+              <td class="text-center">${item.date}</td>
+              <td>${item.produit}</td>
+              <td class="text-center">${item.quantite}</td>
+              <td class="text-center">${item.prix}</td>
+              <td class="text-center">${item.montant}</td>
+            </tr>
+          `);
+        });
+      } else {
+        achatsTable.append('<tr><td colspan="6" class="text-center">Aucun achat trouve.</td></tr>');
+      }
+    }
+
     function afficherDetailClientSpecial(id) {
       $.ajax({
         url: "{% url 'detailClientSpecial' %}",
@@ -150,47 +191,12 @@
         data: { id: id },
         success: function (response) {
           $('#clientSpecialInfoRow').show();
-          $('#clientSpecialResultRow').show();
-
           $('#csNom').text(response.client.nom);
           $('#csPrenom').text(response.client.prenom || "-");
           $('#csTelephone').text(response.client.telephone);
           $('#csNombreAchats').text(response.nombreAchats);
 
-          const recapTable = $('#liste-recap-produit');
-          recapTable.empty();
-          if (response.recap && response.recap.length > 0) {
-            response.recap.forEach(item => {
-              recapTable.append(`
-                <tr>
-                  <td>${item.produit}</td>
-                  <td class="text-center">${item.nombreAchats}</td>
-                  <td class="text-center">${item.quantiteTotale}</td>
-                </tr>
-              `);
-            });
-          } else {
-            recapTable.append('<tr><td colspan="3" class="text-center">Aucun achat trouve.</td></tr>');
-          }
-
-          const achatsTable = $('#liste-achats-special');
-          achatsTable.empty();
-          if (response.achats && response.achats.length > 0) {
-            response.achats.forEach(item => {
-              achatsTable.append(`
-                <tr>
-                  <td class="text-center">${item.commande_id}</td>
-                  <td class="text-center">${item.date}</td>
-                  <td>${item.produit}</td>
-                  <td class="text-center">${item.quantite}</td>
-                  <td class="text-center">${item.prix}</td>
-                  <td class="text-center">${item.montant}</td>
-                </tr>
-              `);
-            });
-          } else {
-            achatsTable.append('<tr><td colspan="6" class="text-center">Aucun achat trouve.</td></tr>');
-          }
+          afficherRecapEtAchats(response);
         },
         error: function (xhr) {
           $('#clientSpecialInfoRow').hide();
@@ -205,13 +211,9 @@
       $('#idRechercherClientSpecial').on('click', function (e) {
         e.preventDefault();
         const terme = $('#rechercheClientSpecial').val().trim();
-        if (!terme) {
-          toastr.error("Veuillez saisir un nom, prenom ou numero de telephone.");
-          return;
-        }
-
         const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
+        $('#clientSpecialListeRow').hide();
         $('#clientSpecialInfoRow').hide();
         $('#clientSpecialResultRow').hide();
 
@@ -223,6 +225,12 @@
             csrfmiddlewaretoken: csrfToken
           },
           success: function (response) {
+            if (response.global) {
+              // Recherche vide : vue globale (tous les clients), sans infos personnelles
+              afficherRecapEtAchats(response);
+              return;
+            }
+
             const listeTable = $('#liste-clients-special');
             listeTable.empty();
 

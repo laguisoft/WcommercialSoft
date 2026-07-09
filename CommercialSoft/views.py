@@ -3241,6 +3241,32 @@ def client_special_recherche(request):
     return render(request, 'CommercialSoft/clientSpecial.html')
 
 
+def _recap_et_achats_produits_speciaux(lignes_qs):
+    """Construit la liste des achats (triee du plus recent au plus ancien) et le
+    recapitulatif par produit a partir d'un queryset de CommandeProduit."""
+    achats = []
+    recap = {}
+    for ligne in lignes_qs:
+        nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
+        achats.append({
+            "commande_id": ligne.commande.id,
+            "date": timezone.localtime(ligne.commande.date).strftime("%d-%m-%Y %H-%M"),
+            "produit": nom_produit,
+            "quantite": ligne.quantite,
+            "prix": ligne.prix,
+            "montant": ligne.prix * ligne.quantite,
+        })
+        recap.setdefault(nom_produit, {"nombreAchats": 0, "quantiteTotale": 0})
+        recap[nom_produit]["nombreAchats"] += 1
+        recap[nom_produit]["quantiteTotale"] += ligne.quantite
+
+    recap_liste = [
+        {"produit": produit, "nombreAchats": donnees["nombreAchats"], "quantiteTotale": donnees["quantiteTotale"]}
+        for produit, donnees in recap.items()
+    ]
+    return achats, recap_liste
+
+
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def recherche_client_special(request):
@@ -3248,8 +3274,21 @@ def recherche_client_special(request):
         return JsonResponse({"error": "Requête invalide"}, status=400)
 
     terme = request.POST.get('recherche', '').strip()
+
     if not terme:
-        return JsonResponse({"error": "Veuillez saisir un nom, prenom ou numero de telephone"}, status=400)
+        # Recherche vide : vue globale (tous les clients), sans infos personnelles
+        lignes = (
+            CommandeProduit.objects.filter(produit__special=True)
+            .select_related('produit', 'commande')
+            .order_by('-commande__date')
+        )
+        achats, recap_liste = _recap_et_achats_produits_speciaux(lignes)
+        return JsonResponse({
+            "global": True,
+            "nombreAchats": len(achats),
+            "recap": recap_liste,
+            "achats": achats,
+        })
 
     clients = ClientSpecial.objects.filter(
         Q(nom__icontains=terme) | Q(prenom__icontains=terme) | Q(telephone__icontains=terme)
@@ -3266,7 +3305,7 @@ def recherche_client_special(request):
         for client in clients
     ]
 
-    return JsonResponse({"clients": resultats})
+    return JsonResponse({"global": False, "clients": resultats})
 
 
 @login_required
@@ -3277,30 +3316,12 @@ def detail_client_special(request):
     if not client:
         return JsonResponse({"error": "Client introuvable"}, status=404)
 
-    commandes = Commande.objects.filter(clientSpecial=client).order_by('-date')
-
-    achats = []
-    recap = {}
-    for commande in commandes:
-        lignes = CommandeProduit.objects.filter(commande=commande, produit__special=True).select_related('produit')
-        for ligne in lignes:
-            nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
-            achats.append({
-                "commande_id": commande.id,
-                "date": timezone.localtime(commande.date).strftime("%d-%m-%Y %H-%M"),
-                "produit": nom_produit,
-                "quantite": ligne.quantite,
-                "prix": ligne.prix,
-                "montant": ligne.prix * ligne.quantite,
-            })
-            recap.setdefault(nom_produit, {"nombreAchats": 0, "quantiteTotale": 0})
-            recap[nom_produit]["nombreAchats"] += 1
-            recap[nom_produit]["quantiteTotale"] += ligne.quantite
-
-    recap_liste = [
-        {"produit": produit, "nombreAchats": donnees["nombreAchats"], "quantiteTotale": donnees["quantiteTotale"]}
-        for produit, donnees in recap.items()
-    ]
+    lignes = (
+        CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True)
+        .select_related('produit', 'commande')
+        .order_by('-commande__date')
+    )
+    achats, recap_liste = _recap_et_achats_produits_speciaux(lignes)
 
     return JsonResponse({
         "client": {
