@@ -37,6 +37,7 @@ class Produit(models.Model):
     seuil=models.PositiveIntegerField(default=0)
     commentaire=models.CharField(max_length=60, null=True, blank=True)
     quantiteTotal=models.PositiveBigIntegerField(default=0)
+    special=models.BooleanField(default=False, verbose_name="Produit special (infos client requises a la vente)")
 
     def __str__(self):
         return self.libelle
@@ -77,6 +78,7 @@ class Societe(models.Model):
 class Client(models.Model):
     societe=models.ForeignKey(Societe, on_delete=models.CASCADE, null=True)
     nom=models.CharField(max_length=70, unique=True)
+    prenom=models.CharField(max_length=70, null=True, blank=True)
     telephone=models.CharField(max_length=20,null=True,blank=True)
     adresse=models.CharField(max_length=30, null=True, blank=True)
     email=models.EmailField(max_length=50, null=True, blank=True)
@@ -85,6 +87,8 @@ class Client(models.Model):
     detteMaximale=models.PositiveBigIntegerField()
     # Compte du portail client, cree et lie par le gerant
     user=models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='client_profile')
+    # Client cree automatiquement lors de l'achat d'un produit special (categorie a part)
+    clientSpecial=models.BooleanField(default=False, verbose_name="Client special (achat de produit special)")
 
     def __str__(self):
         return self.nom

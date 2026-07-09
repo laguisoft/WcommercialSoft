@@ -4879,8 +4879,8 @@ def import_excel_view(request):
 #---------- Gestion horconnexion ---------------------------
 @login_required
 def api_produits(request):
-    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal"))
-    clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
+    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal", "special"))
+    clients = list(Client.objects.filter(clientSpecial=False).values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
     return JsonResponse({
         "produits": produits,
         "clients": clients,
@@ -5021,6 +5021,53 @@ def _parse_date_vente(date_str):
     return timezone.now().date()
 
 
+def _parse_datetime_vente(date_str):
+    """Accepte un datetime ISO complet (avec heure) envoye par la vente directe ;
+    conserve l'heure au lieu de la tronquer a minuit. Retombe sur la date seule
+    (ancien format sans heure) ou sur l'instant present si rien n'est exploitable."""
+    from datetime import datetime
+    from django.utils.dateparse import parse_datetime
+    if not date_str:
+        return timezone.now()
+    date_str = date_str.replace('\xa0', ' ').strip()
+    parsed = parse_datetime(date_str)
+    if parsed is not None:
+        if timezone.is_naive(parsed):
+            parsed = timezone.make_aware(parsed)
+        return parsed
+    return timezone.make_aware(datetime.combine(_parse_date_vente(date_str), datetime.min.time()))
+
+
+def _get_or_create_client_special(nom, prenom, telephone):
+    """Recupere ou cree un client 'a part' pour l'achat d'un produit special
+    (identifie par son telephone), sans le melanger aux clients habituels."""
+    nom = (nom or "").strip()
+    prenom = (prenom or "").strip()
+    telephone = (telephone or "").strip()
+    if not nom or not telephone:
+        return None
+
+    existant = Client.objects.filter(telephone=telephone, clientSpecial=True).first()
+    if existant:
+        return existant
+
+    nom_complet = f"{nom} {prenom}".strip()
+    client = Client(
+        nom=nom_complet,
+        prenom=prenom or None,
+        telephone=telephone,
+        pourcentage=0,
+        detteMaximale=0,
+        clientSpecial=True,
+    )
+    try:
+        client.save()
+    except IntegrityError:
+        client.nom = f"{nom_complet} ({telephone})"
+        client.save()
+    return client
+
+
 def sync_ventes(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
@@ -5041,16 +5088,23 @@ def sync_ventes(request):
         else:
             client = None
 
+        if client is None:
+            client = _get_or_create_client_special(
+                vente.get("clientSpecialNom"),
+                vente.get("clientSpecialPrenom"),
+                vente.get("clientSpecialTelephone"),
+            )
+
         if Commande.objects.filter(client_uid=id_local).exists():
             return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
-        
+
         montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
         commande = Commande.objects.create(
             user=User.objects.get(id=user_id),
             client =  client,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
-            date = _parse_date_vente(vente.get("date")),
+            date = _parse_datetime_vente(vente.get("date")),
             #date = date(2025, 10, 14),  # Pour test
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),

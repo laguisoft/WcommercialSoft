@@ -424,6 +424,7 @@
 
 let panier = [];
 let produitsCache = [];
+let infoClientSpecial = null; // Nom/Prenom/Telephone captures pour un produit special de la vente en cours
 let currentFocus = -1;
 let produitSelectionne = null;
 let input = document.getElementById("produitSearch");
@@ -581,8 +582,38 @@ function remplirInfosProduit(produit) {
   document.getElementById("stock").value = produit.quantite;
 }
 
+// --- 🧑 Modal infos client pour un produit special ---
+async function demanderInfoClientSpecial() {
+  const { value: infos } = await Swal.fire({
+    title: "Informations du client",
+    html: `
+      <p class="mb-3">Ce produit necessite les informations de l'acheteur.</p>
+      <input id="swalNomClientSpecial" class="swal2-input" placeholder="Nom" autocomplete="off">
+      <input id="swalPrenomClientSpecial" class="swal2-input" placeholder="Prenom" autocomplete="off">
+      <input id="swalTelClientSpecial" class="swal2-input" placeholder="Telephone" autocomplete="off">
+    `,
+    icon: "info",
+    focusConfirm: false,
+    allowOutsideClick: false,
+    showCancelButton: true,
+    confirmButtonText: "Valider",
+    cancelButtonText: "Annuler",
+    preConfirm: () => {
+      const nom = document.getElementById("swalNomClientSpecial").value.trim();
+      const prenom = document.getElementById("swalPrenomClientSpecial").value.trim();
+      const telephone = document.getElementById("swalTelClientSpecial").value.trim();
+      if (!nom || !telephone) {
+        Swal.showValidationMessage("Le nom et le telephone de l'acheteur sont obligatoires");
+        return false;
+      }
+      return { nom, prenom, telephone };
+    }
+  });
+  return infos || null;
+}
+
 // --- 🛒 Ajouter au panier ---
-function ajouterAuPanier(produit = null) {
+async function ajouterAuPanier(produit = null) {
   if (!produit) {
     produit = produitSelectionne;
   }
@@ -590,6 +621,15 @@ function ajouterAuPanier(produit = null) {
   if (!produit) {
     toastr.error("Veuillez sélectionner un produit avant d'ajouter !");
     return;
+  }
+
+  if (produit.special && !infoClientSpecial) {
+    const infos = await demanderInfoClientSpecial();
+    if (!infos) {
+      toastr.warning("Informations du client obligatoires pour ajouter ce produit.");
+      return;
+    }
+    infoClientSpecial = infos;
   }
 
   let quantite = parseInt(document.getElementById("quantite").value) || 1;
@@ -859,7 +899,7 @@ async function validerVente() {
     let venteData = {
       id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
       lignes: panier,
-      date: new Date().toISOString().slice(0, 10),
+      date: new Date().toISOString(),
       remise,
       montant,
       typeVente,
@@ -869,12 +909,16 @@ async function validerVente() {
       user,
       dateEcheance: dateEcheance,
       commentaire: commentaire,
+      clientSpecialNom: infoClientSpecial ? infoClientSpecial.nom : null,
+      clientSpecialPrenom: infoClientSpecial ? infoClientSpecial.prenom : null,
+      clientSpecialTelephone: infoClientSpecial ? infoClientSpecial.telephone : null,
     };
 
   ventes.push(venteData);
 
   await localforage.setItem("ventes", ventes);
   panier = [];
+  infoClientSpecial = null;
 
     // ✅ Réinitialiser les champs après validation
   document.getElementById("remise").value = "";
@@ -905,7 +949,9 @@ async function validerVente() {
         ville: "Kankan",
         telephone: "620000000"
     };
-    imprimerRecuLocal(venteData, boutique);
+    // Le reçu affiche une date lisible (avec l'heure) plutôt que l'ISO brut stocké pour la synchro
+    let venteDataPourRecu = Object.assign({}, venteData, { date: getDateTimeNow() });
+    imprimerRecuLocal(venteDataPourRecu, boutique);
   }
   document.getElementById("remise").value = "";
   document.getElementById("remisePourcent").value = "";
