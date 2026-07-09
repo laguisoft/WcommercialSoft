@@ -3235,6 +3235,64 @@ def vente_par_pourcentage(request):
 
 
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def client_special_recherche(request):
+    return render(request, 'CommercialSoft/clientSpecial.html')
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def recherche_client_special(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Requête invalide"}, status=400)
+
+    telephone = request.POST.get('telephone', '').strip()
+    if not telephone:
+        return JsonResponse({"error": "Numero de telephone requis"}, status=400)
+
+    client = ClientSpecial.objects.filter(telephone=telephone).first()
+    if not client:
+        return JsonResponse({"error": "Aucun client trouve pour ce numero"}, status=404)
+
+    commandes = Commande.objects.filter(clientSpecial=client).order_by('-date')
+
+    achats = []
+    recap = {}
+    for commande in commandes:
+        lignes = CommandeProduit.objects.filter(commande=commande, produit__special=True).select_related('produit')
+        for ligne in lignes:
+            nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
+            achats.append({
+                "commande_id": commande.id,
+                "date": commande.date,
+                "produit": nom_produit,
+                "quantite": ligne.quantite,
+                "prix": ligne.prix,
+                "montant": ligne.prix * ligne.quantite,
+            })
+            recap.setdefault(nom_produit, {"nombreAchats": 0, "quantiteTotale": 0})
+            recap[nom_produit]["nombreAchats"] += 1
+            recap[nom_produit]["quantiteTotale"] += ligne.quantite
+
+    recap_liste = [
+        {"produit": produit, "nombreAchats": donnees["nombreAchats"], "quantiteTotale": donnees["quantiteTotale"]}
+        for produit, donnees in recap.items()
+    ]
+
+    return JsonResponse({
+        "client": {
+            "nom": client.nom,
+            "prenom": client.prenom or "",
+            "telephone": client.telephone,
+        },
+        "nombreAchats": len(achats),
+        "recap": recap_liste,
+        "achats": achats,
+    })
+
+
+
 
 
 @login_required
