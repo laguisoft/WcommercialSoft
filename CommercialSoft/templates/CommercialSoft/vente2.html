@@ -590,7 +590,7 @@ async function demanderInfoClientSpecial() {
       <p class="mb-3">Ce produit necessite les informations de l'acheteur.</p>
       <input id="swalNomClientSpecial" class="swal2-input" placeholder="Nom" autocomplete="off">
       <input id="swalPrenomClientSpecial" class="swal2-input" placeholder="Prenom" autocomplete="off">
-      <input id="swalTelClientSpecial" class="swal2-input" placeholder="Telephone" autocomplete="off">
+      <input id="swalTelClientSpecial" class="swal2-input" placeholder="Telephone" autocomplete="off" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
     `,
     icon: "info",
     focusConfirm: false,
@@ -604,6 +604,10 @@ async function demanderInfoClientSpecial() {
       const telephone = document.getElementById("swalTelClientSpecial").value.trim();
       if (!nom || !telephone) {
         Swal.showValidationMessage("Le nom et le telephone de l'acheteur sont obligatoires");
+        return false;
+      }
+      if (!/^\d+$/.test(telephone)) {
+        Swal.showValidationMessage("Le telephone doit contenir uniquement des chiffres");
         return false;
       }
       return { nom, prenom, telephone };

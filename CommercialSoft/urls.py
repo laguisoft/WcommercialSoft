@@ -66,6 +66,7 @@ urlpatterns=[
     path('vente/pourcentage', views.vente_par_pourcentage, name="commerce_venteParPourcentage"),
     path('vente/client-special', views.client_special_recherche, name="commerce_clientSpecial"),
     path('vente/recherche/client-special', views.recherche_client_special, name="rechercheClientSpecial"),
+    path('vente/detail/client-special', views.detail_client_special, name="detailClientSpecial"),
     path('vente/facture/proforma', views.pdf_facture_proforma, name="pdf_facture_proforma"),
     path('pdf/facture/<int:commande_id>/', views.pdf_facture_proforma_2, name='pdf_facture_proforma_2'),
     path('commerce/detailVente/etat', views.pdf_etat_detail_vente,name="commerce_etatDetailVente"),

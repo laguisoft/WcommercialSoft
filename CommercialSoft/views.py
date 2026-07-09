@@ -13,7 +13,7 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, OuterRef, Subquery
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, OuterRef, Subquery, Q
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 import json
@@ -3247,13 +3247,35 @@ def recherche_client_special(request):
     if request.method != "POST":
         return JsonResponse({"error": "Requête invalide"}, status=400)
 
-    telephone = request.POST.get('telephone', '').strip()
-    if not telephone:
-        return JsonResponse({"error": "Numero de telephone requis"}, status=400)
+    terme = request.POST.get('recherche', '').strip()
+    if not terme:
+        return JsonResponse({"error": "Veuillez saisir un nom, prenom ou numero de telephone"}, status=400)
 
-    client = ClientSpecial.objects.filter(telephone=telephone).first()
+    clients = ClientSpecial.objects.filter(
+        Q(nom__icontains=terme) | Q(prenom__icontains=terme) | Q(telephone__icontains=terme)
+    ).order_by('nom')
+
+    resultats = [
+        {
+            "id": client.id,
+            "nom": client.nom,
+            "prenom": client.prenom or "",
+            "telephone": client.telephone,
+            "nombreAchats": CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True).count(),
+        }
+        for client in clients
+    ]
+
+    return JsonResponse({"clients": resultats})
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def detail_client_special(request):
+    client_id = request.GET.get('id')
+    client = ClientSpecial.objects.filter(id=client_id).first()
     if not client:
-        return JsonResponse({"error": "Aucun client trouve pour ce numero"}, status=404)
+        return JsonResponse({"error": "Client introuvable"}, status=404)
 
     commandes = Commande.objects.filter(clientSpecial=client).order_by('-date')
 
@@ -3265,7 +3287,7 @@ def recherche_client_special(request):
             nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
             achats.append({
                 "commande_id": commande.id,
-                "date": commande.date,
+                "date": timezone.localtime(commande.date).strftime("%d-%m-%Y %H-%M"),
                 "produit": nom_produit,
                 "quantite": ligne.quantite,
                 "prix": ligne.prix,
@@ -5098,10 +5120,11 @@ def _parse_datetime_vente(date_str):
 
 def _get_or_create_client_special(nom, prenom, telephone):
     """Recupere ou cree l'acheteur d'un produit special (table ClientSpecial,
-    distincte des clients habituels), identifie par son telephone."""
+    distincte des clients habituels), identifie par son telephone (numerique)."""
+    import re
     nom = (nom or "").strip()
     prenom = (prenom or "").strip()
-    telephone = (telephone or "").strip()
+    telephone = re.sub(r'\D', '', telephone or "")
     if not nom or not telephone:
         return None
 

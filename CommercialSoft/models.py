@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission, User
 from django.utils import timezone
 from django.conf import settings
+from django.core.validators import RegexValidator
 # Create your models here.
 
 
@@ -95,7 +96,7 @@ class ClientSpecial(models.Model):
     """Acheteur d'un produit special (table distincte des clients habituels)."""
     nom=models.CharField(max_length=70)
     prenom=models.CharField(max_length=70, null=True, blank=True)
-    telephone=models.CharField(max_length=20)
+    telephone=models.CharField(max_length=20, validators=[RegexValidator(r'^\d+$', "Le telephone doit contenir uniquement des chiffres.")])
 
     def __str__(self):
         return f"{self.nom} {self.prenom}".strip() if self.prenom else self.nom
