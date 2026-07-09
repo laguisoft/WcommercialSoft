@@ -4880,7 +4880,7 @@ def import_excel_view(request):
 @login_required
 def api_produits(request):
     produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal", "special"))
-    clients = list(Client.objects.filter(clientSpecial=False).values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
+    clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
     return JsonResponse({
         "produits": produits,
         "clients": clients,
@@ -5003,7 +5003,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 import json
 
-from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, PretClient
+from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, ClientSpecial, PretClient
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
 
@@ -5039,33 +5039,19 @@ def _parse_datetime_vente(date_str):
 
 
 def _get_or_create_client_special(nom, prenom, telephone):
-    """Recupere ou cree un client 'a part' pour l'achat d'un produit special
-    (identifie par son telephone), sans le melanger aux clients habituels."""
+    """Recupere ou cree l'acheteur d'un produit special (table ClientSpecial,
+    distincte des clients habituels), identifie par son telephone."""
     nom = (nom or "").strip()
     prenom = (prenom or "").strip()
     telephone = (telephone or "").strip()
     if not nom or not telephone:
         return None
 
-    existant = Client.objects.filter(telephone=telephone, clientSpecial=True).first()
+    existant = ClientSpecial.objects.filter(telephone=telephone).first()
     if existant:
         return existant
 
-    nom_complet = f"{nom} {prenom}".strip()
-    client = Client(
-        nom=nom_complet,
-        prenom=prenom or None,
-        telephone=telephone,
-        pourcentage=0,
-        detteMaximale=0,
-        clientSpecial=True,
-    )
-    try:
-        client.save()
-    except IntegrityError:
-        client.nom = f"{nom_complet} ({telephone})"
-        client.save()
-    return client
+    return ClientSpecial.objects.create(nom=nom, prenom=prenom or None, telephone=telephone)
 
 
 def sync_ventes(request):
@@ -5088,12 +5074,11 @@ def sync_ventes(request):
         else:
             client = None
 
-        if client is None:
-            client = _get_or_create_client_special(
-                vente.get("clientSpecialNom"),
-                vente.get("clientSpecialPrenom"),
-                vente.get("clientSpecialTelephone"),
-            )
+        client_special = _get_or_create_client_special(
+            vente.get("clientSpecialNom"),
+            vente.get("clientSpecialPrenom"),
+            vente.get("clientSpecialTelephone"),
+        )
 
         if Commande.objects.filter(client_uid=id_local).exists():
             return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
@@ -5102,6 +5087,7 @@ def sync_ventes(request):
         commande = Commande.objects.create(
             user=User.objects.get(id=user_id),
             client =  client,
+            clientSpecial = client_special,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
             date = _parse_datetime_vente(vente.get("date")),
