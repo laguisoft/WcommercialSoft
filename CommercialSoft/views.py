@@ -3250,6 +3250,8 @@ def recherche_client_special(request):
     telephone = request.POST.get('telephone', '').strip()
     if not telephone:
         return JsonResponse({"error": "Numero de telephone requis"}, status=400)
+    if not telephone.isdigit():
+        return JsonResponse({"error": "Le numero de telephone doit contenir uniquement des chiffres"}, status=400)
 
     client = ClientSpecial.objects.filter(telephone=telephone).first()
     if not client:
@@ -3265,7 +3267,7 @@ def recherche_client_special(request):
             nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
             achats.append({
                 "commande_id": commande.id,
-                "date": commande.date,
+                "date": timezone.localtime(commande.date).strftime("%d-%m-%Y %H-%M"),
                 "produit": nom_produit,
                 "quantite": ligne.quantite,
                 "prix": ligne.prix,
@@ -5098,10 +5100,11 @@ def _parse_datetime_vente(date_str):
 
 def _get_or_create_client_special(nom, prenom, telephone):
     """Recupere ou cree l'acheteur d'un produit special (table ClientSpecial,
-    distincte des clients habituels), identifie par son telephone."""
+    distincte des clients habituels), identifie par son telephone (numerique)."""
+    import re
     nom = (nom or "").strip()
     prenom = (prenom or "").strip()
-    telephone = (telephone or "").strip()
+    telephone = re.sub(r'\D', '', telephone or "")
     if not nom or not telephone:
         return None
 

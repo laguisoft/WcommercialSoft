@@ -27,7 +27,7 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="telephoneClientSpecial">Telephone du client</label>
-                  <input type="text" class="form-control" id="telephoneClientSpecial" placeholder="Numero de telephone">
+                  <input type="text" class="form-control" id="telephoneClientSpecial" placeholder="Numero de telephone" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
                 </div>
               </div>
               <div class="col-md-2">
