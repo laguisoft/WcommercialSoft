@@ -1248,25 +1248,34 @@ def recherche_vente(request):
         dateFin = request.POST.get("dateFin")
 
         # Construire le filtre dynamique
+        # (Retour.date est un DateField, mais Commande.date est un
+        # DateTimeField : on a donc besoin de deux filtres distincts pour
+        # que le filtre "date de fin" inclue toute la journée de fin sur
+        # les ventes, sinon les ventes faites après minuit du jour de fin
+        # sont exclues)
         filtre = {}
+        filtre_ventes = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
         if dateDebut:
             filtre["date__gte"] = dateDebut
+            filtre_ventes["date__date__gte"] = dateDebut
         if dateFin:
             filtre["date__lte"] = dateFin
+            filtre_ventes["date__date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idUser and idUser != "0":
             try:
                 user = User.objects.get(id=idUser)
                 filtre["user"] = user
+                filtre_ventes["user"] = user
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre)
-        
+        ventes = Commande.objects.filter(**filtre_ventes)
+
         montantRetour = (
                             Retour.objects
                             .filter(**filtre)
@@ -1312,10 +1321,13 @@ def recherche_vente_client(request):
         filtre = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
+        # (Commande.date est un DateTimeField : on compare uniquement la partie
+        # date pour inclure toute la journée de fin, sinon les ventes faites
+        # après minuit du jour de fin sont exclues)
         if dateDebut:
-            filtre["date__gte"] = dateDebut
+            filtre["date__date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            filtre["date__date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idClient and idClient != "0":
@@ -1365,10 +1377,13 @@ def recherche_vente_payement(request):
         filtre = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
+        # (Commande.date est un DateTimeField : on compare uniquement la partie
+        # date pour inclure toute la journée de fin, sinon les ventes faites
+        # après minuit du jour de fin sont exclues)
         if dateDebut:
-            filtre["date__gte"] = dateDebut
+            filtre["date__date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            filtre["date__date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if payement and payement != "0":
@@ -1426,10 +1441,13 @@ def recherche_vente_type(request):
         filtre = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
+        # (Commande.date est un DateTimeField : on compare uniquement la partie
+        # date pour inclure toute la journée de fin, sinon les ventes faites
+        # après minuit du jour de fin sont exclues)
         if dateDebut:
-            filtre["date__gte"] = dateDebut
+            filtre["date__date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            filtre["date__date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if type and type != "0":
@@ -1596,10 +1614,13 @@ def recherche_detail_vente(request):
 
         filtre = {}
 
+        # Commande.date est un DateTimeField : on compare uniquement la partie
+        # date pour inclure toute la journée de fin, sinon les ventes faites
+        # après minuit du jour de fin sont exclues
         if dateDebut:
-            filtre["date__gte"] = dateDebut
+            filtre["date__date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            filtre["date__date__lte"] = dateFin
 
         if idUser and idUser != "0":
             try:
@@ -3110,31 +3131,40 @@ def recherche_bilan(request):
         dateFin = request.POST.get("dateFin")
 
         # Construire le filtre dynamique
+        # (VersementClient/Depense/Retour/PretClient utilisent un DateField,
+        # mais Commande.date est un DateTimeField : on a donc besoin d'un
+        # filtre distinct pour que la date de fin inclue toute la journée
+        # sur les ventes, sinon les ventes faites après minuit du jour de
+        # fin sont exclues)
         filtre = {}
+        filtre_ventes = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
         if dateDebut:
             filtre["date__gte"] = dateDebut
+            filtre_ventes["date__date__gte"] = dateDebut
         if dateFin:
             filtre["date__lte"] = dateFin
+            filtre_ventes["date__date__lte"] = dateFin
 
-        
+
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idUser and idUser != "0":
             try:
                 user = User.objects.get(id=idUser)
                 filtre["user"] = user
+                filtre_ventes["user"] = user
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
-            
+
         #pret reclamer
         pretReclamer = VersementClient.objects.filter(**filtre)
         depense = Depense.objects.filter(**filtre)
 
         # Appliquer le filtre à la requête
         retour=Retour.objects.filter(**filtre)
-        ventes = Commande.objects.filter(**filtre)
+        ventes = Commande.objects.filter(**filtre_ventes)
         pret=PretClient.objects.filter(**filtre)
         
         # Calculer les totaux
@@ -3345,8 +3375,11 @@ def recherche_benefice_sur_vente(request):
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
-        commandes=Commande.objects.filter(date__gte=dateDebut, date__lte=dateFin)
-            
+        # Commande.date est un DateTimeField : on compare uniquement la partie
+        # date pour inclure toute la journée de fin, sinon les ventes faites
+        # après minuit du jour de fin sont exclues
+        commandes=Commande.objects.filter(date__date__gte=dateDebut, date__date__lte=dateFin)
+
         # Construire une réponse JSON
         patients_data = [
             {
@@ -3379,7 +3412,10 @@ def recherche_pourcentage_sur_vente(request):
         dateFin = request.POST.get("dateFin")
         type = request.POST.get("type")
 
-        commandes=Commande.objects.filter(typeVente=type, date__gte=dateDebut, date__lte=dateFin)
+        # Commande.date est un DateTimeField : on compare uniquement la partie
+        # date pour inclure toute la journée de fin, sinon les ventes faites
+        # après minuit du jour de fin sont exclues
+        commandes=Commande.objects.filter(typeVente=type, date__date__gte=dateDebut, date__date__lte=dateFin)
         
         # Construire une réponse JSON
         patients_data = [
@@ -3807,10 +3843,13 @@ def pdf_etat_detail_vente(request):
 
             filtre = {}
 
+            # Commande.date est un DateTimeField : on compare uniquement la
+            # partie date pour inclure toute la journée de fin, sinon les
+            # ventes faites après minuit du jour de fin sont exclues
             if dateDebut:
-                filtre["date__gte"] = dateDebut
+                filtre["date__date__gte"] = dateDebut
             if dateFin:
-                filtre["date__lte"] = dateFin
+                filtre["date__date__lte"] = dateFin
 
             if idUser and idUser != "0":
                 try:
@@ -4812,31 +4851,40 @@ def pdf_etat_bilan(request):
             dateFin = request.POST.get("dateFin")
 
             # Construire le filtre dynamique
+            # (VersementClient/Depense/Retour/PretClient utilisent un
+            # DateField, mais Commande.date est un DateTimeField : on a donc
+            # besoin d'un filtre distinct pour que la date de fin inclue
+            # toute la journée sur les ventes, sinon les ventes faites après
+            # minuit du jour de fin sont exclues)
             filtre = {}
+            filtre_ventes = {}
 
             # Ajouter les filtres pour les dates si elles sont fournies
             if dateDebut:
                 filtre["date__gte"] = dateDebut
+                filtre_ventes["date__date__gte"] = dateDebut
             if dateFin:
                 filtre["date__lte"] = dateFin
+                filtre_ventes["date__date__lte"] = dateFin
 
-            
+
 
             # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
             if idUser and idUser != "0":
                 try:
                     user = User.objects.get(id=idUser)
                     filtre["user"] = user
+                    filtre_ventes["user"] = user
                 except User.DoesNotExist:
                     return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
-                
+
             #pret reclamer
             pretReclamer = VersementClient.objects.filter(**filtre)
             depense = Depense.objects.filter(**filtre)
 
             # Appliquer le filtre à la requête
             retour=Retour.objects.filter(**filtre)
-            ventes = Commande.objects.filter(**filtre)
+            ventes = Commande.objects.filter(**filtre_ventes)
             pret=PretClient.objects.filter(**filtre)
             
             # Calculer les totaux
