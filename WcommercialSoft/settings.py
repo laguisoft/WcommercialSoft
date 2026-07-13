@@ -74,6 +74,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'CommercialSoft.context_processors.demandes_commande_en_attente',
+                'CommercialSoft.context_processors.whatsapp_settings',
             ],
         },
     },
@@ -203,6 +204,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Indicatif pays utilise pour completer les numeros de telephone locaux
+# (stockes sans indicatif) lors de la generation des liens WhatsApp.
+WHATSAPP_COUNTRY_CODE = config('WHATSAPP_COUNTRY_CODE', default='224')
 
 
 # Sécurité des cookies et des en-têtes HTTP.

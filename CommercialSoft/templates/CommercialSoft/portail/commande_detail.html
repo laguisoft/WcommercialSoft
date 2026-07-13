@@ -1,4 +1,5 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
+{% load whatsapp_tags %}
 
 {% block corp %}
 <section class="content pt-0">
@@ -47,9 +48,17 @@
         <div class="card card-primary">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="card-title"><i class="bi bi-receipt me-2"></i>Facture</h3>
-            <a href="{% url 'portail_facture_pdf' demande.pk %}" target="_blank" class="btn btn-sm btn-primary">
-              <i class="bi bi-printer me-1"></i>Imprimer la facture (A4)
-            </a>
+            <div class="d-flex gap-2">
+              <a href="{% url 'portail_facture_pdf' demande.pk %}" target="_blank" class="btn btn-sm btn-primary">
+                <i class="bi bi-printer me-1"></i>Imprimer la facture (A4)
+              </a>
+              {% whatsapp_facture_link demande.client.telephone demande.client.nom demande.pk total_facture as wa_link %}
+              {% if wa_link %}
+              <a href="{{ wa_link }}" target="_blank" class="btn btn-sm btn-success">
+                <i class="fab fa-whatsapp me-1"></i>Envoyer via WhatsApp
+              </a>
+              {% endif %}
+            </div>
           </div>
           <div class="card-body p-0">
             <table class="table table-striped m-0">

@@ -5,6 +5,7 @@ from django.contrib.auth import login, logout, authenticate
 from .forms import *
 from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit, InfoBoutique
 from .decorators import client_required
+from .whatsapp import format_whatsapp_number, build_whatsapp_link
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -1204,12 +1205,17 @@ def vente_creates(request):
                     commande_form = CommandeForm()
                     pret_form = pretClientForm()
                     produits = Produit.objects.all()
+                    wa_link = None
+                    if commande.client and commande.client.telephone:
+                        wa_message = f"Bonjour {commande.client.nom}, voici votre facture n°{commande.id} d'un montant de {commande.montant - commande.remise} GNF."
+                        wa_link = build_whatsapp_link(commande.client.telephone, wa_message)
                     return render(request, 'CommercialSoft/vente.html', {
                         'commande_form': commande_form,
                         'pret_form': pret_form,
                         'listes': produits,
                         'recu_url': '/commerce_recu',
-                        'venteId': commande.id
+                        'venteId': commande.id,
+                        'wa_link': wa_link,
                     })
                 except Exception as e:
                     messages.error(request, f"Erreur d'enregistrement: {e}")
@@ -1297,6 +1303,7 @@ def recherche_vente(request):
                 "type": vente.typeVente,
                 "payement": vente.typePayement,
                 "client": vente.client.nom if vente.client else "",
+                "clientTelephoneWhatsapp": format_whatsapp_number(vente.client.telephone) if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
             for vente in ventes
@@ -1355,6 +1362,7 @@ def recherche_vente_client(request):
                 "type": vente.typeVente,
                 "payement": vente.typePayement,
                 "client": vente.client.nom if vente.client else "",
+                "clientTelephoneWhatsapp": format_whatsapp_number(vente.client.telephone) if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
             for vente in ventes
@@ -1421,6 +1429,7 @@ def recherche_vente_payement(request):
                 "type": vente.typeVente,
                 "payement": vente.typePayement,
                 "client": vente.client.nom if vente.client else "",
+                "clientTelephoneWhatsapp": format_whatsapp_number(vente.client.telephone) if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
             for vente in ventes
@@ -1478,6 +1487,7 @@ def recherche_vente_type(request):
                 "type": vente.typeVente,
                 "payement": vente.typePayement,
                 "client": vente.client.nom if vente.client else "",
+                "clientTelephoneWhatsapp": format_whatsapp_number(vente.client.telephone) if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
             for vente in ventes

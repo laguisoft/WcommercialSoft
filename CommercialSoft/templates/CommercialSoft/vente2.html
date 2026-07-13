@@ -419,8 +419,22 @@
 
 <script>
   localforage.config({ name: "venteApp" });
-  
+
   const BOUTIQUE_NOM = "{{ boutique.nom|escapejs }}";
+  const WHATSAPP_COUNTRY_CODE = "{{ WHATSAPP_COUNTRY_CODE|default:'224'|escapejs }}";
+
+  // Construit un lien "wa.me" a partir d'un numero local et d'un message ;
+  // retourne null si le numero est vide/invalide.
+  function buildWhatsappLink(telephone, message) {
+    if (!telephone) return null;
+    let chiffres = telephone.replace(/\D/g, '');
+    if (!chiffres) return null;
+    if (!chiffres.startsWith(WHATSAPP_COUNTRY_CODE)) {
+      if (chiffres.startsWith('0')) chiffres = chiffres.slice(1);
+      chiffres = WHATSAPP_COUNTRY_CODE + chiffres;
+    }
+    return `https://wa.me/${chiffres}?text=${encodeURIComponent(message)}`;
+  }
 
 let panier = [];
 let produitsCache = [];
@@ -455,6 +469,8 @@ function remplirSelectClients(clients) {
     let option = document.createElement("option");
     option.value = c.id;
     option.textContent = `${c.nom}`;
+    option.dataset.nom = c.nom || '';
+    option.dataset.telephone = c.telephone || '';
     select.appendChild(option);
   });
 }
@@ -1145,6 +1161,7 @@ async function proforma() {
   let commentaire = document.getElementById("id_commentaire") ? document.getElementById("id_commentaire").value : "";
   let select = document.getElementById("id_client");
   let clientNom = select.options[select.selectedIndex].text;
+  let clientTelDefaut = select.options[select.selectedIndex].dataset.telephone || "";
 
 
   // 🔹 Nettoyer les produits pour JSON
@@ -1193,8 +1210,8 @@ async function proforma() {
     title: "Choisissez le type de facture",
     text: "Souhaitez-vous imprimer le reçu en format ticket ou A4 ?",
     html: `
-        <input id="nomClient" class="swal2-input" placeholder="Nom du client">
-        <input id="telClient" class="swal2-input" placeholder="Telephone client">
+        <input id="nomClient" class="swal2-input" placeholder="Nom du client" value="${clientNom && clientNom !== '---------' ? clientNom : ''}">
+        <input id="telClient" class="swal2-input" placeholder="Telephone client" value="${clientTelDefaut}">
     `,
     icon: "question",
     showCancelButton: true,
@@ -1267,7 +1284,15 @@ if (result.isConfirmed) {
   });
 }
 
-
+  // 📲 Proposer l'envoi de la facture via WhatsApp (piece jointe manuelle)
+  const waLink = buildWhatsappLink(telClient, `Bonjour ${nomClient || ''}, voici votre facture d'un montant de ${montant} GNF.`);
+  if (waLink) {
+    setTimeout(() => {
+      if (confirm("Voulez-vous envoyer la facture via WhatsApp au client ?")) {
+        window.open(waLink, "_blank");
+      }
+    }, 1600);
+  }
 
 
 }

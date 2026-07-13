@@ -821,6 +821,11 @@ $(function() {
       if (confirm("Voulez-vous imprimer la facture ?")) {
         window.open("{% url 'commerce_recu' pk=venteId %}", "_blank");
       }
+      {% if wa_link %}
+      if (confirm("Voulez-vous envoyer la facture via WhatsApp au client ?")) {
+        window.open("{{ wa_link|escapejs }}", "_blank");
+      }
+      {% endif %}
     {% endif %}
   });
 </script>

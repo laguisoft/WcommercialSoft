@@ -306,6 +306,8 @@
               const supUrl = "{% url 'commerce_venteDelete' 0 %}".replace("0", data.id);
               const recuUrl = "{% url 'commerce_recu' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_modVente' 0 %}".replace("0", data.id);
+              const waMessage = encodeURIComponent(`Bonjour ${data.client || ''}, voici votre facture n°${data.id} d'un montant de ${data.net} GNF.`);
+              const waUrl = data.clientTelephoneWhatsapp ? `https://wa.me/${data.clientTelephoneWhatsapp}?text=${waMessage}` : null;
               patientsTable.append(`
                 <tr class="vente_row" data-id="${data.id}">
                   <td class="text-center">${data.id}</td>
@@ -327,6 +329,10 @@
                         <a class="dropdown-item" href="${recuUrl} " title="imprimer">
                           <i class="fas fa-print text-warning"></i> imprimer
                         </a>
+                        ${waUrl ? `
+                        <a class="dropdown-item" target="_blank" href="${waUrl}" title="Envoyer via WhatsApp">
+                          <i class="fab fa-whatsapp text-success"></i> Envoyer via WhatsApp
+                        </a>` : ''}
                         <a class="dropdown-item" href="${supUrl}"
                           onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">
                           <i class="fas fa-times-circle text-danger"></i> Supprimer

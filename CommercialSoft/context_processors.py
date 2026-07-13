@@ -6,3 +6,8 @@ def demandes_commande_en_attente(request):
     from .models import CommandeClient
     count = CommandeClient.objects.filter(statut='En attente').count()
     return {'demandes_commande_en_attente_count': count}
+
+
+def whatsapp_settings(request):
+    from django.conf import settings
+    return {'WHATSAPP_COUNTRY_CODE': settings.WHATSAPP_COUNTRY_CODE}
