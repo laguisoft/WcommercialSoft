@@ -13,7 +13,7 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, BigIntegerField, OuterRef, Subquery, Count
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, BigIntegerField, OuterRef, Subquery, Count, Q
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 import json
@@ -92,9 +92,14 @@ def login_view(request):
 @login_required
 def dashboard(request):
     info_boutique = request.entreprise
-    total_produits = Produit.objects.count()
-    produits_perimes = Produit.objects.filter(datePeremption__lt=now()).count()
-    produits_rupture = Produit.objects.filter(quantite__lte=F('seuil')).count()
+    produits_stats = Produit.objects.aggregate(
+        total=Count('id'),
+        perimes=Count('id', filter=Q(datePeremption__lt=now())),
+        rupture=Count('id', filter=Q(quantite__lte=F('seuil'))),
+    )
+    total_produits = produits_stats['total']
+    produits_perimes = produits_stats['perimes']
+    produits_rupture = produits_stats['rupture']
     total_dettes = PretClient.objects.count()
 
     context = {
@@ -3057,64 +3062,70 @@ def bilan(request):
 
 
 
+def _construire_filtre_bilan(request):
+    """Construit le filtre dynamique (date/user) commun à recherche_bilan et
+    pdf_etat_bilan. Retourne (filtre, erreur) ; erreur est une JsonResponse à
+    renvoyer telle quelle si l'utilisateur demandé n'existe pas."""
+    idUser = request.POST.get('idUser')
+    dateDebut = request.POST.get("dateDebut")
+    dateFin = request.POST.get("dateFin")
+
+    filtre = {}
+    if dateDebut:
+        filtre["date__gte"] = dateDebut
+    if dateFin:
+        filtre["date__lte"] = dateFin
+
+    if idUser and idUser != "0":
+        try:
+            user = User.objects.get(id=idUser)
+            filtre["user"] = user
+        except User.DoesNotExist:
+            return filtre, JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+
+    return filtre, None
+
+
+def _calculer_totaux_bilan(filtre):
+    """Calcule les totaux du bilan (vente nette, prêts, dépenses, retours,
+    caisse) pour un filtre donné. Un seul aggregate() pour montant+remise
+    au lieu de deux allers-retours séparés sur le même queryset."""
+    pretReclamer = VersementClient.objects.filter(**filtre)
+    depense = Depense.objects.filter(**filtre)
+    retour = Retour.objects.filter(**filtre)
+    ventes = Commande.objects.filter(**filtre)
+    pret = PretClient.objects.filter(**filtre)
+
+    totaux_vente = ventes.aggregate(montant=Sum('montant'), remise=Sum('remise'))
+    total_montant = totaux_vente['montant'] or 0
+    total_remise = totaux_vente['remise'] or 0
+    total_net_vente = total_montant - total_remise
+
+    total_pretReclamer = pretReclamer.aggregate(total=Sum('montant'))['total'] or 0
+    total_pret = pret.aggregate(total=Sum('montant'))['total'] or 0
+    total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+    total_retour = retour.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+
+    caisse = total_net_vente + total_pretReclamer - total_pret - total_depense - total_retour
+
+    return {
+        "totalVente": total_net_vente,
+        "totalPretReclame": total_pretReclamer,
+        "totalPret": total_pret,
+        "totalDepense": total_depense,
+        "totalRetour": total_retour,
+        "caisse": caisse,
+    }
+
+
 @login_required
 def recherche_bilan(request):
     if request.method == "POST":
-        idUser = request.POST.get('idUser')
-        dateDebut = request.POST.get("dateDebut")
-        dateFin = request.POST.get("dateFin")
+        filtre, erreur = _construire_filtre_bilan(request)
+        if erreur:
+            return erreur
 
-        # Construire le filtre dynamique
-        filtre = {}
-
-        # Ajouter les filtres pour les dates si elles sont fournies
-        if dateDebut:
-            filtre["date__gte"] = dateDebut
-        if dateFin:
-            filtre["date__lte"] = dateFin
-
-        
-
-        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
-        if idUser and idUser != "0":
-            try:
-                user = User.objects.get(id=idUser)
-                filtre["user"] = user
-            except User.DoesNotExist:
-                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
-            
-        #pret reclamer
-        pretReclamer = VersementClient.objects.filter(**filtre)
-        depense = Depense.objects.filter(**filtre)
-
-        # Appliquer le filtre à la requête
-        retour=Retour.objects.filter(**filtre)
-        ventes = Commande.objects.filter(**filtre)
-        pret=PretClient.objects.filter(**filtre)
-        
-        # Calculer les totaux
-        total_montant = ventes.aggregate(Sum('montant'))['montant__sum'] or 0
-        total_remise = ventes.aggregate(Sum('remise'))['remise__sum'] or 0
-        total_net_vente = total_montant - total_remise  # Calcul de la différence
-        # pret reclamer
-        total_pretReclamer = pretReclamer.aggregate(Sum('montant'))['montant__sum'] or 0
-        total_pret = pret.aggregate(Sum('montant'))['montant__sum'] or 0
-        
-        total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
-
-        total_retour = retour.aggregate(total=Sum(F('quantite')* F('prix')))['total'] or 0
-
-        caisse=total_net_vente+total_pretReclamer-total_pret-total_depense-total_retour or 0
-
-        # Retourner la réponse JSON
-        return JsonResponse({
-            "totalVente": total_net_vente,
-            "totalPretReclame": total_pretReclamer,
-            "totalPret": total_pret,
-            "totalDepense":total_depense,
-            "totalRetour":total_retour,
-            "caisse":caisse
-        })
+        return JsonResponse(_calculer_totaux_bilan(filtre))
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
@@ -4662,51 +4673,14 @@ def pdf_facture_proforma_2(request, commande_id):
 def pdf_etat_bilan(request):
     if request.method == "POST":
         try:
-            idUser = request.POST.get('idUser')
             dateDebut = request.POST.get("dateDebut")
             dateFin = request.POST.get("dateFin")
 
-            # Construire le filtre dynamique
-            filtre = {}
+            filtre, erreur = _construire_filtre_bilan(request)
+            if erreur:
+                return erreur
 
-            # Ajouter les filtres pour les dates si elles sont fournies
-            if dateDebut:
-                filtre["date__gte"] = dateDebut
-            if dateFin:
-                filtre["date__lte"] = dateFin
-
-            
-
-            # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
-            if idUser and idUser != "0":
-                try:
-                    user = User.objects.get(id=idUser)
-                    filtre["user"] = user
-                except User.DoesNotExist:
-                    return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
-                
-            #pret reclamer
-            pretReclamer = VersementClient.objects.filter(**filtre)
-            depense = Depense.objects.filter(**filtre)
-
-            # Appliquer le filtre à la requête
-            retour=Retour.objects.filter(**filtre)
-            ventes = Commande.objects.filter(**filtre)
-            pret=PretClient.objects.filter(**filtre)
-            
-            # Calculer les totaux
-            total_montant = ventes.aggregate(Sum('montant'))['montant__sum'] or 0
-            total_remise = ventes.aggregate(Sum('remise'))['remise__sum'] or 0
-            total_net_vente = total_montant - total_remise  # Calcul de la différence
-            # pret reclamer
-            total_pretReclamer = pretReclamer.aggregate(Sum('montant'))['montant__sum'] or 0
-            total_pret = pret.aggregate(Sum('montant'))['montant__sum'] or 0
-            
-            total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
-
-            total_retour = retour.aggregate(total=Sum(F('quantite')* F('prix')))['total'] or 0
-
-            caisse=total_net_vente+total_pretReclamer-total_pret-total_depense-total_retour or 0
+            totaux = _calculer_totaux_bilan(filtre)
 
             if dateDebut == dateFin:
                 intervalle= "du "+dateDebut
@@ -4720,12 +4694,12 @@ def pdf_etat_bilan(request):
                 return "{:,.0f}".format(montant).replace(",", " ")
 
             context = {
-                "totalVente": formater(total_net_vente),
-                "totalPretReclame": formater(total_pretReclamer),
-                "totalPret": formater(total_pret),
-                "totalDepense":formater(total_depense),
-                "totalRetour":formater(total_retour),
-                "caisse":formater(caisse),
+                "totalVente": formater(totaux["totalVente"]),
+                "totalPretReclame": formater(totaux["totalPretReclame"]),
+                "totalPret": formater(totaux["totalPret"]),
+                "totalDepense":formater(totaux["totalDepense"]),
+                "totalRetour":formater(totaux["totalRetour"]),
+                "caisse":formater(totaux["caisse"]),
                 'boutique': infoBoutique,
                 "intervalle": intervalle
             }
