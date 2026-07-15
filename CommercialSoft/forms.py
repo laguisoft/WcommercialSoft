@@ -271,11 +271,19 @@ class detteClientForm(forms.ModelForm):
 
 # Formulaire pour le modèle Depense
 class clientForm(forms.ModelForm):
+    societe = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Societe.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', "id": "idClient"}),
+    )
+
     class Meta:
         model = Client
         fields = ['societe', 'nom', 'telephone','adresse','email','matricule','pourcentage','detteMaximale']
         widgets = {
-            'societe': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idClient"}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'telephone': forms.NumberInput(attrs={'class': 'form-control'}),
             'adresse': forms.TextInput(attrs={'class': 'form-control'}),
@@ -284,6 +292,10 @@ class clientForm(forms.ModelForm):
             'pourcentage': forms.NumberInput(attrs={'class': 'form-control'}),
             'detteMaximale': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['societe'].queryset = Societe.objects.all()
 
 
 

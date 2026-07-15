@@ -4710,6 +4710,7 @@ def import_excel_view(request):
                     for _, row in df.iterrows():
                         Societe.objects.update_or_create(
                             nom=row["nom"],
+                            entreprise=request.entreprise,
                             defaults={
                                 "adresse": row.get("adresse", None),
                                 "telephone": row.get("telephone", None),
@@ -4720,10 +4721,13 @@ def import_excel_view(request):
                     for _, row in df.iterrows():
                         societe_obj = None
                         if "societe" in df.columns and not pd.isna(row["societe"]):
-                            societe_obj, _ = Societe.objects.get_or_create(nom=row["societe"])
+                            societe_obj, _ = Societe.objects.get_or_create(
+                                nom=row["societe"], entreprise=request.entreprise
+                            )
 
                         Client.objects.update_or_create(
                             nom=row["nom"],
+                            entreprise=request.entreprise,
                             defaults={
                                 "societe": societe_obj,
                                 "telephone": row.get("telephone", None),
@@ -4739,10 +4743,13 @@ def import_excel_view(request):
                     for _, row in df.iterrows():
                         categorie_obj = None
                         if "categorie" in df.columns and not pd.isna(row["categorie"]):
-                            categorie_obj, _ = Categorie.objects.get_or_create(nom=row["categorie"])
+                            categorie_obj, _ = Categorie.objects.get_or_create(
+                                nom=row["categorie"], entreprise=request.entreprise
+                            )
 
                         Produit.objects.update_or_create(
                             libelle=row["libelle"],
+                            entreprise=request.entreprise,
                             defaults={
                                 "codebare": row.get("codebare", None),
                                 "categorie": categorie_obj,
