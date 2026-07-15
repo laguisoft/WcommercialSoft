@@ -55,6 +55,9 @@ class Produit(TenantScopedModel):
             models.UniqueConstraint(fields=['entreprise', 'codebare'], name='produit_codebare_unique_par_entreprise'),
             models.UniqueConstraint(fields=['entreprise', 'libelle'], name='produit_libelle_unique_par_entreprise'),
         ]
+        indexes = [
+            models.Index(fields=['entreprise', 'datePeremption'], name='produit_entr_peremption_idx'),
+        ]
 
     def __str__(self):
         return self.libelle
@@ -72,6 +75,9 @@ class Livraison(TenantScopedModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['entreprise', 'client_uid'], name='livraison_client_uid_unique_par_entreprise'),
+        ]
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='livraison_entr_date_idx'),
         ]
 
     def __str__(self):
@@ -139,6 +145,9 @@ class Commande(TenantScopedModel):
         constraints = [
             models.UniqueConstraint(fields=['entreprise', 'client_uid'], name='commande_client_uid_unique_par_entreprise'),
         ]
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='commande_entr_date_idx'),
+        ]
 
     def __str__(self):
         return str(self.montant)
@@ -153,6 +162,9 @@ class CommandeProduit(TenantScopedModel):
 
     class Meta:
         unique_together = ['produit', 'commande']
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='commandeproduit_entr_date_idx'),
+        ]
 
 
 class CommandeClient(TenantScopedModel):
@@ -171,6 +183,11 @@ class CommandeClient(TenantScopedModel):
     commande=models.OneToOneField(Commande, on_delete=models.SET_NULL, null=True, blank=True, related_name='demande_origine')
     traitePar=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='demandes_traitees')
     dateTraitement=models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='commandeclient_entr_date_idx'),
+        ]
 
     def __str__(self):
         return f"Demande #{self.id} - {self.client.nom}"
@@ -205,6 +222,11 @@ class Depense(TenantScopedModel):
     categorie=models.ForeignKey(Categorie_Depense, on_delete=models.CASCADE)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='depense_entr_date_idx'),
+        ]
+
 
 
 
@@ -225,6 +247,11 @@ class Decaissement(TenantScopedModel):
     categorie=models.ForeignKey(Categorie_Decaissement, on_delete=models.CASCADE)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='decaissement_entr_date_idx'),
+        ]
+
 
 
 
@@ -233,6 +260,11 @@ class VersementClient(TenantScopedModel):
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='versementclient_entr_date_idx'),
+        ]
 
 
 
@@ -247,6 +279,11 @@ class PretClient(TenantScopedModel):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     commentaire=models.CharField(max_length=50, null=True, blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='pretclient_entr_date_idx'),
+        ]
+
 
 
 
@@ -257,6 +294,10 @@ class DetteFournisseur(TenantScopedModel):
     date=models.DateField(default=timezone.now, db_index=True)
     facture=models.ForeignKey(Livraison, on_delete=models.CASCADE, related_name='livraison', null=True, blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='dettefournisseur_entr_date_idx'),
+        ]
 
 
 class VersementFournisseur(TenantScopedModel):
@@ -264,6 +305,10 @@ class VersementFournisseur(TenantScopedModel):
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='versementfourn_entr_date_idx'),
+        ]
 
 
 class VersementGerant(TenantScopedModel):
@@ -271,6 +316,10 @@ class VersementGerant(TenantScopedModel):
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='versementgerant_entr_date_idx'),
+        ]
 
 
 class Retour(TenantScopedModel):
@@ -279,6 +328,11 @@ class Retour(TenantScopedModel):
     date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     prix=models.PositiveBigIntegerField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='retour_entr_date_idx'),
+        ]
 
     def __str__(self):
         return f"{self.produit.libelle} - {self.quantite} - {self.date}"
