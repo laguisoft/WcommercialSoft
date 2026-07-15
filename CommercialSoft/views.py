@@ -379,7 +379,9 @@ def produit_livrer(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def produit_vendu(request):
-    users = User.objects.all()  # Récupérer tous les utilisateurs
+    users = User.objects.all()
+    if request.entreprise is not None:
+        users = users.filter(entreprise=request.entreprise)
     return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
 
 
@@ -409,7 +411,9 @@ def vente_par_type(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def detail_vente(request):
-    users = User.objects.all()  # Récupérer tous les utilisateurs
+    users = User.objects.all()
+    if request.entreprise is not None:
+        users = users.filter(entreprise=request.entreprise)
     return render(request, 'CommercialSoft/detailVente.html', {'users': users})
 
 
@@ -2988,6 +2992,8 @@ def societe_delete(request, pk):
 @login_required
 def bilan(request):
     users = User.objects.all()
+    if request.entreprise is not None:
+        users = users.filter(entreprise=request.entreprise)
     return render(request, 'CommercialSoft/bilan.html',{'users':users})
 
 
@@ -4429,6 +4435,8 @@ def retour_delete(request, pk):
 @login_required
 def retours(request):
     users = User.objects.all()
+    if request.entreprise is not None:
+        users = users.filter(entreprise=request.entreprise)
     return render(request, 'CommercialSoft/listeRetour.html',{'users':users})
 
 
