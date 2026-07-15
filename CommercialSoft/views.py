@@ -20,6 +20,13 @@ User = get_user_model()
 
 # Create your views here.
 
+# Filet de sécurité anti-dénis-de-service pour les endpoints de recherche AJAX :
+# ces vues renvoient un tableau HTML construit côté client (pas de pagination
+# interactive), donc on plafonne le nombre de lignes sérialisées pour éviter
+# qu'une entreprise avec un historique très volumineux (ou une recherche sans
+# filtre de date) ne fasse exploser le temps de réponse / la taille de la page.
+MAX_RESULTATS_RECHERCHE = 2000
+
 #------------------------ Gestion des droits d'acces avec les decorateur -----------------
 def est_administrateur(user):
     return user.groups.filter(name='Administrateur').exists()
@@ -197,7 +204,7 @@ def recherche_fournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
-        fournisseurs = Fournisseur.objects.filter(id=numero) if numero else Fournisseur.objects.all()
+        fournisseurs = Fournisseur.objects.filter(id=numero) if numero else Fournisseur.objects.all().order_by('nom')[:MAX_RESULTATS_RECHERCHE]
         
         print(f"Valeur de numero : '{numero}'")  # Debugging
         # Construire une réponse JSON
@@ -357,16 +364,22 @@ def valider_quantite(request):
 @login_required
 def produit_perime(request):
     aujourdhui = timezone.now().date()
-    produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui)
-    return render(request, 'CommercialSoft/produitPerime.html',{'listes':produits_perimes})
+    produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui).order_by('datePeremption')
+    paginator = Paginator(produits_perimes, 15)
+    page = request.GET.get('page')
+    paginated = paginator.get_page(page)
+    return render(request, 'CommercialSoft/produitPerime.html',{'listes':paginated})
 
 
 
 
 @login_required
 def produit_rupture(request):
-    produits_rupture=Produit.objects.filter(quantite__lte=F('seuil'))
-    return render(request, 'CommercialSoft/produitEnRupture.html',{'listes':produits_rupture})
+    produits_rupture=Produit.objects.filter(quantite__lte=F('seuil')).order_by('libelle')
+    paginator = Paginator(produits_rupture, 15)
+    page = request.GET.get('page')
+    paginated = paginator.get_page(page)
+    return render(request, 'CommercialSoft/produitEnRupture.html',{'listes':paginated})
 
 
 
@@ -899,7 +912,7 @@ def recherche_reception_produit(request):
 
         # Construction de la réponse
         resultats = []
-        for lp in livraisons_produits:
+        for lp in livraisons_produits.order_by('-livraison__date')[:MAX_RESULTATS_RECHERCHE]:
             resultats.append({
                 "id": lp.produit.id,
                 "fournisseur": lp.livraison.fournisseur.nom,
@@ -984,9 +997,9 @@ def recherche_produit(request):
                 "peremption": produit.datePeremption.strftime("%Y-%m-%d") if produit.datePeremption else None,
                 "seuil": produit.seuil,
             }
-            for produit in produits
+            for produit in produits.order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"produits": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -1024,9 +1037,9 @@ def recherche_produit_livrer(request):
                 "montant": LivraisonProduit.objects.filter(livraison=livraison).aggregate(total=Sum(F('quantite')*F('prix')))['total'] or 0,
                 "numFacture": livraison.numeroFacture,
             }
-            for livraison in livraisons
+            for livraison in livraisons.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"livraison": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -1292,7 +1305,7 @@ def recherche_vente(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes
+            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
 
         return JsonResponse({"vente": produits_data,"montantRetour": montantRetour})
@@ -1345,7 +1358,7 @@ def recherche_vente_client(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes
+            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
 
         return JsonResponse({"vente": produits_data})
@@ -1396,7 +1409,7 @@ def recherche_vente_payement(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes
+            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
 
         return JsonResponse({"vente": produits_data})
@@ -1448,7 +1461,7 @@ def recherche_vente_type(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes
+            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
 
         return JsonResponse({"vente": produits_data})
@@ -1531,7 +1544,7 @@ def recherche_situation_vente(request):
                 .values_list("produit", "total")
             )
 
-            produits = Produit.objects.all()
+            produits = Produit.objects.all().order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
             for produit in produits:
                 produits_infos.append({
                     "id": produit.id,
@@ -1602,7 +1615,7 @@ def recherche_detail_vente(request):
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
-        commandes = Commande.objects.filter(**filtre)
+        commandes = Commande.objects.filter(**filtre).order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         produits_data = []
 
         for commande in commandes:
@@ -1874,9 +1887,9 @@ def recherche_depense(request):
                 "date": depense.date,
                 "categorie":depense.categorie.nom,
             }
-            for depense in depenses
+            for depense in depenses.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2046,9 +2059,9 @@ def recherche_decaissement(request):
                 "date": dec.date,
                 "categorie":dec.categorie.nom,
             }
-            for dec in decaiss
+            for dec in decaiss.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2273,9 +2286,9 @@ def recherche_versementClient(request):
                 "montant": versement.montant,
                 "date":versement.date,
             }
-            for versement in versementClients
+            for versement in versementClients.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2383,9 +2396,9 @@ def recherche_versementGerant(request):
                 "date":versement.date,
                 "user": versement.user.first_name +" "+versement.user.last_name
             }
-            for versement in versementGerants
+            for versement in versementGerants.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2531,9 +2544,9 @@ def recherche_pretClient(request):
                 "commentaire":pret.commentaire or "",
                 "user": pret.user.first_name+ " "+pret.user.last_name,
             }
-            for pret in pretClients
+            for pret in pretClients.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2648,9 +2661,9 @@ def recherche_versementFournisseur(request):
                 "montant": versement.montant,
                 "date":versement.date,
             }
-            for versement in versementFournisseurs
+            for versement in versementFournisseurs.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2757,9 +2770,9 @@ def recherche_detteFournisseur(request):
                 "montant": dette.montant,
                 "date":dette.date,
             }
-            for dette in detteFournisseurs
+            for dette in detteFournisseurs.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2850,7 +2863,7 @@ def recherche_client(request):
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
         
-        clients = Client.objects.filter(id=numero) if numero else Client.objects.all()
+        clients = Client.objects.filter(id=numero) if numero else Client.objects.all().order_by('nom')[:MAX_RESULTATS_RECHERCHE]
         
         print(f"Valeur de numero : '{numero}'")  # Debugging
         # Construire une réponse JSON
@@ -3093,8 +3106,8 @@ def recherche_situation_boutique(request):
             return JsonResponse({"error": "Type de prix invalide"}, status=400)
 
         # Récupération des produits
-        produits = Produit.objects.all()
-        
+        produits = Produit.objects.all().order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
+
         # Construction des données de réponse
         clients_data = [
             {
@@ -3142,7 +3155,7 @@ def recherche_benefice_sur_vente(request):
         dateFin = request.POST.get("dateFin")
 
         commandes=Commande.objects.filter(date__gte=dateDebut, date__lte=dateFin)
-            
+
         # Construire une réponse JSON
         patients_data = [
             {
@@ -3153,11 +3166,11 @@ def recherche_benefice_sur_vente(request):
                 "net":commande.montant-commande.remise,
                 "benefice": commande.montant-commande.montantAchat-commande.remise,
             }
-            for commande in commandes
+            for commande in commandes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
-    
+
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
 
@@ -3176,7 +3189,7 @@ def recherche_pourcentage_sur_vente(request):
         type = request.POST.get("type")
 
         commandes=Commande.objects.filter(typeVente=type, date__gte=dateDebut, date__lte=dateFin)
-        
+
         # Construire une réponse JSON
         patients_data = [
             {
@@ -3187,9 +3200,9 @@ def recherche_pourcentage_sur_vente(request):
                 "net":commande.montant-commande.remise,
                 "benefice": commande.montant-commande.montantAchat-commande.remise,
             }
-            for commande in commandes
+            for commande in commandes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -4404,9 +4417,9 @@ def recherche_retours(request):
                 "montant": retour.prix * retour.quantite,
                 "user": f"{retour.user.first_name} {retour.user.last_name}",
             }
-            for retour in retours
+            for retour in retours.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
-        
+
         return JsonResponse({"livraison": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -5167,9 +5180,13 @@ def portail_versements(request):
 @permission_required('CommercialSoft.add_commande')
 def demandes_commande_liste(request):
     demandes = CommandeClient.objects.select_related('client').filter(statut='En attente').order_by('-date', '-id')
+    en_attente = demandes.count()
+    paginator = Paginator(demandes, 15)
+    page = request.GET.get('page')
+    paginated = paginator.get_page(page)
     return render(request, 'CommercialSoft/demandesCommande.html', {
-        'demandes': demandes,
-        'en_attente': demandes.count(),
+        'demandes': paginated,
+        'en_attente': en_attente,
     })
 
 
@@ -5194,13 +5211,21 @@ def demandes_commande_historique(request):
 
     clients = Client.objects.filter(demandes_commande__isnull=False).distinct().order_by('nom')
 
+    paginator = Paginator(demandes, 15)
+    page = request.GET.get('page')
+    paginated = paginator.get_page(page)
+
+    querystring = request.GET.copy()
+    querystring.pop('page', None)
+
     return render(request, 'CommercialSoft/demandesCommandeHistorique.html', {
-        'demandes': demandes,
+        'demandes': paginated,
         'statut': statut,
         'date_debut': date_debut,
         'date_fin': date_fin,
         'client_id': client_id,
         'clients': clients,
+        'querystring': querystring.urlencode(),
     })
 
 
