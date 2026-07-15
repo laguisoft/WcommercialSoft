@@ -13,7 +13,8 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, BigIntegerField, OuterRef, Subquery, Count
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 import json
 User = get_user_model()
@@ -204,9 +205,23 @@ def recherche_fournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
-        fournisseurs = Fournisseur.objects.filter(id=numero) if numero else Fournisseur.objects.all().order_by('nom')[:MAX_RESULTATS_RECHERCHE]
-        
-        print(f"Valeur de numero : '{numero}'")  # Debugging
+        fournisseurs = Fournisseur.objects.filter(id=numero) if numero else Fournisseur.objects.all().order_by('nom')
+
+        # Un seul aller-retour en base pour tous les fournisseurs (sous-requêtes
+        # corrélées au lieu d'un .aggregate() par ligne dans la boucle Python).
+        pret_sq = (DetteFournisseur.objects.filter(fournisseur=OuterRef('pk'))
+                   .order_by().values('fournisseur').annotate(total=Sum('montant')).values('total'))
+        versement_sq = (VersementFournisseur.objects.filter(fournisseur=OuterRef('pk'))
+                        .order_by().values('fournisseur').annotate(total=Sum('montant')).values('total'))
+
+        fournisseurs = fournisseurs.annotate(
+            total_pret_calc=Coalesce(Subquery(pret_sq, output_field=BigIntegerField()), 0),
+            total_versement_calc=Coalesce(Subquery(versement_sq, output_field=BigIntegerField()), 0),
+        )
+
+        if not numero:
+            fournisseurs = fournisseurs[:MAX_RESULTATS_RECHERCHE]
+
         # Construire une réponse JSON
         fournisseurs_data = [
             {
@@ -214,15 +229,13 @@ def recherche_fournisseur(request):
                 "nom": fournisseur.nom,
                 "telephone": fournisseur.telephone,
                 "adresse": fournisseur.adresse,
-                "total_pret": fournisseur.detteFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "total_versement": fournisseur.versementFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "balance": (fournisseur.detteFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0) - 
-                           (fournisseur.versementFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0),
+                "total_pret": fournisseur.total_pret_calc,
+                "total_versement": fournisseur.total_versement_calc,
+                "balance": fournisseur.total_pret_calc - fournisseur.total_versement_calc,
             }
             for fournisseur in fournisseurs
         ]
 
-        
         return JsonResponse({"fournisseurs": fournisseurs_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -1027,14 +1040,22 @@ def recherche_produit_livrer(request):
             except Categorie.DoesNotExist:
                 return JsonResponse({"error": "Numero facture introuvable"}, status=404)
 
-       
+        montant_sq = (LivraisonProduit.objects.filter(livraison=OuterRef('pk'))
+                      .order_by().values('livraison')
+                      .annotate(total=Sum(F('quantite') * F('prix')))
+                      .values('total'))
+
+        livraisons = livraisons.select_related('fournisseur').annotate(
+            montant_calc=Coalesce(Subquery(montant_sq, output_field=BigIntegerField()), 0)
+        )
+
         # Construire la réponse JSON
         produits_data = [
             {
                 "id":livraison.id,
                 "fournisseur": livraison.fournisseur.nom,
                 "date": livraison.date,
-                "montant": LivraisonProduit.objects.filter(livraison=livraison).aggregate(total=Sum(F('quantite')*F('prix')))['total'] or 0,
+                "montant": livraison.montant_calc,
                 "numFacture": livraison.numeroFacture,
             }
             for livraison in livraisons.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
@@ -1165,6 +1186,12 @@ def vente_creates(request):
                     montantAchat = 0
                     montantTotal = 0
 
+                    produit_ids = [item.get('id') for item in produits_data if item.get('id')]
+                    produits_par_id = {
+                        produit.id: produit
+                        for produit in Produit.objects.select_for_update().filter(id__in=produit_ids)
+                    }
+
                     for item in produits_data:
                         produit_id = item.get('id')
                         quantite = int(item.get('quantite', 0))
@@ -1173,7 +1200,9 @@ def vente_creates(request):
                         if not produit_id or quantite <= 0:
                             continue
 
-                        produit = Produit.objects.get(id=produit_id)
+                        produit = produits_par_id.get(int(produit_id))
+                        if produit is None:
+                            continue
 
                         if quantite > produit.quantite:
                             messages.error(request, f"La quantité de {produit.libelle} est insuffisante.")
@@ -1282,8 +1311,8 @@ def recherche_vente(request):
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre)
-        
+        ventes = Commande.objects.filter(**filtre).select_related('user', 'client')
+
         montantRetour = (
                             Retour.objects
                             .filter(**filtre)
@@ -1343,7 +1372,7 @@ def recherche_vente_client(request):
                 return JsonResponse({"error": "Client introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre)
+        ventes = Commande.objects.filter(**filtre).select_related('client')
 
         # Construire la réponse JSON
         produits_data = [
@@ -1394,7 +1423,7 @@ def recherche_vente_payement(request):
                 return JsonResponse({"error": "Payement introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre)
+        ventes = Commande.objects.filter(**filtre).select_related('client')
 
         # Construire la réponse JSON
         produits_data = [
@@ -1446,7 +1475,7 @@ def recherche_vente_type(request):
                 return JsonResponse({"error": "Type introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre)
+        ventes = Commande.objects.filter(**filtre).select_related('client')
 
         # Construire la réponse JSON
         produits_data = [
@@ -1615,20 +1644,28 @@ def recherche_detail_vente(request):
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
-        commandes = Commande.objects.filter(**filtre).order_by('-date')[:MAX_RESULTATS_RECHERCHE]
-        produits_data = []
+        commande_ids = list(
+            Commande.objects.filter(**filtre).order_by('-date').values_list('id', flat=True)[:MAX_RESULTATS_RECHERCHE]
+        )
 
-        for commande in commandes:
-            commandesP = CommandeProduit.objects.filter(commande=commande).order_by('id')
-            for commandeP in commandesP:
-                produits_data.append({
-                    "id": commandeP.id,
-                    "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
-                    "quantite": commandeP.quantite,
-                    "prix" : commandeP.prix,
-                    "date" : commandeP.date,
-                    "montant" : commandeP.prix*commandeP.quantite,
-                })
+        commandesP = (
+            CommandeProduit.objects
+            .filter(commande_id__in=commande_ids)
+            .select_related('produit')
+            .order_by('-commande__date', 'commande_id', 'id')
+        )
+
+        produits_data = [
+            {
+                "id": commandeP.id,
+                "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
+                "quantite": commandeP.quantite,
+                "prix": commandeP.prix,
+                "date": commandeP.date,
+                "montant": commandeP.prix * commandeP.quantite,
+            }
+            for commandeP in commandesP
+        ]
 
         return JsonResponse({"listes": produits_data}, safe=False)
 
@@ -1818,7 +1855,7 @@ def depense_list_create(request):
     else:
         form = DepenseForm()
     
-    depense = Depense.objects.all().order_by('-date')
+    depense = Depense.objects.select_related('categorie').order_by('-date')
     paginator = Paginator(depense, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -1872,10 +1909,10 @@ def recherche_depense(request):
         dateFin = request.POST.get("dateFin")
         if numero :  # Si un numéro est saisi
             categorie = Categorie_Depense.objects.get(id=numero)
-            depenses=Depense.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin)
+            depenses=Depense.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
         else:  # Sinon, afficher les patients du jour
-            depenses=Depense.objects.filter(date__gte=dateDebut, date__lte=dateFin)
-            
+            depenses=Depense.objects.filter(date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
+
         # Construire une réponse JSON
         patients_data = [
             {
@@ -1994,7 +2031,7 @@ def decaissement_list_create(request):
     else:
         form = DecaissementForm()
     
-    decaiss = Decaissement.objects.all().order_by('-date')
+    decaiss = Decaissement.objects.select_related('categorie').order_by('-date')
     paginator = Paginator(decaiss, 15)
     page = request.GET.get('page')
     paginated_decaiss = paginator.get_page(page)
@@ -2046,10 +2083,10 @@ def recherche_decaissement(request):
         dateFin = request.POST.get("dateFin")
         if numero :  # Si un numéro est saisi
             categorie = Categorie_Decaissement.objects.get(id=numero)
-            decaiss=Decaissement.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin)
+            decaiss=Decaissement.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
         else:  # Sinon, afficher les patients du jour
-            decaiss=Decaissement.objects.filter(date__gte=dateDebut, date__lte=dateFin)
-            
+            decaiss=Decaissement.objects.filter(date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
+
         # Construire une réponse JSON
         patients_data = [
             {
@@ -2196,7 +2233,7 @@ def versementClient_list_create(request):
     else:
         form = VersementClientForm()
     
-    versementClient = VersementClient.objects.all().order_by('-date')
+    versementClient = VersementClient.objects.select_related('client').order_by('-date')
     paginator = Paginator(versementClient, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2442,7 +2479,7 @@ def pretClient_list_create(request):
     else:
         form = detteClientForm()
     
-    pret = PretClient.objects.all().order_by('-date')
+    pret = PretClient.objects.select_related('client').order_by('-date')
     paginator = Paginator(pret, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2527,12 +2564,8 @@ def recherche_pretClient(request):
         if numero:
             client = Client.objects.get(id=numero)
             filtre["client"]=client
-        if numero :  # Si un numéro est saisi
-            
-            pretClients=PretClient.objects.filter(**filtre)
-        else:  # Sinon, afficher les patients du jour
-            pretClients=PretClient.objects.filter(**filtre)
-            
+        pretClients = PretClient.objects.filter(**filtre).select_related('client', 'user')
+
         # Construire une réponse JSON
         patients_data = [
             {
@@ -2712,7 +2745,7 @@ def detteFournisseur_list_create(request):
     else:
         form = DetteFournisseurForm()
     
-    detteFournisseur = DetteFournisseur.objects.all().order_by('-date')
+    detteFournisseur = DetteFournisseur.objects.select_related('fournisseur').order_by('-date')
     paginator = Paginator(detteFournisseur, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2863,9 +2896,23 @@ def recherche_client(request):
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
         
-        clients = Client.objects.filter(id=numero) if numero else Client.objects.all().order_by('nom')[:MAX_RESULTATS_RECHERCHE]
-        
-        print(f"Valeur de numero : '{numero}'")  # Debugging
+        clients = Client.objects.filter(id=numero) if numero else Client.objects.all().order_by('nom')
+
+        # Un seul aller-retour en base pour tous les clients (sous-requêtes
+        # corrélées au lieu d'un .aggregate() par ligne dans la boucle Python).
+        pret_sq = (PretClient.objects.filter(client=OuterRef('pk'))
+                   .order_by().values('client').annotate(total=Sum('montant')).values('total'))
+        versement_sq = (VersementClient.objects.filter(client=OuterRef('pk'))
+                        .order_by().values('client').annotate(total=Sum('montant')).values('total'))
+
+        clients = clients.annotate(
+            total_pret_calc=Coalesce(Subquery(pret_sq, output_field=BigIntegerField()), 0),
+            total_versement_calc=Coalesce(Subquery(versement_sq, output_field=BigIntegerField()), 0),
+        )
+
+        if not numero:
+            clients = clients[:MAX_RESULTATS_RECHERCHE]
+
         # Construire une réponse JSON
         clients_data = [
             {
@@ -2877,16 +2924,14 @@ def recherche_client(request):
                 "matricule": client.matricule,
                 "pourcentage": client.pourcentage,
                 "detteMaximale": client.detteMaximale,
-                "total_pret": client.prets.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "total_versement": client.versements.aggregate(Sum('montant'))['montant__sum'] or 0,
-                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) -
-                           (client.versements.aggregate(Sum('montant'))['montant__sum'] or 0),
+                "total_pret": client.total_pret_calc,
+                "total_versement": client.total_versement_calc,
+                "balance": client.total_pret_calc - client.total_versement_calc,
                 "has_account": bool(client.user_id),
             }
             for client in clients
         ]
 
-        
         return JsonResponse({"clients": clients_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -4400,10 +4445,10 @@ def recherche_retours(request):
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
-        retours=Retour.objects.all()
+        retours=Retour.objects.select_related('produit', 'user')
 
         if dateDebut and dateFin:
-            retours = Retour.objects.filter(date__gte=dateDebut, date__lte=dateFin)  # Récupérer tous les produits par défaut
+            retours = retours.filter(date__gte=dateDebut, date__lte=dateFin)
 
        
         # Construire la réponse JSON
@@ -5179,7 +5224,12 @@ def portail_versements(request):
 @login_required
 @permission_required('CommercialSoft.add_commande')
 def demandes_commande_liste(request):
-    demandes = CommandeClient.objects.select_related('client').filter(statut='En attente').order_by('-date', '-id')
+    demandes = (
+        CommandeClient.objects.select_related('client')
+        .filter(statut='En attente')
+        .annotate(nb_lignes=Count('lignes'))
+        .order_by('-date', '-id')
+    )
     en_attente = demandes.count()
     paginator = Paginator(demandes, 15)
     page = request.GET.get('page')
@@ -5193,7 +5243,11 @@ def demandes_commande_liste(request):
 @login_required
 @permission_required('CommercialSoft.add_commande')
 def demandes_commande_historique(request):
-    demandes = CommandeClient.objects.select_related('client').order_by('-date', '-id')
+    demandes = (
+        CommandeClient.objects.select_related('client')
+        .annotate(nb_lignes=Count('lignes'))
+        .order_by('-date', '-id')
+    )
 
     statut = request.GET.get('statut', '')
     date_debut = request.GET.get('date_debut', '')

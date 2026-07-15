@@ -39,7 +39,7 @@
                   <td class="text-center">{{ demande.id }}</td>
                   <td>{{ demande.client.nom }}</td>
                   <td class="text-center">{{ demande.date }}</td>
-                  <td class="text-center">{{ demande.lignes.count }}</td>
+                  <td class="text-center">{{ demande.nb_lignes }}</td>
                   <td class="text-center">
                     <a href="{% url 'demandes_commande_traiter' demande.id %}" class="btn btn-sm btn-primary">Traiter</a>
                   </td>

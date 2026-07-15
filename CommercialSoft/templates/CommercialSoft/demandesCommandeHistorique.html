@@ -101,7 +101,7 @@
                   <td class="text-center">{{ demande.id }}</td>
                   <td>{{ demande.client.nom }}</td>
                   <td class="text-center">{{ demande.date }}</td>
-                  <td class="text-center">{{ demande.lignes.count }}</td>
+                  <td class="text-center">{{ demande.nb_lignes }}</td>
                   <td class="text-center">
                     {% if demande.statut == 'En attente' %}
                       <span class="badge bg-warning">En attente</span>
