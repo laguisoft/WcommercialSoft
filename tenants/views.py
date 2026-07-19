@@ -1,4 +1,4 @@
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -21,17 +21,26 @@ def _redirection_sure(request, next_url, defaut):
 
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser)
 def choisir_entreprise(request):
+    if request.user.is_superuser:
+        entreprises_autorisees = Entreprise.objects.all()
+    else:
+        entreprises_autorisees = request.user.entreprises_accessibles()
+        if entreprises_autorisees.count() < 2:
+            # Rien a choisir : le middleware se charge de router vers la
+            # bonne page (dashboard si une seule entreprise, compte non
+            # rattache si aucune).
+            return redirect('commerce_dashboard')
+
     next_url = request.GET.get('next') or request.POST.get('next', '')
 
     if request.method == 'POST':
-        entreprise = get_object_or_404(Entreprise, pk=request.POST.get('entreprise_id'))
+        entreprise = get_object_or_404(entreprises_autorisees, pk=request.POST.get('entreprise_id'))
         request.session['entreprise_id'] = entreprise.id
         return redirect(_redirection_sure(request, next_url, reverse('commerce_dashboard')))
 
     q = request.GET.get('q', '').strip()
-    entreprises = Entreprise.objects.all().order_by('nom')
+    entreprises = entreprises_autorisees.order_by('nom')
     if q:
         entreprises = entreprises.filter(
             Q(nom__icontains=q) | Q(ville__icontains=q) | Q(proprietaire__icontains=q)
