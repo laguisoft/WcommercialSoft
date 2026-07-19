@@ -13,8 +13,13 @@
   <div class="container" style="max-width: 720px; margin: 60px auto;">
     <h2 class="mb-2 text-center">Choisir une entreprise</h2>
     <p class="text-muted text-center">
-      Vous êtes connecté en tant que super administrateur. Sélectionnez
-      l'entreprise que vous souhaitez consulter.
+      {% if user.is_superuser %}
+        Vous êtes connecté en tant que super administrateur. Sélectionnez
+        l'entreprise que vous souhaitez consulter.
+      {% else %}
+        Votre compte est rattaché à plusieurs entreprises. Sélectionnez
+        celle que vous souhaitez consulter.
+      {% endif %}
     </p>
 
     <form method="get" class="mb-4">

@@ -11,10 +11,12 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Informations personnelles', {'fields': ('first_name', 'last_name')}),
-        ('Entreprise', {'fields': ('entreprise',)}),
+        ('Entreprise', {'fields': ('entreprise', 'entreprises_additionnelles')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Dates importantes', {'fields': ('last_login', 'date_joined')}),
     )
+
+    filter_horizontal = ('entreprises_additionnelles', 'groups', 'user_permissions')
 
     add_fieldsets = (
         (None, {
