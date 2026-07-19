@@ -52,6 +52,16 @@ class TenantMiddleware:
             request.session.pop('entreprise_id', None)
         return entreprise
 
+    def _entreprise_depuis_session_parmi(self, request, entreprises):
+        entreprise_id = request.session.get('entreprise_id')
+        if not entreprise_id:
+            return None
+        for entreprise in entreprises:
+            if entreprise.pk == entreprise_id:
+                return entreprise
+        request.session.pop('entreprise_id', None)
+        return None
+
     def _rediriger_vers_choix(self, request):
         next_url = quote(request.get_full_path())
         return redirect(f"{reverse('choisir_entreprise')}?next={next_url}")
@@ -67,16 +77,20 @@ class TenantMiddleware:
                 if entreprise is None and not self._est_chemin_exempte(request.path):
                     return self._rediriger_vers_choix(request)
             else:
-                entreprises_accessibles = user.entreprises_accessibles()
-                nb_entreprises = entreprises_accessibles.count()
+                # Ensemble borne (quelques entreprises par utilisateur au
+                # plus) : on le materialise en une seule requete plutot que
+                # d'enchainer .count() puis .first()/.filter() a chaque
+                # requete HTTP pour la quasi-totalite des utilisateurs.
+                entreprises_accessibles = list(user.entreprises_accessibles())
+                nb_entreprises = len(entreprises_accessibles)
 
                 if nb_entreprises == 0:
                     if not self._est_chemin_exempte(request.path):
                         return redirect('compte_non_rattache')
                 elif nb_entreprises == 1:
-                    entreprise = entreprises_accessibles.first()
+                    entreprise = entreprises_accessibles[0]
                 else:
-                    entreprise = self._entreprise_depuis_session(request, entreprises_accessibles)
+                    entreprise = self._entreprise_depuis_session_parmi(request, entreprises_accessibles)
                     if entreprise is None and not self._est_chemin_exempte(request.path):
                         return self._rediriger_vers_choix(request)
 
