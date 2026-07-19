@@ -42,10 +42,3 @@ def choisir_entreprise(request):
         'q': q,
         'next': next_url,
     })
-
-
-@login_required
-@user_passes_test(lambda u: u.is_superuser)
-def changer_entreprise(request):
-    request.session.pop('entreprise_id', None)
-    return redirect('choisir_entreprise')

@@ -38,7 +38,6 @@ class TenantMiddleware:
             reverse('logout'),
             reverse('compte_non_rattache'),
             reverse('choisir_entreprise'),
-            reverse('changer_entreprise'),
         )
         return path in chemins_exemptes
 

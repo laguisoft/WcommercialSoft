@@ -264,12 +264,7 @@
           <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 
-        {% if user.is_superuser and current_entreprise %}
-        <a class="cta-btn d-none d-sm-block ms-auto me-2" href="{% url 'changer_entreprise' %}">
-          <i class="bi bi-building"></i> {{ current_entreprise.nom }}
-        </a>
-        {% endif %}
-        <a class="cta-btn d-none d-sm-block{% if not user.is_superuser or not current_entreprise %} ms-auto{% endif %}" href="{% url 'logout' %}">Deconnecter</a>
+        <a class="cta-btn d-none d-sm-block ms-auto" href="{% url 'logout' %}">Deconnecter</a>
 
       </div>
 
