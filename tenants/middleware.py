@@ -1,18 +1,25 @@
+from urllib.parse import quote
+
 from django.shortcuts import redirect
 from django.urls import reverse
 
 from .managers import clear_current_entreprise, set_current_entreprise
+from .models import Entreprise
 
 
 class TenantMiddleware:
     """Résout l'entreprise courante à partir de l'utilisateur connecté.
 
-    - Positionne request.entreprise (None si non authentifié ou superuser
-      sans entreprise assignée) et le thread-local associé pour la durée
-      de la requête (TenantManager s'en sert pour filtrer les querysets).
+    - Positionne request.entreprise et le thread-local associé pour la
+      durée de la requête (TenantManager s'en sert pour filtrer les
+      querysets).
     - Redirige les utilisateurs authentifiés non-superusers sans entreprise
       vers une page d'erreur explicite plutôt que de les laisser voir un
       dashboard vide sans explication.
+    - Les superusers n'ont pas d'entreprise propre : l'entreprise consultée
+      est celle choisie via /tenants/choisir-entreprise/ et mémorisée dans
+      la session. Tant qu'ils n'en ont pas choisi une, ils sont redirigés
+      vers cette page de sélection.
 
     Note: on compare request.path plutôt que request.resolver_match, car
     ce dernier n'est pas encore renseigné à ce stade de la chaîne de
@@ -30,6 +37,8 @@ class TenantMiddleware:
             reverse('login'),
             reverse('logout'),
             reverse('compte_non_rattache'),
+            reverse('choisir_entreprise'),
+            reverse('changer_entreprise'),
         )
         return path in chemins_exemptes
 
@@ -38,10 +47,20 @@ class TenantMiddleware:
         user = getattr(request, 'user', None)
 
         if user is not None and user.is_authenticated:
-            entreprise = getattr(user, 'entreprise', None)
+            if user.is_superuser:
+                entreprise_id = request.session.get('entreprise_id')
+                if entreprise_id:
+                    entreprise = Entreprise.objects.filter(pk=entreprise_id).first()
+                    if entreprise is None:
+                        request.session.pop('entreprise_id', None)
 
-            if entreprise is None and not user.is_superuser:
-                if not self._est_chemin_exempte(request.path):
+                if entreprise is None and not self._est_chemin_exempte(request.path):
+                    next_url = quote(request.get_full_path())
+                    return redirect(f"{reverse('choisir_entreprise')}?next={next_url}")
+            else:
+                entreprise = getattr(user, 'entreprise', None)
+
+                if entreprise is None and not self._est_chemin_exempte(request.path):
                     return redirect('compte_non_rattache')
 
         request.entreprise = entreprise
