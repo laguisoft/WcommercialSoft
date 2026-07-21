@@ -142,7 +142,7 @@ def fournisseur_list_create(request):
     else:
         form = FournisseurForm()
     
-    fournisseur = Fournisseur.objects.all()
+    fournisseur = Fournisseur.objects.all().order_by('nom')
     paginator = Paginator(fournisseur, 15)
     page = request.GET.get('page')
     paginated = paginator.get_page(page)
