@@ -27,7 +27,7 @@ class LoginForm(forms.Form):
 class FournisseurForm(forms.ModelForm):
     class Meta:
         model = Fournisseur
-        fields = '__all__'
+        fields = ['nom', 'adresse', 'telephone']
         widgets = {
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'adresse': forms.TextInput(attrs={'class': 'form-control'}),
