@@ -5116,12 +5116,12 @@ def portail_accueil(request):
     total_versement = client.versements.aggregate(total=Sum('montant'))['total'] or 0
     solde = total_pret - total_versement
     nombre_commandes = Commande.objects.filter(client=client).count()
-    montant_total_achats = Commande.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
+    demandes_en_attente = client.demandes_commande.filter(statut='En attente').count()
     dernieres_demandes = client.demandes_commande.order_by('-date', '-id')[:5]
     return render(request, 'CommercialSoft/portail/accueil.html', {
         'client': client,
         'nombre_commandes': nombre_commandes,
-        'montant_total_achats': montant_total_achats,
+        'demandes_en_attente': demandes_en_attente,
         'solde': solde,
         'dernieres_demandes': dernieres_demandes,
     })
