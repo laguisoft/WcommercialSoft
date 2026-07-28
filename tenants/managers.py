@@ -37,3 +37,22 @@ class TenantManager(models.Manager):
             if entreprise is not None:
                 kwargs['entreprise'] = entreprise
         return super().create(**kwargs)
+
+    def get_or_create(self, defaults=None, **kwargs):
+        # Django route get_or_create()/update_or_create() vers le create()
+        # du QuerySet (pas celui, surcharge ci-dessus, du Manager) : sans ce
+        # rappel explicite, l'entreprise courante ne serait pas injectee et
+        # l'insertion echouerait (entreprise_id NOT NULL) des qu'un appelant
+        # omet 'entreprise' en comptant sur ce filet de securite.
+        if 'entreprise' not in kwargs:
+            entreprise = get_current_entreprise()
+            if entreprise is not None:
+                kwargs['entreprise'] = entreprise
+        return super().get_or_create(defaults=defaults, **kwargs)
+
+    def update_or_create(self, defaults=None, **kwargs):
+        if 'entreprise' not in kwargs:
+            entreprise = get_current_entreprise()
+            if entreprise is not None:
+                kwargs['entreprise'] = entreprise
+        return super().update_or_create(defaults=defaults, **kwargs)

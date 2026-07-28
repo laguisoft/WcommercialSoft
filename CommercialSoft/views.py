@@ -5101,6 +5101,7 @@ def portail_commande_creer(request):
 
     with transaction.atomic():
         demande = CommandeClient.objects.create(
+            entreprise=client.entreprise,
             client=client,
             commentaire=request.POST.get('commentaire') or None,
         )
@@ -5114,6 +5115,7 @@ def portail_commande_creer(request):
             except Produit.DoesNotExist:
                 continue
             CommandeClientProduit.objects.get_or_create(
+                entreprise=client.entreprise,
                 demande=demande,
                 produit=produit,
                 defaults={'quantiteDemandee': quantite, 'prixUnitaire': produit.prixDetail},
