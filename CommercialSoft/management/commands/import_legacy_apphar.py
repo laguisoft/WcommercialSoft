@@ -22,9 +22,11 @@ from django.utils.crypto import get_random_string
 from accounts.models import CustomUser
 from CommercialSoft.models import (
     Categorie,
+    Categorie_Depense,
     Client,
     Commande,
     CommandeProduit,
+    Depense,
     DetteFournisseur,
     Fournisseur,
     Livraison,
@@ -94,6 +96,29 @@ class Command(BaseCommand):
                 "de dupliquer tout l'historique transactionnel)."
             ),
         )
+        parser.add_argument(
+            '--rename-login', action='append', default=[], metavar='ANCIEN:NOUVEAU',
+            help=(
+                "Remplace le login ANCIEN (tel qu'il apparait dans le dump) par "
+                "NOUVEAU avant creation du compte. Repetable. Utile quand le meme "
+                "login designe des personnes differentes selon l'ancienne base "
+                "(ex: --rename-login=donso:SOGUI)."
+            ),
+        )
+        parser.add_argument(
+            '--partage-utilisateur', action='append', default=[], metavar='LOGIN',
+            help=(
+                "Si LOGIN existe deja pour une AUTRE entreprise, ne pas echouer : "
+                "accorder a ce compte un acces supplementaire a l'entreprise cible "
+                "(entreprises_additionnelles) au lieu de creer un nouveau compte. "
+                "A utiliser uniquement quand il s'agit reellement de la meme "
+                "personne. Repetable."
+            ),
+        )
+        parser.add_argument(
+            '--categorie-depense', default='Divers',
+            help="Nom de la categorie de depense a utiliser pour les depenses importees (defaut: 'Divers').",
+        )
 
     def handle(self, *args, **options):
         try:
@@ -111,6 +136,14 @@ class Command(BaseCommand):
                 "importer une seconde fois (ex : apres avoir vide la base manuellement)."
             )
 
+        renommages = {}
+        for paire in options['rename_login']:
+            if ':' not in paire:
+                raise CommandError(f"--rename-login attend ANCIEN:NOUVEAU, recu {paire!r}.")
+            ancien, nouveau = paire.split(':', 1)
+            renommages[ancien.strip()] = nouveau.strip()
+        logins_partages = {l.strip() for l in options['partage_utilisateur']}
+
         with open(options['dump_path'], encoding='utf-8') as fichier:
             sql = fichier.read()
 
@@ -125,13 +158,24 @@ class Command(BaseCommand):
             # ---------------------------------------------------------- Utilisateurs
             user_par_codeu = {}
             for row in lignes('utilisateur'):
-                login = row['LOGIN'].strip()
+                login_origine = row['LOGIN'].strip()
+                login = renommages.get(login_origine, login_origine)
                 user = CustomUser.objects.filter(username=login).first()
                 if user is not None and user.entreprise_id not in (None, entreprise.id):
+                    if login_origine in logins_partages or login in logins_partages:
+                        user.entreprises_additionnelles.add(entreprise)
+                        avertissements.append(
+                            f"Compte existant \"{login}\" (entreprise principale : "
+                            f"{user.entreprise}) : acces supplementaire accorde a "
+                            f"\"{entreprise.nom}\" (mot de passe inchange)."
+                        )
+                        user_par_codeu[row['CODEU']] = user
+                        continue
                     raise CommandError(
                         f"Le login \"{login}\" existe deja et appartient a une autre "
-                        f"entreprise ({user.entreprise}). Renommez-le manuellement "
-                        "avant de relancer l'import."
+                        f"entreprise ({user.entreprise}). Renommez-le avec "
+                        "--rename-login ou autorisez le partage avec "
+                        "--partage-utilisateur avant de relancer l'import."
                     )
                 if user is None:
                     mot_de_passe = get_random_string(12)
@@ -440,6 +484,57 @@ class Command(BaseCommand):
                 ))
             Retour.objects.bulk_create(retours, batch_size=1000)
 
+            # ------------------------------------------------------------- Depense
+            categorie_depense, _ = Categorie_Depense.objects.get_or_create(
+                entreprise=entreprise, nom=options['categorie_depense'],
+            )
+            depenses = []
+            for row in lignes('depense'):
+                user = user_par_codeu.get(row['CODEU'])
+                if user is None:
+                    avertissements.append(f"Depense #{row['CODED']} ignoree (utilisateur introuvable).")
+                    continue
+                depenses.append(Depense(
+                    entreprise=entreprise,
+                    intitule=row['INTITD'].strip(),
+                    quantite=row['quantite'],
+                    prix=row['prix'],
+                    date=row['DATED'],
+                    categorie=categorie_depense,
+                    user=user,
+                ))
+            Depense.objects.bulk_create(depenses, batch_size=1000)
+
+            # ------------------------------------------------------------- Autrepret
+            # Ancienne table de prets "hors client" (juste un nom en texte libre,
+            # sans lien vers la table client) : importee en PretClient sans client
+            # rattache, le nom d'origine etant conserve dans le commentaire pour ne
+            # pas le perdre.
+            autre_prets = []
+            for row in lignes('autrepret'):
+                user = user_par_codeu.get(row['CODEU'])
+                if user is None:
+                    avertissements.append(f"Autre pret #{row['CODEPR']} ignore (utilisateur introuvable).")
+                    continue
+                commande = commande_par_codev.get(row['NumVente']) if row['NumVente'] else None
+                nom = _texte(row['NOMCLI'])
+                commentaire_origine = _texte(row['Commentaire'])
+                commentaire = " - ".join(p for p in (nom, commentaire_origine) if p) or None
+                if commentaire:
+                    commentaire = commentaire[:50]
+                autre_prets.append(PretClient(
+                    entreprise=entreprise,
+                    client=None,
+                    montant=row['MTNTPR'],
+                    date=row['DATEPR'],
+                    dateEcheance=row['DATEECH'],
+                    payer=row['PAYER'].strip(),
+                    commande=commande,
+                    user=user,
+                    commentaire=commentaire,
+                ))
+            PretClient.objects.bulk_create(autre_prets, batch_size=1000)
+
             if dry_run:
                 transaction.set_rollback(True)
 
@@ -459,7 +554,9 @@ class Command(BaseCommand):
             f"Versements clients : {len(versements_client)}.\n"
             f"Dettes fournisseurs : {len(dettes)}.\n"
             f"Versements fournisseurs : {len(versements_fournisseur)}.\n"
-            f"Retours : {len(retours)}."
+            f"Retours : {len(retours)}.\n"
+            f"Depenses : {len(depenses)} (categorie \"{options['categorie_depense']}\").\n"
+            f"Autres prets (sans client) : {len(autre_prets)}."
             + (" [DRY RUN, rien n'a ete ecrit en base]" if dry_run else "")
         ))
 
