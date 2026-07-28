@@ -21,6 +21,7 @@ class Entreprise(models.Model):
     email = models.EmailField(max_length=70, null=True, blank=True)
     proprietaire = models.CharField(max_length=100, null=True, blank=True)
     quantiteNegative = models.BooleanField(default=True)
+    logo = models.ImageField(upload_to='logos/entreprises/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:

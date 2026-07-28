@@ -3274,23 +3274,42 @@ def recherche_pourcentage_sur_vente(request):
 
 from io import BytesIO
 from django.template.loader import get_template
+from django.conf import settings
 from xhtml2pdf import pisa
 from django.http import HttpResponse, JsonResponse
 import os
+
+def pdf_link_callback(uri, rel):
+    """Resout les URLs /static/ et /media/ (ex: logo d'entreprise) en chemins
+    absolus sur le disque, seule facon pour xhtml2pdf d'embarquer ces images
+    dans le PDF genere."""
+    if uri.startswith(settings.MEDIA_URL):
+        path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, "", 1))
+    elif uri.startswith(settings.STATIC_URL):
+        path = os.path.join(settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, "", 1))
+        if not os.path.isfile(path):
+            for static_dir in settings.STATICFILES_DIRS:
+                candidat = os.path.join(static_dir, uri.replace(settings.STATIC_URL, "", 1))
+                if os.path.isfile(candidat):
+                    path = candidat
+                    break
+    else:
+        return uri
+    return path
 
 def convert_html_to_pdf(source_html, output_filename):
     # Ouvre le fichier de destination pour écrire le PDF
     with open(output_filename, "w+b") as result_file:
         # Crée le PDF à partir du contenu HTML
-        pisa_status = pisa.CreatePDF(source_html, dest=result_file)
-    
+        pisa_status = pisa.CreatePDF(source_html, dest=result_file, link_callback=pdf_link_callback)
+
     return pisa_status.err
 
 def generate_pdf_from_template(template_name, context, output_filename):
     # Charge le fichier HTML à partir du répertoire templates
     template = get_template(template_name)
     html_content = template.render(context)
-    
+
     # Appel de la fonction pour générer le PDF
     return convert_html_to_pdf(html_content, output_filename)
 
@@ -3435,7 +3454,7 @@ def generate_pdf_response_vrais(template_src, context_dict):
 
     result = BytesIO()
     try:
-        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result, link_callback=pdf_link_callback)
         if not pdf.err:
             print("PDF généré avec succès.")
             response = HttpResponse(result.getvalue(), content_type='application/pdf')
