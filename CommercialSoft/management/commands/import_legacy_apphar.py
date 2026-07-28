@@ -147,6 +147,18 @@ class Command(BaseCommand):
                         groupe, _ = Group.objects.get_or_create(name=groupe_nom)
                         user.groups.add(groupe)
                     comptes_crees.append((login, mot_de_passe))
+                elif user.entreprise_id is None:
+                    user.entreprise = entreprise
+                    user.save(update_fields=['entreprise'])
+                    avertissements.append(
+                        f"Compte existant \"{login}\" rattache a l'entreprise "
+                        f"\"{entreprise.nom}\" (mot de passe inchange)."
+                    )
+                else:
+                    avertissements.append(
+                        f"Compte existant \"{login}\" deja rattache a "
+                        f"\"{entreprise.nom}\" : reutilise tel quel (mot de passe inchange)."
+                    )
                 user_par_codeu[row['CODEU']] = user
 
             if not user_par_codeu:
