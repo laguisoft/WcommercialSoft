@@ -3139,7 +3139,8 @@ def recherche_bilan(request):
 @login_required
 @user_passes_test(est_administrateur)
 def situation_boutique(request):
-    return render(request, 'CommercialSoft/situationBoutique.html')
+    categories = Categorie.objects.order_by('nom')
+    return render(request, 'CommercialSoft/situationBoutique.html', {'categories': categories})
 
 
 
@@ -3161,8 +3162,13 @@ def recherche_situation_boutique(request):
         if typePrix not in prix_mapping:
             return JsonResponse({"error": "Type de prix invalide"}, status=400)
 
+        idCategorie = request.POST.get('idCategorie')
+
         # Récupération des produits
-        produits = Produit.objects.all().order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
+        produits = Produit.objects.all().order_by('libelle')
+        if idCategorie:
+            produits = produits.filter(categorie_id=idCategorie)
+        produits = produits[:MAX_RESULTATS_RECHERCHE]
 
         # Construction des données de réponse
         clients_data = [
@@ -4036,9 +4042,13 @@ def pdf_etat_situation_boutique(request):
         if typePrix not in prix_mapping:
             return JsonResponse({"error": "Type de prix invalide"}, status=400)
 
+        idCategorie = request.POST.get('idCategorie')
+
         # Récupération des produits
         produits = Produit.objects.all()
-        
+        if idCategorie:
+            produits = produits.filter(categorie_id=idCategorie)
+
         # Construction des données de réponse
         produits_data = [
             {
@@ -4682,6 +4692,41 @@ def pdf_facture_proforma_2(request, commande_id):
         return HttpResponse("Erreur serveur : " + str(e), status=500)
 
 
+@login_required
+@permission_required('CommercialSoft.add_commande')
+def pdf_facture_proforma_demande(request, demande_id):
+    """Apercu/impression proforma d'une demande de commande client pas
+    encore validee (donc basee sur les quantites/prix demandes, avant
+    tout ajustement par le gerant)."""
+    demande = get_object_or_404(CommandeClient, id=demande_id)
+    lignes = demande.lignes.select_related('produit')
+
+    donnees = [
+        {
+            "produit": ligne.produit.libelle,
+            "quantite": ligne.quantiteDemandee,
+            "prix": ligne.prixUnitaire,
+            "montant": ligne.quantiteDemandee * ligne.prixUnitaire,
+        }
+        for ligne in lignes
+    ]
+
+    total = sum(item["montant"] for item in donnees)
+
+    context = {
+        'id': demande.id,
+        'listes': donnees,
+        'boutique': request.entreprise,
+        'total': "{:,}".format(total).replace(",", " "),
+        'remise': "0",
+        'total_net': "{:,}".format(total).replace(",", " "),
+        'date': demande.date.strftime("%d/%m/%Y") if demande.date else timezone.now().strftime("%d/%m/%Y à %H:%M"),
+        'client': demande.client.nom if demande.client else "",
+        'numero_client': demande.client.telephone if demande.client else "",
+    }
+    return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
+
+
 
 
 
@@ -5070,11 +5115,13 @@ def portail_accueil(request):
     total_pret = client.prets.aggregate(total=Sum('montant'))['total'] or 0
     total_versement = client.versements.aggregate(total=Sum('montant'))['total'] or 0
     solde = total_pret - total_versement
+    nombre_commandes = Commande.objects.filter(client=client).count()
+    montant_total_achats = Commande.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
     dernieres_demandes = client.demandes_commande.order_by('-date', '-id')[:5]
     return render(request, 'CommercialSoft/portail/accueil.html', {
         'client': client,
-        'total_pret': total_pret,
-        'total_versement': total_versement,
+        'nombre_commandes': nombre_commandes,
+        'montant_total_achats': montant_total_achats,
         'solde': solde,
         'dernieres_demandes': dernieres_demandes,
     })
@@ -5192,23 +5239,27 @@ def portail_facture_pdf(request, pk):
 
 @client_required
 def portail_versements(request):
-    versements = request.user.client_profile.versements.order_by('-date', '-id')
-
+    a_filtre = bool(request.GET)
     date_debut = request.GET.get('date_debut', '')
     date_fin = request.GET.get('date_fin', '')
 
-    if _parse_date_filtre(date_debut):
-        versements = versements.filter(date__gte=date_debut)
-    if _parse_date_filtre(date_fin):
-        versements = versements.filter(date__lte=date_fin)
-
-    total_versements = versements.aggregate(total=Sum('montant'))['total'] or 0
+    if a_filtre:
+        versements = request.user.client_profile.versements.order_by('-date', '-id')
+        if _parse_date_filtre(date_debut):
+            versements = versements.filter(date__gte=date_debut)
+        if _parse_date_filtre(date_fin):
+            versements = versements.filter(date__lte=date_fin)
+        total_versements = versements.aggregate(total=Sum('montant'))['total'] or 0
+    else:
+        versements = VersementClient.objects.none()
+        total_versements = 0
 
     return render(request, 'CommercialSoft/portail/versements.html', {
         'versements': versements,
         'total_versements': total_versements,
         'date_debut': date_debut,
         'date_fin': date_fin,
+        'a_filtre': a_filtre,
     })
 
 
@@ -5408,7 +5459,10 @@ def client_compte_creer(request, pk):
         elif User.objects.filter(username=username).exists():
             messages.error(request, "Ce nom d'utilisateur est déjà utilisé.")
         else:
-            user = User.objects.create_user(username=username, password=password1, is_staff=False)
+            user = User.objects.create_user(
+                username=username, password=password1, is_staff=False,
+                entreprise=request.entreprise,
+            )
             client.user = user
             client.save()
             messages.success(request, f"Compte portail créé pour {client.nom}.")
