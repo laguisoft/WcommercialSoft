@@ -100,13 +100,7 @@ def dashboard(request):
     total_produits = produits_stats['total']
     produits_perimes = produits_stats['perimes']
     produits_rupture = produits_stats['rupture']
-
-    total_pret_subquery = PretClient.objects.filter(client=OuterRef('pk')).values('client').annotate(total=Sum('montant')).values('total')
-    total_versement_subquery = VersementClient.objects.filter(client=OuterRef('pk')).values('client').annotate(total=Sum('montant')).values('total')
-    total_dettes = Client.objects.annotate(
-        total_pret=Coalesce(Subquery(total_pret_subquery), 0),
-        total_versement=Coalesce(Subquery(total_versement_subquery), 0),
-    ).filter(total_pret__gt=F('total_versement')).count()
+    total_dettes = PretClient.objects.count()
 
     context = {
         'nom_agent': request.user.username,
@@ -433,8 +427,7 @@ def vente_par_client(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def vente_par_payement(request):
-    users = User.objects.all()
-    return render(request, 'CommercialSoft/venteParPayement.html', {'users': users})
+    return render(request, 'CommercialSoft/venteParPayement.html')
 
 
 
@@ -1306,35 +1299,24 @@ def recherche_vente(request):
         dateFin = request.POST.get("dateFin")
 
         # Construire le filtre dynamique
-        # (Retour.date est un DateField, mais Commande.date est un
-        # DateTimeField : on a donc besoin de deux filtres distincts pour
-        # que le filtre "date de fin" inclue toute la journée de fin sur
-        # les ventes, sinon les ventes faites après minuit du jour de fin
-        # sont exclues)
         filtre = {}
-        filtre_ventes = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
         if dateDebut:
             filtre["date__gte"] = dateDebut
-            filtre_ventes["date__gte"] = dateDebut
         if dateFin:
             filtre["date__lte"] = dateFin
-            fin = _borne_fin_journee(dateFin)
-            if fin:
-                filtre_ventes["date__lt"] = fin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idUser and idUser != "0":
             try:
                 user = User.objects.get(id=idUser)
                 filtre["user"] = user
-                filtre_ventes["user"] = user
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre_ventes).select_related('user', 'client')
+        ventes = Commande.objects.filter(**filtre).select_related('user', 'client')
 
         montantRetour = (
                             Retour.objects
@@ -1381,15 +1363,10 @@ def recherche_vente_client(request):
         filtre = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
-        # (Commande.date est un DateTimeField : dateFin est repoussé au
-        # lendemain pour inclure toute la journée de fin, sinon les ventes
-        # faites après minuit du jour de fin sont exclues)
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            fin = _borne_fin_journee(dateFin)
-            if fin:
-                filtre["date__lt"] = fin
+            filtre["date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idClient and idClient != "0":
@@ -1431,7 +1408,6 @@ def recherche_vente_client(request):
 def recherche_vente_payement(request):
     if request.method == "POST":
         payement = request.POST.get('payement')
-        idUser = request.POST.get('idUser')
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
@@ -1439,15 +1415,10 @@ def recherche_vente_payement(request):
         filtre = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
-        # (Commande.date est un DateTimeField : dateFin est repoussé au
-        # lendemain pour inclure toute la journée de fin, sinon les ventes
-        # faites après minuit du jour de fin sont exclues)
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            fin = _borne_fin_journee(dateFin)
-            if fin:
-                filtre["date__lt"] = fin
+            filtre["date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if payement and payement != "0":
@@ -1455,14 +1426,6 @@ def recherche_vente_payement(request):
                 filtre["typePayement"] = payement
             except :
                 return JsonResponse({"error": "Payement introuvable"}, status=404)
-
-        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
-        if idUser and idUser != "0":
-            try:
-                user = User.objects.get(id=idUser)
-                filtre["user"] = user
-            except User.DoesNotExist:
-                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
         ventes = Commande.objects.filter(**filtre).select_related('client')
@@ -1475,7 +1438,6 @@ def recherche_vente_payement(request):
                 "remise": vente.remise,
                 "net": vente.montant - vente.remise,
                 "date": vente.date,
-                "user": vente.user.username if vente.user else "",
                 "type": vente.typeVente,
                 "payement": vente.typePayement,
                 "client": vente.client.nom if vente.client else "",
@@ -1505,15 +1467,10 @@ def recherche_vente_type(request):
         filtre = {}
 
         # Ajouter les filtres pour les dates si elles sont fournies
-        # (Commande.date est un DateTimeField : dateFin est repoussé au
-        # lendemain pour inclure toute la journée de fin, sinon les ventes
-        # faites après minuit du jour de fin sont exclues)
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            fin = _borne_fin_journee(dateFin)
-            if fin:
-                filtre["date__lt"] = fin
+            filtre["date__lte"] = dateFin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if type and type != "0":
@@ -1680,15 +1637,10 @@ def recherche_detail_vente(request):
 
         filtre = {}
 
-        # Commande.date est un DateTimeField : dateFin est repoussé au
-        # lendemain pour inclure toute la journée de fin, sinon les ventes
-        # faites après minuit du jour de fin sont exclues
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            fin = _borne_fin_journee(dateFin)
-            if fin:
-                filtre["date__lt"] = fin
+            filtre["date__lte"] = dateFin
 
         if idUser and idUser != "0":
             try:
@@ -1853,128 +1805,18 @@ def modifierProduitAjax(request):
 @permission_required('CommercialSoft.change_commande')
 def modifier_commande(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
-
     if request.method == "POST":
-        try:
-            lignes = json.loads(request.POST.get('jsonDataInput', '[]'))
-        except json.JSONDecodeError:
-            lignes = []
-
-        date = _parse_date_vente(request.POST.get('date')) if request.POST.get('date') else commande.date
-        typeVente = request.POST.get('typeVente', commande.typeVente)
-        typePayement = request.POST.get('typePayement', commande.typePayement)
-        try:
-            remise = int(request.POST.get('remise') or 0)
-        except ValueError:
-            remise = 0
-        client_id = request.POST.get('client') or None
-
-        if not lignes:
-            return JsonResponse({"success": False, "message": "Veuillez ajouter au moins un produit."}, status=400)
-
-        if typePayement == "Pret" and not client_id:
-            return JsonResponse({"success": False, "message": "Veuillez sélectionner un client pour un prêt."}, status=400)
-
-        boutique = request.entreprise
-        verifier_stock = not (boutique and boutique.quantiteNegative)
-
-        try:
-            with transaction.atomic():
-                # Réajoute au stock les quantités des anciennes lignes avant de les remplacer
-                for ancienneLigne in commande.commandeproduit_set.select_related('produit').all():
-                    if ancienneLigne.produit:
-                        ancienneLigne.produit.quantite += ancienneLigne.quantite
-                        ancienneLigne.produit.save()
-                commande.commandeproduit_set.all().delete()
-
-                montantTotal = 0
-                montantAchat = 0
-                for item in lignes:
-                    produit_id = item.get('produit_id')
-                    quantite = int(item.get('quantite', 0))
-                    prix = int(item.get('prix', 0))
-                    if not produit_id or quantite <= 0:
-                        continue
-
-                    produit = Produit.objects.get(id=produit_id)
-                    if verifier_stock and quantite > produit.quantite:
-                        raise ValueError(f"La quantité de {produit.libelle} dépasse le stock disponible ({produit.quantite}).")
-
-                    produit.quantite -= quantite
-                    produit.save()
-
-                    CommandeProduit.objects.create(
-                        commande=commande,
-                        produit=produit,
-                        quantite=quantite,
-                        prix=prix,
-                        date=date,
-                    )
-                    montantTotal += prix * quantite
-                    montantAchat += produit.prixAchat * quantite
-
-                commande.date = date
-                commande.typeVente = typeVente
-                commande.typePayement = typePayement
-                commande.remise = remise
-                commande.montant = montantTotal
-                commande.montantAchat = montantAchat
-
-                if typePayement == "Pret":
-                    client = Client.objects.get(id=client_id)
-                    commande.client = client
-
-                    dateEcheance = _parse_date_vente(request.POST.get('dateEcheance')) if request.POST.get('dateEcheance') else None
-                    commentaire = request.POST.get('commentaire') or ""
-                    pret = PretClient.objects.filter(commande=commande).first()
-                    if pret:
-                        pret.client = client
-                        pret.montant = montantTotal - remise
-                        if dateEcheance:
-                            pret.dateEcheance = dateEcheance
-                        pret.commentaire = commentaire
-                        pret.save()
-                    else:
-                        PretClient.objects.create(
-                            client=client,
-                            montant=montantTotal - remise,
-                            date=date,
-                            dateEcheance=dateEcheance or date,
-                            commande=commande,
-                            commentaire=commentaire,
-                            user=request.user,
-                        )
-
-                commande.save()
-        except Produit.DoesNotExist:
-            return JsonResponse({"success": False, "message": "Produit introuvable."}, status=400)
-        except Client.DoesNotExist:
-            return JsonResponse({"success": False, "message": "Client introuvable."}, status=400)
-        except ValueError as e:
-            return JsonResponse({"success": False, "message": str(e)}, status=400)
-        except Exception as e:
-            return JsonResponse({"success": False, "message": f"Erreur d'enregistrement: {e}"}, status=400)
-
-        return JsonResponse({"success": True, "message": "Commande modifiée avec succès !"})
-
-    lignesInitiales = [
-        {
-            "produit_id": ligne.produit_id,
-            "nom": ligne.produit.libelle if ligne.produit else "",
-            "quantite": ligne.quantite,
-            "prix": ligne.prix,
-            "total": ligne.quantite * ligne.prix,
-        }
-        for ligne in commande.commandeproduit_set.select_related('produit').all()
-    ]
-    pret = PretClient.objects.filter(commande=commande).first()
-
-    context = {
-        'commande': commande,
-        'lignes_json': json.dumps(lignesInitiales),
-        'pret': pret,
-    }
-    return render(request, 'CommercialSoft/modificationCommande.html', context)
+        form = CommandeForm(request.POST, instance=commande)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Vente modifiée avec succès!")
+            return redirect('commerce_produitVendu')
+        else:
+            messages.error(request, "Erreur lors de la mise à jour de la produit.")
+    else:
+        form = CommandeForm(instance=commande)
+    
+    return render(request, 'CommercialSoft/modification.html', {'form': form})
 
 
 
@@ -3222,46 +3064,36 @@ def bilan(request):
 
 def _construire_filtre_bilan(request):
     """Construit le filtre dynamique (date/user) commun à recherche_bilan et
-    pdf_etat_bilan. Retourne (filtre, filtre_ventes, erreur) ; erreur est une
-    JsonResponse à renvoyer telle quelle si l'utilisateur demandé n'existe pas.
-    (VersementClient/Depense/Retour/PretClient utilisent un DateField, mais
-    Commande.date est un DateTimeField : on a donc besoin d'un filtre distinct
-    (filtre_ventes) pour que la date de fin inclue toute la journée sur les
-    ventes, sinon les ventes faites après minuit du jour de fin sont exclues)"""
+    pdf_etat_bilan. Retourne (filtre, erreur) ; erreur est une JsonResponse à
+    renvoyer telle quelle si l'utilisateur demandé n'existe pas."""
     idUser = request.POST.get('idUser')
     dateDebut = request.POST.get("dateDebut")
     dateFin = request.POST.get("dateFin")
 
     filtre = {}
-    filtre_ventes = {}
     if dateDebut:
         filtre["date__gte"] = dateDebut
-        filtre_ventes["date__gte"] = dateDebut
     if dateFin:
         filtre["date__lte"] = dateFin
-        fin = _borne_fin_journee(dateFin)
-        if fin:
-            filtre_ventes["date__lt"] = fin
 
     if idUser and idUser != "0":
         try:
             user = User.objects.get(id=idUser)
             filtre["user"] = user
-            filtre_ventes["user"] = user
         except User.DoesNotExist:
-            return filtre, filtre_ventes, JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+            return filtre, JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
-    return filtre, filtre_ventes, None
+    return filtre, None
 
 
-def _calculer_totaux_bilan(filtre, filtre_ventes):
+def _calculer_totaux_bilan(filtre):
     """Calcule les totaux du bilan (vente nette, prêts, dépenses, retours,
     caisse) pour un filtre donné. Un seul aggregate() pour montant+remise
     au lieu de deux allers-retours séparés sur le même queryset."""
     pretReclamer = VersementClient.objects.filter(**filtre)
     depense = Depense.objects.filter(**filtre)
     retour = Retour.objects.filter(**filtre)
-    ventes = Commande.objects.filter(**filtre_ventes)
+    ventes = Commande.objects.filter(**filtre)
     pret = PretClient.objects.filter(**filtre)
 
     totaux_vente = ventes.aggregate(montant=Sum('montant'), remise=Sum('remise'))
@@ -3289,11 +3121,11 @@ def _calculer_totaux_bilan(filtre, filtre_ventes):
 @login_required
 def recherche_bilan(request):
     if request.method == "POST":
-        filtre, filtre_ventes, erreur = _construire_filtre_bilan(request)
+        filtre, erreur = _construire_filtre_bilan(request)
         if erreur:
             return erreur
 
-        return JsonResponse(_calculer_totaux_bilan(filtre, filtre_ventes))
+        return JsonResponse(_calculer_totaux_bilan(filtre))
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
@@ -3375,107 +3207,6 @@ def vente_par_pourcentage(request):
 
 
 
-@login_required
-@permission_required('CommercialSoft.view_commande')
-def client_special_recherche(request):
-    return render(request, 'CommercialSoft/clientSpecial.html')
-
-
-def _recap_et_achats_produits_speciaux(lignes_qs):
-    """Construit la liste des achats (triee du plus recent au plus ancien) et le
-    recapitulatif par produit a partir d'un queryset de CommandeProduit."""
-    achats = []
-    recap = {}
-    for ligne in lignes_qs:
-        nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
-        achats.append({
-            "commande_id": ligne.commande.id,
-            "date": timezone.localtime(ligne.commande.date).strftime("%d-%m-%Y %H-%M"),
-            "produit": nom_produit,
-            "quantite": ligne.quantite,
-            "prix": ligne.prix,
-            "montant": ligne.prix * ligne.quantite,
-        })
-        recap.setdefault(nom_produit, {"nombreAchats": 0, "quantiteTotale": 0})
-        recap[nom_produit]["nombreAchats"] += 1
-        recap[nom_produit]["quantiteTotale"] += ligne.quantite
-
-    recap_liste = [
-        {"produit": produit, "nombreAchats": donnees["nombreAchats"], "quantiteTotale": donnees["quantiteTotale"]}
-        for produit, donnees in recap.items()
-    ]
-    return achats, recap_liste
-
-
-@login_required
-@permission_required('CommercialSoft.view_commande')
-def recherche_client_special(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Requête invalide"}, status=400)
-
-    terme = request.POST.get('recherche', '').strip()
-
-    if not terme:
-        # Recherche vide : vue globale (tous les clients), sans infos personnelles
-        lignes = (
-            CommandeProduit.objects.filter(produit__special=True)
-            .select_related('produit', 'commande')
-            .order_by('-commande__date')
-        )
-        achats, recap_liste = _recap_et_achats_produits_speciaux(lignes)
-        return JsonResponse({
-            "global": True,
-            "nombreAchats": len(achats),
-            "recap": recap_liste,
-            "achats": achats,
-        })
-
-    clients = ClientSpecial.objects.filter(
-        Q(nom__icontains=terme) | Q(prenom__icontains=terme) | Q(telephone__icontains=terme)
-    ).order_by('nom')
-
-    resultats = [
-        {
-            "id": client.id,
-            "nom": client.nom,
-            "prenom": client.prenom or "",
-            "telephone": client.telephone,
-            "nombreAchats": CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True).count(),
-        }
-        for client in clients
-    ]
-
-    return JsonResponse({"global": False, "clients": resultats})
-
-
-@login_required
-@permission_required('CommercialSoft.view_commande')
-def detail_client_special(request):
-    client_id = request.GET.get('id')
-    client = ClientSpecial.objects.filter(id=client_id).first()
-    if not client:
-        return JsonResponse({"error": "Client introuvable"}, status=404)
-
-    lignes = (
-        CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True)
-        .select_related('produit', 'commande')
-        .order_by('-commande__date')
-    )
-    achats, recap_liste = _recap_et_achats_produits_speciaux(lignes)
-
-    return JsonResponse({
-        "client": {
-            "nom": client.nom,
-            "prenom": client.prenom or "",
-            "telephone": client.telephone,
-        },
-        "nombreAchats": len(achats),
-        "recap": recap_liste,
-        "achats": achats,
-    })
-
-
-
 
 
 @login_required
@@ -3485,16 +3216,7 @@ def recherche_benefice_sur_vente(request):
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
-        # Commande.date est un DateTimeField : dateFin est repoussé au
-        # lendemain pour inclure toute la journée de fin, sinon les ventes
-        # faites après minuit du jour de fin sont exclues
-        filtre_dates = {}
-        if dateDebut:
-            filtre_dates["date__gte"] = dateDebut
-        fin = _borne_fin_journee(dateFin)
-        if fin:
-            filtre_dates["date__lt"] = fin
-        commandes=Commande.objects.filter(**filtre_dates)
+        commandes=Commande.objects.filter(date__gte=dateDebut, date__lte=dateFin)
 
         # Construire une réponse JSON
         patients_data = [
@@ -3528,16 +3250,7 @@ def recherche_pourcentage_sur_vente(request):
         dateFin = request.POST.get("dateFin")
         type = request.POST.get("type")
 
-        # Commande.date est un DateTimeField : dateFin est repoussé au
-        # lendemain pour inclure toute la journée de fin, sinon les ventes
-        # faites après minuit du jour de fin sont exclues
-        filtre_dates = {"typeVente": type}
-        if dateDebut:
-            filtre_dates["date__gte"] = dateDebut
-        fin = _borne_fin_journee(dateFin)
-        if fin:
-            filtre_dates["date__lt"] = fin
-        commandes=Commande.objects.filter(**filtre_dates)
+        commandes=Commande.objects.filter(typeVente=type, date__gte=dateDebut, date__lte=dateFin)
 
         # Construire une réponse JSON
         patients_data = [
@@ -3983,15 +3696,10 @@ def pdf_etat_detail_vente(request):
 
             filtre = {}
 
-            # Commande.date est un DateTimeField : dateFin est repoussé au
-            # lendemain pour inclure toute la journée de fin, sinon les
-            # ventes faites après minuit du jour de fin sont exclues
             if dateDebut:
                 filtre["date__gte"] = dateDebut
             if dateFin:
-                fin = _borne_fin_journee(dateFin)
-                if fin:
-                    filtre["date__lt"] = fin
+                filtre["date__lte"] = dateFin
 
             if idUser and idUser != "0":
                 try:
@@ -5032,11 +4740,11 @@ def pdf_etat_bilan(request):
             dateDebut = request.POST.get("dateDebut")
             dateFin = request.POST.get("dateFin")
 
-            filtre, filtre_ventes, erreur = _construire_filtre_bilan(request)
+            filtre, erreur = _construire_filtre_bilan(request)
             if erreur:
                 return erreur
 
-            totaux = _calculer_totaux_bilan(filtre, filtre_ventes)
+            totaux = _calculer_totaux_bilan(filtre)
 
             if dateDebut == dateFin:
                 intervalle= "du "+dateDebut
@@ -5172,7 +4880,7 @@ def import_excel_view(request):
 #---------- Gestion horconnexion ---------------------------
 @login_required
 def api_produits(request):
-    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal", "special"))
+    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal"))
     clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
     return JsonResponse({
         "produits": produits,
@@ -5296,22 +5004,9 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 import json
 
-from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, ClientSpecial, PretClient
+from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, PretClient
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
-
-def _borne_fin_journee(date_str):
-    """Retourne la date (ISO) du lendemain de date_str, pour filtrer un
-    DateTimeField avec 'date__lt' plutot que 'date__lte'/'date__date__lte' :
-    Commande.date a une heure, donc date__lte=dateFin (interprete comme
-    dateFin 00:00:00) exclurait les ventes faites plus tard dans la journee.
-    On evite aussi le lookup '__date' (fonction SQL custom sur SQLite) qui
-    peut lever une erreur selon le format de stockage des dates."""
-    from datetime import timedelta
-    if not date_str:
-        return None
-    return (_parse_date_vente(date_str) + timedelta(days=1)).isoformat()
-
 
 def _parse_date_vente(date_str):
     """Accepte yyyy-MM-dd (ISO) ou dd/MM/yyyy (ancien format), retourne un objet date."""
@@ -5325,40 +5020,6 @@ def _parse_date_vente(date_str):
         except ValueError:
             continue
     return timezone.now().date()
-
-
-def _parse_datetime_vente(date_str):
-    """Accepte un datetime ISO complet (avec heure) envoye par la vente directe ;
-    conserve l'heure au lieu de la tronquer a minuit. Retombe sur la date seule
-    (ancien format sans heure) ou sur l'instant present si rien n'est exploitable."""
-    from datetime import datetime
-    from django.utils.dateparse import parse_datetime
-    if not date_str:
-        return timezone.now()
-    date_str = date_str.replace('\xa0', ' ').strip()
-    parsed = parse_datetime(date_str)
-    if parsed is not None:
-        if timezone.is_naive(parsed):
-            parsed = timezone.make_aware(parsed)
-        return parsed
-    return timezone.make_aware(datetime.combine(_parse_date_vente(date_str), datetime.min.time()))
-
-
-def _get_or_create_client_special(nom, prenom, telephone):
-    """Recupere ou cree l'acheteur d'un produit special (table ClientSpecial,
-    distincte des clients habituels), identifie par son telephone (numerique)."""
-    import re
-    nom = (nom or "").strip()
-    prenom = (prenom or "").strip()
-    telephone = re.sub(r'\D', '', telephone or "")
-    if not nom or not telephone:
-        return None
-
-    existant = ClientSpecial.objects.filter(telephone=telephone).first()
-    if existant:
-        return existant
-
-    return ClientSpecial.objects.create(nom=nom, prenom=prenom or None, telephone=telephone)
 
 
 def sync_ventes(request):
@@ -5381,23 +5042,16 @@ def sync_ventes(request):
         else:
             client = None
 
-        client_special = _get_or_create_client_special(
-            vente.get("clientSpecialNom"),
-            vente.get("clientSpecialPrenom"),
-            vente.get("clientSpecialTelephone"),
-        )
-
         if Commande.objects.filter(client_uid=id_local).exists():
             return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
-
+        
         montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
         commande = Commande.objects.create(
             user=User.objects.get(id=user_id),
             client =  client,
-            clientSpecial = client_special,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
-            date = _parse_datetime_vente(vente.get("date")),
+            date = _parse_date_vente(vente.get("date")),
             #date = date(2025, 10, 14),  # Pour test
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),

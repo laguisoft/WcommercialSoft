@@ -49,7 +49,7 @@ class CategorieForm(forms.ModelForm):
 class ProduitForm(forms.ModelForm):
     class Meta:
         model = Produit
-        fields = ['codebare','categorie','libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','seuil','commentaire','special']
+        fields = ['codebare','categorie','libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','seuil','commentaire']
         widgets = {
             'codebare': forms.TextInput(attrs={'class': 'form-control'}),
             'categorie': forms.Select(attrs={'class': 'form-control bootstrap4'}),
@@ -62,7 +62,6 @@ class ProduitForm(forms.ModelForm):
             'datePeremption': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDatePeremption'}),
             'seuil': forms.NumberInput(attrs={'class': 'form-control'}),
             'commentaire': forms.TextInput(attrs={'class': 'form-control'}),
-            'special': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 

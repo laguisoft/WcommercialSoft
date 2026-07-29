@@ -166,16 +166,11 @@
                   </ul>
                 </li>
                 {% if user.groups.count == 1 and user.groups.first.name != "Utilisateur" %}
-                <li class="dropdown"><a href="#"><span>Autre listes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                  <ul>
-                    <li><a href="{% url 'commerce_beneficeSurVente' %}">Benefice sur vente</a></li>
-                    <li><a href="{% url 'commerce_venteParClient' %}">Vente par clients</a></li>
-                    <li><a href="{% url 'commerce_venteParPayement' %}">Vente par payement</a></li>
-                    <li><a href="{% url 'commerce_venteParType' %}">Vente par type vente</a></li>
-                    <li><a href="{% url 'commerce_venteParPourcentage' %}">Vente par pourcentage</a></li>
-                  </ul>
-                </li>
-                <li><a href="{% url 'commerce_clientSpecial' %}">Historique client produit special</a></li>
+                <li><a href="{% url 'commerce_beneficeSurVente' %}">Benefice sur vente</a></li>
+                <li><a href="{% url 'commerce_venteParClient' %}">Vente par clients</a></li>
+                <li><a href="{% url 'commerce_venteParPayement' %}">Vente par payement</a></li>
+                <li><a href="{% url 'commerce_venteParType' %}">Vente par type vente</a></li>
+                <li><a href="{% url 'commerce_venteParPourcentage' %}">Vente par pourcentage</a></li>
                 {% endif %}
                 <li><a href="{% url 'retours' %}">Liste des retours</a></li>
                 
