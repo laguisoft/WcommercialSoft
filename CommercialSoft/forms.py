@@ -47,12 +47,21 @@ class CategorieForm(forms.ModelForm):
 
 # Formulaire pour le modèle produit
 class ProduitForm(forms.ModelForm):
+    categorie = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Categorie.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control bootstrap4'}),
+    )
+
     class Meta:
         model = Produit
         fields = ['codebare','categorie','libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','seuil','commentaire']
         widgets = {
             'codebare': forms.TextInput(attrs={'class': 'form-control'}),
-            'categorie': forms.Select(attrs={'class': 'form-control bootstrap4'}),
             'libelle': forms.TextInput(attrs={'class': 'form-control'}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control'}),
             'prixAchat': forms.NumberInput(attrs={'class': 'form-control'}),
@@ -63,6 +72,10 @@ class ProduitForm(forms.ModelForm):
             'seuil': forms.NumberInput(attrs={'class': 'form-control'}),
             'commentaire': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['categorie'].queryset = Categorie.objects.all()
 
 
 # Formulaire pour le modèle livraison
