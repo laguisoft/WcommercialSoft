@@ -69,14 +69,8 @@
               </div>
             </div>
 
-    <div class="row">
-      <div class="col-md-4">
-        <h4 class="text-danger" id="montantPret">Total  pret: </h4>
-      </div>
-      <div class="col-md-4">
-        <h4 class="text-danger" id="montantVersement">Total versement: </h4>
-      </div>
-      <div class="col-md-4">
+    <div class="row justify-content-center">
+      <div class="col-md-4 text-center">
         <h4 class="text-danger" id="montantBalance">Total balance: </h4>
       </div>
     </div>
@@ -188,11 +182,7 @@
 
       const clientId = $('#idClient').val();  // ID de l'examen sélectionné
 
-      var montantPret=0;
-      var montantVersement=0;
       var montantBalance=0;
-      $('#montantPret').html("Total : "+ montantPret.toLocaleString());
-      $('#montantVersement').html("Total : "+ montantVersement.toLocaleString());
       $('#montantBalance').html("Total : "+ montantBalance.toLocaleString());
 
       $.ajax({
@@ -245,12 +235,8 @@
                         </td>
                     </tr>
               `);
-              montantPret +=data.total_pret;
-              montantVersement +=data.total_versement;
               montantBalance +=data.balance;
             });
-            $('#montantPret').html("Total pret : "+ montantPret.toLocaleString());
-            $('#montantVersement').html("Total versement : "+ montantVersement.toLocaleString());
             $('#montantBalance').html("Total balance : "+ montantBalance.toLocaleString());
           } else {
             patientsTable.append('<tr><td colspan="14" class="text-center">Aucun ligne trouvée.</td></tr>');
