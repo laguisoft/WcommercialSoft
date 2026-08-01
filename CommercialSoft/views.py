@@ -5212,12 +5212,73 @@ def portail_commande_detail(request, pk):
         for ligne in lignes:
             ligne.sous_total = (ligne.quantiteAcceptee or 0) * ligne.prixUnitaire
             total_facture += ligne.sous_total
+    produits = []
+    if demande.statut == 'En attente':
+        produits = Produit.objects.filter(entreprise=request.entreprise, quantite__gt=0).order_by('libelle')
     return render(request, 'CommercialSoft/portail/commande_detail.html', {
         'demande': demande,
         'lignes': lignes,
         'total_facture': total_facture,
         'boutique': request.entreprise,
+        'produits': produits,
     })
+
+
+@client_required
+@require_POST
+def portail_commande_ajouter_produit(request, pk):
+    client = request.user.client_profile
+    demande = get_object_or_404(CommandeClient, pk=pk, client=client)
+
+    if demande.statut != 'En attente':
+        messages.error(request, "Cette commande a déjà été traitée, vous ne pouvez plus la modifier.")
+        return redirect('portail_commande_detail', pk=pk)
+
+    produit_id = request.POST.get('produit_id')
+    try:
+        quantite = int(request.POST.get('quantite', 0))
+    except (TypeError, ValueError):
+        quantite = 0
+
+    if not produit_id or quantite <= 0:
+        messages.error(request, "Veuillez sélectionner un produit et une quantité valide.")
+        return redirect('portail_commande_detail', pk=pk)
+
+    produit = get_object_or_404(Produit, id=produit_id, entreprise=client.entreprise)
+
+    ligne, created = CommandeClientProduit.objects.get_or_create(
+        entreprise=client.entreprise,
+        demande=demande,
+        produit=produit,
+        defaults={'quantiteDemandee': quantite, 'prixUnitaire': produit.prixDetail},
+    )
+    if not created:
+        ligne.quantiteDemandee += quantite
+        ligne.save(update_fields=['quantiteDemandee'])
+
+    messages.success(request, "Produit ajouté à votre commande.")
+    return redirect('portail_commande_detail', pk=pk)
+
+
+@client_required
+@require_POST
+def portail_commande_retirer_produit(request, pk, ligne_id):
+    client = request.user.client_profile
+    demande = get_object_or_404(CommandeClient, pk=pk, client=client)
+
+    if demande.statut != 'En attente':
+        messages.error(request, "Cette commande a déjà été traitée, vous ne pouvez plus la modifier.")
+        return redirect('portail_commande_detail', pk=pk)
+
+    ligne = get_object_or_404(CommandeClientProduit, pk=ligne_id, demande=demande)
+
+    if demande.lignes.count() <= 1:
+        messages.error(request, "Une commande doit contenir au moins un produit.")
+        return redirect('portail_commande_detail', pk=pk)
+
+    ligne.delete()
+    messages.success(request, "Produit retiré de votre commande.")
+    return redirect('portail_commande_detail', pk=pk)
 
 
 @client_required

@@ -1,5 +1,34 @@
 {% extends "CommercialSoft/portail/base_portail.html" %}
 
+{% block css %}
+{{ block.super }}
+<style>
+  .suggestions {
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    position: absolute;
+    background: white;
+    width: 100%;
+    z-index: 1000;
+  }
+  .suggestions li {
+    padding: 5px;
+    cursor: pointer;
+  }
+  .suggestions li:hover {
+    background: #eee;
+  }
+  .suggestions li.active-suggestion {
+    background-color: #007bff;
+    color: white;
+  }
+</style>
+{% endblock %}
+
 {% block corp %}
 <section class="content pt-0">
   <div class="container-fluid">
@@ -105,6 +134,7 @@
                 <tr>
                   <th>Produit</th>
                   <th>Quantité demandée</th>
+                  {% if demande.statut == 'En attente' %}<th style="width: 40px;"></th>{% endif %}
                 </tr>
               </thead>
               <tbody>
@@ -112,6 +142,14 @@
                 <tr>
                   <td>{{ ligne.produit.libelle }}</td>
                   <td>{{ ligne.quantiteDemandee }}</td>
+                  {% if demande.statut == 'En attente' %}
+                  <td class="text-center">
+                    <form method="post" action="{% url 'portail_commande_retirer_produit' demande.pk ligne.pk %}" onsubmit="return confirm('Retirer ce produit de la commande ?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-danger" title="Retirer"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td>
+                  {% endif %}
                 </tr>
                 {% endfor %}
               </tbody>
@@ -120,7 +158,106 @@
         </div>
       </div>
     </div>
+
+    {% if demande.statut == 'En attente' %}
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Ajouter un produit</h3>
+          </div>
+          <div class="card-body">
+            <form method="post" action="{% url 'portail_commande_ajouter_produit' demande.pk %}" class="form-row align-items-end">
+              {% csrf_token %}
+              <div class="col-md-6 form-group position-relative">
+                <label>Produit</label>
+                <input type="text" class="form-control" id="produitSearch" placeholder="Rechercher un produit..." autocomplete="off">
+                <input type="hidden" name="produit_id" id="produitIdInput">
+                <ul id="suggestions" class="suggestions"></ul>
+              </div>
+              <div class="col-md-3 form-group">
+                <label>Quantité</label>
+                <input type="number" class="form-control" name="quantite" value="1" min="1">
+              </div>
+              <div class="col-md-3 form-group">
+                <button type="submit" class="btn btn-primary" id="btnAjouterProduit" disabled>Ajouter</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% for produit in produits %}
+    <span class="d-none produit-data" data-id="{{ produit.id }}" data-libelle="{{ produit.libelle }}"></span>
+    {% endfor %}
+    {% endif %}
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block js %}
+{{ block.super }}
+{% if demande.statut == 'En attente' %}
+<script>
+  const produitsCache = Array.from(document.querySelectorAll('.produit-data')).map(el => ({
+    id: el.dataset.id,
+    libelle: el.dataset.libelle,
+  }));
+
+  const input = document.getElementById('produitSearch');
+  const suggestions = document.getElementById('suggestions');
+  const produitIdInput = document.getElementById('produitIdInput');
+  const btnAjouter = document.getElementById('btnAjouterProduit');
+  let currentFocus = -1;
+
+  function activerSuggestion(items) {
+    for (let i = 0; i < items.length; i++) items[i].classList.remove('active-suggestion');
+    if (currentFocus >= 0) {
+      items[currentFocus].classList.add('active-suggestion');
+      items[currentFocus].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  input.addEventListener('input', function () {
+    const query = this.value.toLowerCase();
+    suggestions.innerHTML = '';
+    currentFocus = -1;
+    produitIdInput.value = '';
+    btnAjouter.disabled = true;
+    if (query.length < 1) return;
+
+    const results = produitsCache.filter(p => p.libelle.toLowerCase().includes(query)).slice(0, 50);
+    results.forEach((p) => {
+      const li = document.createElement('li');
+      li.textContent = p.libelle;
+      li.onclick = () => {
+        input.value = p.libelle;
+        produitIdInput.value = p.id;
+        btnAjouter.disabled = false;
+        suggestions.innerHTML = '';
+      };
+      suggestions.appendChild(li);
+    });
+  });
+
+  input.addEventListener('keydown', function (e) {
+    const items = suggestions.getElementsByTagName('li');
+    if (e.key === 'ArrowDown') {
+      if (!items.length) return;
+      e.preventDefault();
+      currentFocus = (currentFocus + 1) % items.length;
+      activerSuggestion(items);
+    } else if (e.key === 'ArrowUp') {
+      if (!items.length) return;
+      e.preventDefault();
+      currentFocus = (currentFocus - 1 + items.length) % items.length;
+      activerSuggestion(items);
+    } else if (e.key === 'Enter' && currentFocus > -1 && items[currentFocus]) {
+      e.preventDefault();
+      items[currentFocus].click();
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}

@@ -200,6 +200,8 @@ urlpatterns=[
     path('portail/commande/creer/', views.portail_commande_creer, name='portail_commande_creer'),
     path('portail/commandes/', views.portail_mes_commandes, name='portail_mes_commandes'),
     path('portail/commande/<int:pk>/', views.portail_commande_detail, name='portail_commande_detail'),
+    path('portail/commande/<int:pk>/produit/ajouter/', views.portail_commande_ajouter_produit, name='portail_commande_ajouter_produit'),
+    path('portail/commande/<int:pk>/produit/<int:ligne_id>/retirer/', views.portail_commande_retirer_produit, name='portail_commande_retirer_produit'),
     path('portail/commande/<int:pk>/facture/', views.portail_facture_pdf, name='portail_facture_pdf'),
     path('portail/versements/', views.portail_versements, name='portail_versements'),
 
