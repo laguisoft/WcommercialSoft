@@ -2522,8 +2522,8 @@ def pretClient_list(request):
 @login_required
 def detail_pret_client(request, pk):
     client = get_object_or_404(Client, pk=pk)
-    dette=PretClient.objects.filter(client=client)
-    payement=VersementClient.objects.filter(client=client)
+    dette=PretClient.objects.filter(client=client).order_by('-date')
+    payement=VersementClient.objects.filter(client=client).order_by('-date')
 
     total_dette=PretClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
     total_payement=VersementClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
