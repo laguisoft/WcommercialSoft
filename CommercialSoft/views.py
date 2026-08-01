@@ -4599,7 +4599,7 @@ def pdf_facture_proforma(request):
 
             nom_client = data.get("nomClientSimple", "")
             tel_client = data.get("telClient", "")
-            
+
 
             # Calcul du total net après remise
             total_net = total - remise
@@ -4611,6 +4611,15 @@ def pdf_facture_proforma(request):
             remise_formate = "{:,}".format(remise).replace(",", " ")
             total_net_formate = "{:,}".format(total_net).replace(",", " ")
 
+            est_pret = data.get("typePayement") == "Pret"
+            montant_verse = 0
+            if est_pret:
+                try:
+                    montant_verse = max(0, min(int(data.get("montantVerse") or 0), total_net))
+                except (TypeError, ValueError):
+                    montant_verse = 0
+            montant_restant = total_net - montant_verse
+
             context = {
                 'listes': donnees,
                 'boutique': infoBoutique,
@@ -4620,6 +4629,9 @@ def pdf_facture_proforma(request):
                 'date': timezone.now().strftime("%d/%m/%Y à %H:%M"),
                 'client': Client.objects.get(id=idClient).nom if idClient else nom_client,
                 'numero_client': Client.objects.get(id=idClient).telephone if idClient else tel_client,
+                'est_pret': est_pret,
+                'montant_verse': "{:,}".format(montant_verse).replace(",", " "),
+                'montant_restant': "{:,}".format(montant_restant).replace(",", " "),
             }
 
             return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
@@ -5004,7 +5016,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 import json
 
-from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, PretClient
+from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, PretClient, VersementClient
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
 
@@ -5085,12 +5097,27 @@ def sync_ventes(request):
 
         
         
-        if vente.get("typePayement") == "Pret":
-            montant_pret = vente.get("montant")
-            if montant_pret > 0 and client_id:
+        if vente.get("typePayement") == "Pret" and client_id:
+            montant_total = vente.get("montant") or 0
+            try:
+                montant_verse = int(vente.get("montantVerse") or 0)
+            except (TypeError, ValueError):
+                montant_verse = 0
+            montant_verse = max(0, min(montant_verse, montant_total))
+            montant_restant = montant_total - montant_verse
+
+            if montant_verse > 0:
+                VersementClient.objects.create(
+                    client=client,
+                    montant=montant_verse,
+                    date=_parse_date_vente(vente.get("date")),
+                    user=User.objects.get(id=user_id),
+                )
+
+            if montant_restant > 0:
                 PretClient.objects.create(
                     client=client,
-                    montant=montant_pret,
+                    montant=montant_restant,
                     date=_parse_date_vente(vente.get("date")),
                     dateEcheance=_parse_date_vente(vente.get("dateEcheance")),
                     commande=commande,

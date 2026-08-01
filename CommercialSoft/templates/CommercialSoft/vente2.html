@@ -344,6 +344,14 @@
                 </div>
               </div>
             </div>
+            <div class="col-md-3" id="lgMontantVerse">
+              <div class="form-group d-flex align-items-center">
+                <label class="mb-0 col-md-6">Montant versé</label>
+                <div style="flex-grow: 1;" class="col-md-6">
+                  <input type="number" class="form-control" id="montantVerse" placeholder="0" min="0">
+                </div>
+              </div>
+            </div>
           </div>
             
         </div><!-- /.container-fluid -->
@@ -786,6 +794,7 @@ const typePayement = document.getElementById('typePayement');
 const lgClient = document.getElementById('lgClient');
 const lgEcheance = document.getElementById('lgEcheance');
 const lgCommentaire = document.getElementById('lgCommentaire');
+const lgMontantVerse = document.getElementById('lgMontantVerse');
 function togglePret() {
   const isPret = (typePayement.value === 'Pret');
 
@@ -796,6 +805,8 @@ function togglePret() {
   lgClient.classList.toggle('d-none', !isPret);
   lgEcheance.classList.toggle('d-none', !isPret);
   lgCommentaire.classList.toggle('d-none', !isPret);
+  lgMontantVerse.classList.toggle('d-none', !isPret);
+  if (!isPret) document.getElementById('montantVerse').value = '';
 
   // Rendre les champs obligatoires uniquement en cas de prêt
   const clientEl = document.getElementById('id_client');
@@ -830,12 +841,18 @@ async function validerVente() {
   let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
   let dateEcheance = document.getElementById("dateEch").value;
   let commentaire = document.getElementById("id_commentaire").value;
+  let montantVerse = parseInt(document.getElementById("montantVerse").value, 10) || 0;
   if (typePayementVal === "Pret" && (!client || !dateEcheance)) {
     alert("Veuillez sélectionner un client pour un prêt !");
     return;
   }
 
   montant = parseInt(montant, 10) || 0;
+
+  if (typePayementVal === "Pret" && montantVerse > montant) {
+    alert("Le montant versé ne peut pas dépasser le montant total de la vente !");
+    return;
+  }
 
   if (panier.length === 0) {
     alert("Le panier est vide !");
@@ -869,6 +886,7 @@ async function validerVente() {
       user,
       dateEcheance: dateEcheance,
       commentaire: commentaire,
+      montantVerse: typePayementVal === "Pret" ? montantVerse : 0,
     };
 
   ventes.push(venteData);
@@ -1052,6 +1070,15 @@ function imprimerRecuLocal(venteData, boutique) {
             <td colspan="1" style="text-align:right;"><h2>Net :</h2></td>
             <td colspan="3" style="text-align:left;"><h2>${(venteData.montant).toLocaleString("fr-FR")}</h2></td>
         </tr>
+        ${venteData.typePayement === "Pret" ? `
+        <tr>
+            <td colspan="1" style="text-align:right;"><h2>Versé :</h2></td>
+            <td colspan="3" style="text-align:left;"><h2>${(venteData.montantVerse || 0).toLocaleString("fr-FR")}</h2></td>
+        </tr>
+        <tr>
+            <td colspan="1" style="text-align:right;"><h2>Reste :</h2></td>
+            <td colspan="3" style="text-align:left;"><h2>${(venteData.montant - (venteData.montantVerse || 0)).toLocaleString("fr-FR")}</h2></td>
+        </tr>` : ""}
             </tbody>
         </table>
 
@@ -1093,8 +1120,19 @@ async function proforma() {
   let montant = document.getElementById("montantTotal").value.replace(/\s/g, '');
   let dateEcheance = document.getElementById("dateEch").value;
   let commentaire = document.getElementById("id_commentaire") ? document.getElementById("id_commentaire").value : "";
+  let montantVerse = parseInt(document.getElementById("montantVerse").value, 10) || 0;
   let select = document.getElementById("id_client");
   let clientNom = select.options[select.selectedIndex].text;
+
+  if (typePayementVal === "Pret" && montantVerse > (parseInt(montant, 10) || 0)) {
+    Swal.fire({
+      icon: "warning",
+      title: "Montant versé invalide",
+      text: "Le montant versé ne peut pas dépasser le montant total de la vente.",
+      confirmButtonText: "OK"
+    });
+    return;
+  }
 
 
   // 🔹 Nettoyer les produits pour JSON
@@ -1116,7 +1154,8 @@ async function proforma() {
     user,
     dateEcheance,
     commentaire,
-    clientNom
+    clientNom,
+    montantVerse: typePayementVal === "Pret" ? montantVerse : 0
   };
 
   let venteData = {
@@ -1133,7 +1172,8 @@ async function proforma() {
     commentaire: commentaire,
     typeVente: document.getElementById("typeVente").value,
     typePayement: document.getElementById("typePayement").value,
-    user: parseInt(document.getElementById("user_id").value)
+    user: parseInt(document.getElementById("user_id").value),
+    montantVerse: typePayementVal === "Pret" ? montantVerse : 0
   };
 
 

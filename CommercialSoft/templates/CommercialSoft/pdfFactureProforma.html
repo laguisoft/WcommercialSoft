@@ -194,6 +194,16 @@
                         <td colspan="4" style="text-align: right; border: none; color:forestgreen;"><h2>NET A PAYER</h2></td>
                         <td style="border: none; padding: 0px; margin: 0px; color: forestgreen"><h2>{{total_net}} GNF</h2></td>
                     </tr>
+                    {% if est_pret %}
+                    <tr style="border: none;">
+                        <td colspan="4" style="text-align: right; border: none;"><h2>Montant versé</h2></td>
+                        <td style="border: none; padding: 0px; margin: 0px;"><h2>{{montant_verse}} GNF</h2></td>
+                    </tr>
+                    <tr style="border: none;">
+                        <td colspan="4" style="text-align: right; border: none; color:#c0392b;"><h2>Reste à payer</h2></td>
+                        <td style="border: none; padding: 0px; margin: 0px; color:#c0392b;"><h2>{{montant_restant}} GNF</h2></td>
+                    </tr>
+                    {% endif %}
                   {% else %}
                     <tr>
                       <td colspan="5">Aucun element disponible pour le moment.</td>
