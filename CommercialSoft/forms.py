@@ -80,15 +80,27 @@ class ProduitForm(forms.ModelForm):
 
 # Formulaire pour le modèle livraison
 class LivraisonForm(forms.ModelForm):
+    fournisseur = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Fournisseur.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4'}),
+    )
+
     class Meta:
         model = Livraison
         fields = ['fournisseur','date','montant','numeroFacture']
         widgets = {
-            'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
             'montant': forms.NumberInput(attrs={'class': 'form-control','id':'numLivraison','disabled':'true'}),
             'numeroFacture': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fournisseur'].queryset = Fournisseur.objects.all()
 
 
 
@@ -96,17 +108,29 @@ class LivraisonForm(forms.ModelForm):
 
 # Formulaire pour le modèle livraisonProduit
 class LivraisonProduitForm(forms.ModelForm):
+    produit = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Produit.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', "id":"idProduit"}),
+    )
+
     class Meta:
         model = LivraisonProduit
         fields = ['produit','quantite','prix','prixEnGros','prixDetail','peremption']
         widgets = {
-            'produit': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idProduit"}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control', 'id':"quantite"}),
             'prix': forms.NumberInput(attrs={'class': 'form-control','id':'prixAchat'}),
             'prixEnGros': forms.NumberInput(attrs={'class': 'form-control','id':'prixEnGros'}),
             'prixDetail': forms.NumberInput(attrs={'class': 'form-control','id':"prixDetail"}),
             'peremption': forms.TextInput(attrs={'class': 'form-control', 'id':'peremption','placeholder': 'MM/AA', 'maxlength': '5', 'inputmode': 'numeric','pattern': r'\d{2}/\d{2}','autocomplete': 'off'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['produit'].queryset = Produit.objects.all()
 
 
 
@@ -140,14 +164,26 @@ class CommandeForm(forms.ModelForm):
 
 # Formulaire pour le modèle livraisonProduit
 class CommandeProduitForm(forms.ModelForm):
+    produit = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Produit.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', "id":"idProduit"}),
+    )
+
     class Meta:
         model = CommandeProduit
         fields = ['produit','quantite','prix']
         widgets = {
-            'produit': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idProduit"}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control', 'id':"quantite"}),
             'prix': forms.NumberInput(attrs={'class': 'form-control','id':'prixDetail'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['produit'].queryset = Produit.objects.all()
 
 
 
@@ -177,6 +213,15 @@ class CategorieDepenseForm(forms.ModelForm):
 
 # Formulaire pour le modèle Depense
 class DepenseForm(forms.ModelForm):
+    categorie = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Categorie_Depense.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
+    )
+
     class Meta:
         model = Depense
         fields = ['intitule','quantite','prix','categorie','date']
@@ -184,9 +229,12 @@ class DepenseForm(forms.ModelForm):
             'intitule': forms.TextInput(attrs={'class': 'form-control'}),
             'quantite': forms.NumberInput(attrs={'class': 'form-control'}),
             'prix': forms.NumberInput(attrs={'class': 'form-control'}),
-            'categorie': forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['categorie'].queryset = Categorie_Depense.objects.all()
 
 
 
@@ -209,15 +257,27 @@ class CategorieDecaissementForm(forms.ModelForm):
 
 # Formulaire pour le modèle Decaissement
 class DecaissementForm(forms.ModelForm):
+    categorie = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Categorie_Decaissement.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
+    )
+
     class Meta:
         model = Decaissement
         fields = ['motif','montant','categorie','date']
         widgets = {
             'motif': forms.TextInput(attrs={'class': 'form-control'}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
-            'categorie': forms.Select(attrs={'class': 'form-control select2bs4', 'id':'idCategorie'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['categorie'].queryset = Categorie_Decaissement.objects.all()
 
 
 
@@ -341,27 +401,51 @@ class societeForm(forms.ModelForm):
 
 
 class VersementFournisseurForm(forms.ModelForm):
+    fournisseur = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Fournisseur.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', "id":"idFournisseur"}),
+    )
+
     class Meta:
         model = VersementFournisseur
         fields = ['fournisseur', 'montant', 'date']
         widgets = {
-            'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idFournisseur"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id':'idDate'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fournisseur'].queryset = Fournisseur.objects.all()
 
 
 
 
 class DetteFournisseurForm(forms.ModelForm):
+    fournisseur = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Fournisseur.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', "id":"idFournisseur"}),
+    )
+
     class Meta:
         model = DetteFournisseur
         fields = ['fournisseur', 'montant', 'date']
         widgets = {
-            'fournisseur': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idFournisseur"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['fournisseur'].queryset = Fournisseur.objects.all()
 
 
 
