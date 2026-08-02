@@ -1183,6 +1183,8 @@ def vente_creates(request):
                 try:
                     # Création de la commande
                     commande = commande_form.save(commit=False)
+                    if commande.date and timezone.is_naive(commande.date):
+                        commande.date = timezone.make_aware(commande.date)
                     commande.user = request.user
                     commande.montantAchat = 0
                     commande.entreprise = request.entreprise
@@ -5034,6 +5036,13 @@ def _parse_date_vente(date_str):
     return timezone.now().date()
 
 
+def _parse_datetime_vente(date_str):
+    """Comme _parse_date_vente mais renvoie un datetime timezone-aware,
+    pour les champs DateTimeField (ex: Commande.date)."""
+    from datetime import datetime
+    return timezone.make_aware(datetime.combine(_parse_date_vente(date_str), datetime.min.time()))
+
+
 def sync_ventes(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
@@ -5063,7 +5072,7 @@ def sync_ventes(request):
             client =  client,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
-            date = _parse_date_vente(vente.get("date")),
+            date = _parse_datetime_vente(vente.get("date")),
             #date = date(2025, 10, 14),  # Pour test
             typeVente=vente.get("typeVente"),
             typePayement=vente.get("typePayement", "Espece"),
