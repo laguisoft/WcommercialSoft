@@ -1961,7 +1961,7 @@ def depense_delete(request, pk):
 
 
 @login_required
-@permission_required('CommercialSoft.add_categoriedepense')
+@permission_required('CommercialSoft.add_categorie_depense')
 def categorie_depense_list_create(request):
     if request.method == "POST":
         form = CategorieDepenseForm(request.POST)
@@ -1987,7 +1987,7 @@ def categorie_depense_list_create(request):
 
 
 @login_required
-@permission_required('CommercialSoft.change_categoriedepense')
+@permission_required('CommercialSoft.change_categorie_depense')
 def categorie_depense_edit(request, pk):
     categorie = get_object_or_404(Categorie_Depense, pk=pk)
     if request.method == "POST":
@@ -2005,7 +2005,7 @@ def categorie_depense_edit(request, pk):
 
 
 @login_required
-@permission_required('CommercialSoft.delete_categoriedepense')
+@permission_required('CommercialSoft.delete_categorie_depense')
 def categorie_depense_delete(request, pk):
     categorie = get_object_or_404(Categorie_Depense, pk=pk)
     try:
@@ -2158,7 +2158,7 @@ def categorie_decaissement_list_create(request):
 
 
 @login_required
-@permission_required('CommercialSoft.change_categoriedepense')
+@permission_required('CommercialSoft.change_categorie_decaissement')
 def categorie_decaissement_edit(request, pk):
     categorie = get_object_or_404(Categorie_Decaissement, pk=pk)
     if request.method == "POST":
