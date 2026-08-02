@@ -267,7 +267,7 @@ def categorie_list_create(request):
     else:
         form = CategorieForm()
     
-    categorie = Categorie.objects.all()
+    categorie = Categorie.objects.all().order_by('nom')
     paginator = Paginator(categorie, 15)
     page = request.GET.get('page')
     paginated = paginator.get_page(page)
@@ -1972,7 +1972,7 @@ def categorie_depense_list_create(request):
     else:
         form = CategorieDepenseForm()
     
-    categorie = Categorie_Depense.objects.all()
+    categorie = Categorie_Depense.objects.all().order_by('nom')
     paginator = Paginator(categorie, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2143,7 +2143,7 @@ def categorie_decaissement_list_create(request):
     else:
         form = CategorieDecaissementForm()
     
-    categorie = Categorie_Decaissement.objects.all()
+    categorie = Categorie_Decaissement.objects.all().order_by('nom')
     paginator = Paginator(categorie, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2855,7 +2855,7 @@ def client_list_create(request):
     else:
         form = clientForm()
     
-    client = Client.objects.all()
+    client = Client.objects.all().order_by('nom')
     paginator = Paginator(client, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -3006,7 +3006,7 @@ def societe_list_create(request):
     else:
         form = societeForm()
     
-    societe = Societe.objects.all()
+    societe = Societe.objects.all().order_by('nom')
     paginator = Paginator(societe, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
