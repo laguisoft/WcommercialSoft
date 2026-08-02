@@ -39,7 +39,7 @@ class FournisseurForm(forms.ModelForm):
 class CategorieForm(forms.ModelForm):
     class Meta:
         model = Categorie
-        fields = '__all__'
+        fields = ['nom']
         widgets = {
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
         }
@@ -202,7 +202,7 @@ CommandeProduitFormSet = inlineformset_factory(
 class CategorieDepenseForm(forms.ModelForm):
     class Meta:
         model = Categorie_Depense
-        fields = '__all__'
+        fields = ['nom', 'description']
         widgets = {
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
@@ -246,7 +246,7 @@ class DepenseForm(forms.ModelForm):
 class CategorieDecaissementForm(forms.ModelForm):
     class Meta:
         model = Categorie_Decaissement
-        fields = '__all__'
+        fields = ['nom', 'description']
         widgets = {
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control'}),
