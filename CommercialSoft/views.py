@@ -1,5 +1,6 @@
 import traceback
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
@@ -2233,8 +2234,7 @@ def versementClient_list_create(request):
             versement.entreprise = request.entreprise
             versement.save()
             messages.success(request, "Versement créée avec succès !")
-            return redirect('imprimer_recu_versement', versement.id)
-            return redirect('commerce_versementClient')
+            return redirect(f"{reverse('commerce_versementClient')}?recu={versement.id}")
         else:
             messages.error(request, "Erreur lors de la création du versement.")
     else:

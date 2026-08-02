@@ -232,6 +232,19 @@ document.addEventListener("DOMContentLoaded", function () {
         let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
         dateInput.value = today;
     }
+
+    // Après l'enregistrement d'un versement, la page est rechargée (champs
+    // vidés) et le reçu s'ouvre dans une petite fenêtre popup (comme la
+    // facture proforma sur la page de vente) au lieu de remplacer la page.
+    const params = new URLSearchParams(window.location.search);
+    const recuId = params.get('recu');
+    if (recuId) {
+        const url = "{% url 'imprimer_recu_versement' 0 %}".replace('0', recuId);
+        window.open(url, "Recu", "width=400,height=600");
+        params.delete('recu');
+        const nouvelleUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+        history.replaceState(null, "", nouvelleUrl);
+    }
 });
     
 
