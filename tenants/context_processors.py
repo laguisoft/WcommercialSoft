@@ -4,8 +4,10 @@ from django.utils import timezone
 def current_entreprise(request):
     entreprise = getattr(request, 'entreprise', None)
     alerte_fin_contrat = None
+    utilisateur = getattr(request, 'user', None)
+    est_client_portail = utilisateur is not None and hasattr(utilisateur, 'client_profile')
 
-    if entreprise is not None and entreprise.date_fin_contrat is not None:
+    if not est_client_portail and entreprise is not None and entreprise.date_fin_contrat is not None:
         jours_restants = (entreprise.date_fin_contrat - timezone.localdate()).days
         if 0 <= jours_restants <= 5:
             alerte_fin_contrat = {
