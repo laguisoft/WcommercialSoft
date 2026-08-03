@@ -271,6 +271,23 @@
 
   </header>
 
+  {% if alerte_fin_contrat %}
+  <div class="container-fluid" style="margin-top: 10px;">
+    <div class="alert alert-warning d-flex align-items-center shadow-sm" role="alert" style="border-left: 4px solid #ffc107;">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <div>
+        {% if alerte_fin_contrat.jours_restants == 0 %}
+          <strong>Attention :</strong> votre contrat se termine aujourd'hui ({{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}).
+        {% else %}
+          <strong>Attention :</strong> votre contrat se termine le {{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}
+          (dans {{ alerte_fin_contrat.jours_restants }} jour{{ alerte_fin_contrat.jours_restants|pluralize }}).
+        {% endif %}
+        Merci de contacter l'administrateur de la plateforme pour renouveler votre accès.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   {% if perms.CommercialSoft.add_commande %}
   <a href="{% url 'demandes_commande_liste' %}" id="commande-attente-badge" class="commande-attente-badge"{% if not demandes_commande_en_attente_count %} style="display:none;"{% endif %} title="{{ demandes_commande_en_attente_count }} commande{{ demandes_commande_en_attente_count|pluralize }} client{{ demandes_commande_en_attente_count|pluralize }} en attente de validation">
     <i class="bi bi-bell-fill"></i>

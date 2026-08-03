@@ -2,6 +2,7 @@ from urllib.parse import quote
 
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils import timezone
 
 from .managers import clear_current_entreprise, set_current_entreprise
 from .models import Entreprise
@@ -22,6 +23,11 @@ class TenantMiddleware:
       /tenants/choisir-entreprise/ tant qu'il n'a pas fait son choix ; ce
       choix est mémorisé dans la session. Avec une seule entreprise
       accessible, elle est utilisée directement, sans passer par cette page.
+    - Si l'entreprise résolue a une date de fin de contrat dépassée, tout
+      utilisateur non-superuser est redirigé vers une page d'information
+      bloquante (/tenants/contrat-expire/) ; le super admin n'est jamais
+      bloqué. L'alerte "contrat bientôt terminé" (J-5) est gérée à part,
+      de façon non bloquante, via le context processor current_entreprise.
 
     Note: on compare request.path plutôt que request.resolver_match, car
     ce dernier n'est pas encore renseigné à ce stade de la chaîne de
@@ -40,8 +46,15 @@ class TenantMiddleware:
             reverse('logout'),
             reverse('compte_non_rattache'),
             reverse('choisir_entreprise'),
+            reverse('contrat_expire'),
         )
         return path in chemins_exemptes
+
+    def _contrat_expire(self, entreprise):
+        return (
+            entreprise.date_fin_contrat is not None
+            and timezone.localdate() > entreprise.date_fin_contrat
+        )
 
     def _entreprise_depuis_session(self, request, entreprises_autorisees):
         entreprise_id = request.session.get('entreprise_id')
@@ -79,6 +92,13 @@ class TenantMiddleware:
                     entreprise = self._entreprise_depuis_session(request, entreprises_accessibles)
                     if entreprise is None and not self._est_chemin_exempte(request.path):
                         return self._rediriger_vers_choix(request)
+
+                if (
+                    entreprise is not None
+                    and self._contrat_expire(entreprise)
+                    and not self._est_chemin_exempte(request.path)
+                ):
+                    return redirect('contrat_expire')
 
         request.entreprise = entreprise
         set_current_entreprise(entreprise)
