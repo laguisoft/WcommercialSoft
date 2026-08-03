@@ -4,15 +4,15 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Contrat expiré</title>
+  <title>Abonnement expiré</title>
 </head>
 <body>
   <div style="max-width: 480px; margin: 80px auto; text-align: center; font-family: sans-serif;">
-    <h2>Contrat arrivé à expiration</h2>
+    <h2>Abonnement arrivé à expiration</h2>
     {% if entreprise and entreprise.date_fin_contrat %}
-      <p>Le contrat de <strong>{{ entreprise.nom }}</strong> a pris fin le {{ entreprise.date_fin_contrat|date:"d/m/Y" }}.</p>
+      <p>L'abonnement de <strong>{{ entreprise.nom }}</strong> a pris fin le {{ entreprise.date_fin_contrat|date:"d/m/Y" }}.</p>
     {% else %}
-      <p>Le contrat associé à votre compte est arrivé à expiration.</p>
+      <p>L'abonnement associé à votre compte est arrivé à expiration.</p>
     {% endif %}
     <p>Merci de contacter l'administrateur de la plateforme pour renouveler l'accès.</p>
     <p><a href="{% url 'logout' %}">Se déconnecter</a></p>

@@ -277,9 +277,9 @@
       <i class="bi bi-exclamation-triangle-fill me-2"></i>
       <div>
         {% if alerte_fin_contrat.jours_restants == 0 %}
-          <strong>Attention :</strong> votre contrat se termine aujourd'hui ({{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}).
+          <strong>Attention :</strong> votre abonnement se termine aujourd'hui ({{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}).
         {% else %}
-          <strong>Attention :</strong> votre contrat se termine le {{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}
+          <strong>Attention :</strong> votre abonnement se termine le {{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}
           (dans {{ alerte_fin_contrat.jours_restants }} jour{{ alerte_fin_contrat.jours_restants|pluralize }}).
         {% endif %}
         Merci de contacter l'administrateur de la plateforme pour renouveler votre accès.
