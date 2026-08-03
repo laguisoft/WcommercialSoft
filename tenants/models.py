@@ -22,6 +22,7 @@ class Entreprise(models.Model):
     proprietaire = models.CharField(max_length=100, null=True, blank=True)
     quantiteNegative = models.BooleanField(default=True)
     logo = models.ImageField(upload_to='logos/entreprises/', null=True, blank=True)
+    date_fin_contrat = models.DateField(null=True, blank=True, verbose_name="Fin du contrat")
 
     def save(self, *args, **kwargs):
         if not self.slug:
