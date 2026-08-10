@@ -338,16 +338,28 @@ class pretClientForm(forms.ModelForm):
 
 # Formulaire pour le modèle Depense
 class detteClientForm(forms.ModelForm):
+    client = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Client.objects.none(),
+        widget=forms.Select(attrs={'class': "form-control select2bs4", "id":"idClient"}),
+    )
+
     class Meta:
         model = PretClient
         fields = ['client', 'montant', 'date','dateEcheance','commentaire']
         widgets = {
-            'client': forms.Select(attrs={'class': "form-control select2bs4", "id":"idClient"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id':'idDate'}),
             'dateEcheance': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id':'idDateEch'}),
             'commentaire': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['client'].queryset = Client.objects.all()
 
         
 
