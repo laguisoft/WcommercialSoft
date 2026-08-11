@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Historique des paiements - CommercialSoft</title>
+  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+</head>
+<body>
+  <div class="container" style="max-width: 900px; margin: 60px auto;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="mb-0">Historique des paiements d'abonnement</h2>
+      <a href="{% url 'djomy_renouveler' %}" class="btn btn-primary">
+        <i class="bi bi-phone"></i> Renouveler
+      </a>
+    </div>
+    <p class="text-muted">{{ entreprise.nom }}</p>
+
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Référence</th>
+            <th>Durée</th>
+            <th>Montant (GNF)</th>
+            <th>Numéro payeur</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for paiement in paiements %}
+          <tr>
+            <td>{{ paiement.date_creation|date:"d/m/Y H:i" }}</td>
+            <td>{{ paiement.merchant_reference }}</td>
+            <td>{{ paiement.duree_mois }} mois</td>
+            <td>{{ paiement.montant }}</td>
+            <td>{{ paiement.payer_number }}</td>
+            <td>
+              {% if paiement.statut == 'SUCCESS' %}
+                <span class="badge bg-success">{{ paiement.get_statut_display }}</span>
+              {% elif paiement.en_cours %}
+                <span class="badge bg-warning text-dark">{{ paiement.get_statut_display }}</span>
+              {% else %}
+                <span class="badge bg-danger">{{ paiement.get_statut_display }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted">Aucune transaction pour le moment.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="text-center mt-4"><a href="{% url 'commerce_dashboard' %}">Retour au tableau de bord</a></p>
+  </div>
+
+  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

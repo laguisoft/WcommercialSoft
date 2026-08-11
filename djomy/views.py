@@ -143,6 +143,24 @@ def renouveler_abonnement(request):
 
 
 @login_required
+def historique_paiements(request):
+    if _est_client_portail(request.user):
+        return redirect('commerce_dashboard')
+
+    entreprise = getattr(request, 'entreprise', None)
+    if entreprise is None:
+        next_url = reverse('djomy_historique')
+        return redirect(f"{reverse('choisir_entreprise')}?next={next_url}")
+
+    paiements = PaiementAbonnement.all_objects.filter(entreprise=entreprise)
+
+    return render(request, 'djomy/historique.html', {
+        'entreprise': entreprise,
+        'paiements': paiements,
+    })
+
+
+@login_required
 def retour_paiement(request, reference):
     entreprise = getattr(request, 'entreprise', None)
     paiement = get_object_or_404(PaiementAbonnement.all_objects, merchant_reference=reference)

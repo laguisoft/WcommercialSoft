@@ -49,7 +49,10 @@
       </button>
     </form>
 
-    <p class="text-center mt-4"><a href="{% url 'logout' %}">Se déconnecter</a></p>
+    <p class="text-center mt-4">
+      <a href="{% url 'djomy_historique' %}">Historique des paiements</a>
+      · <a href="{% url 'logout' %}">Se déconnecter</a>
+    </p>
   </div>
 
   <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>

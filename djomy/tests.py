@@ -248,3 +248,48 @@ class RenouvelerAbonnementViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         paiement = PaiementAbonnement.all_objects.get(entreprise=self.entreprise)
         self.assertEqual(paiement.statut, 'FAILED')
+
+    @patch('djomy.client.requests.post')
+    def test_renouveler_accessible_meme_si_contrat_pas_proche_de_lexpiration(self, mock_post):
+        import datetime
+        self.entreprise.date_fin_contrat = timezone.localdate() + datetime.timedelta(days=200)
+        self.entreprise.save()
+
+        mock_post.side_effect = [
+            _fake_response({'success': True, 'data': {'accessToken': 'tok'}}),
+            _fake_response({'success': True, 'data': {
+                'transactionId': 'txn-4', 'status': 'REDIRECTED',
+                'redirectUrl': 'https://sandbox-portal.djomy.africa/pay/txn-4',
+            }}),
+        ]
+        response = self.client.post(reverse('djomy_renouveler'), {
+            'duree_mois': '12', 'payer_number': '00224623707722',
+        })
+        self.assertRedirects(response, 'https://sandbox-portal.djomy.africa/pay/txn-4', fetch_redirect_response=False)
+
+
+@override_settings(**DJOMY_SETTINGS)
+class HistoriquePaiementsViewTests(TestCase):
+    def setUp(self):
+        self.entreprise = Entreprise.objects.create(nom="Boutique Test", ville="Conakry")
+        User = get_user_model()
+        self.user = User.objects.create_user(username='proprio', password='pass1234')
+        self.user.entreprise = self.entreprise
+        self.user.save()
+        self.client.login(username='proprio', password='pass1234')
+
+    def test_liste_les_paiements_de_lentreprise(self):
+        PaiementAbonnement.all_objects.create(
+            entreprise=self.entreprise, duree_mois=1, montant=150000,
+            payer_number='00224623707722', merchant_reference='ABN-1-a', statut='SUCCESS',
+        )
+        autre_entreprise = Entreprise.objects.create(nom="Autre boutique", ville="Kankan")
+        PaiementAbonnement.all_objects.create(
+            entreprise=autre_entreprise, duree_mois=1, montant=150000,
+            payer_number='00224600000000', merchant_reference='ABN-2-b', statut='SUCCESS',
+        )
+
+        response = self.client.get(reverse('djomy_historique'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ABN-1-a')
+        self.assertNotContains(response, 'ABN-2-b')
