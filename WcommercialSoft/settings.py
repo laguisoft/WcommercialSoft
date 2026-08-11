@@ -92,40 +92,10 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # Configuration de la base de données via variables d'environnement.
 # Par defaut : SQLite (developpement). Pour la production avec MySQL,
 # definir DB_ENGINE=mysql ainsi que DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.
-"""
 DB_ENGINE = config('DB_ENGINE', default='sqlite')
 
 if DB_ENGINE == 'mysql':
-    
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': config('DB_NAME', default='nkela_db'),
-            'USER': config('DB_USER', default='root'),
-            'PASSWORD': config('DB_PASSWORD', default=''),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
-    }   
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-            'OPTIONS': {
-                'timeout': 20,  # attendre au lieu d'échouer si la base est verrouillée (polling concurrent)
-            },
-        }
-    }
-"""
-
-
-
-DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
             'NAME': config('DB_NAME'),
@@ -139,11 +109,8 @@ DATABASES = {
             },
         }
     }
-
-"""
-
-
-DATABASES = {
+else:
+    DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
@@ -152,7 +119,6 @@ DATABASES = {
             },
         }
     }
-"""
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

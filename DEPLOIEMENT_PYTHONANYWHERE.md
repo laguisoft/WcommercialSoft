@@ -50,12 +50,16 @@ DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=<utilisateur>.pythonanywhere.com
 DJANGO_SECURE_SSL=True
 
+DB_ENGINE=mysql
 DB_NAME=<utilisateur>$wcommercialsoft
 DB_USER=<utilisateur>
 DB_PASSWORD=le-mot-de-passe-mysql-defini-a-l-etape-3
 DB_HOST=<utilisateur>.mysql.pythonanywhere-services.com
 DB_PORT=3306
 ```
+
+`DB_ENGINE=mysql` est indispensable : sans cette variable, `settings.py`
+utilise SQLite par défaut (pratique en local, à éviter en production).
 
 Générer une `DJANGO_SECRET_KEY` sûre :
 
@@ -101,7 +105,7 @@ python manage.py createsuperuser
    env_config = Config(RepositoryEnv(os.path.join(path, '.env')))
    for key in (
        'DJANGO_SECRET_KEY', 'DJANGO_DEBUG', 'DJANGO_ALLOWED_HOSTS',
-       'DJANGO_SECURE_SSL', 'DB_NAME', 'DB_USER', 'DB_PASSWORD',
+       'DJANGO_SECURE_SSL', 'DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD',
        'DB_HOST', 'DB_PORT',
    ):
        os.environ.setdefault(key, env_config.get(key, default=''))
