@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'tenants',
     'CommercialSoft',
     'accounts',
+    'djomy',
     'pwa',
 ]
 
@@ -311,3 +312,15 @@ PWA_APP_DIR = 'ltr'
 PWA_APP_LANG = 'fr-FR'
 
 PWA_SERVICE_WORKER_PATH = os.path.join(BASE_DIR, 'CommercialSoft/static/js', 'serviceworker.js')
+
+
+# Paiement Djomy (https://developers.djomy.africa) — renouvellement d'abonnement.
+# En sandbox : créer un compte sur https://sandbox.djomy.africa pour obtenir
+# DJOMY_CLIENT_ID / DJOMY_CLIENT_SECRET, à définir dans le fichier .env local.
+DJOMY_CLIENT_ID = config('DJOMY_CLIENT_ID', default='')
+DJOMY_CLIENT_SECRET = config('DJOMY_CLIENT_SECRET', default='')
+DJOMY_BASE_URL = config('DJOMY_BASE_URL', default='https://sandbox-api.djomy.africa')
+DJOMY_COUNTRY_CODE = config('DJOMY_COUNTRY_CODE', default='GN')
+
+# Prix mensuel de l'abonnement CommercialSoft, en francs guinéens (GNF).
+DJOMY_PRIX_MENSUEL_GNF = config('DJOMY_PRIX_MENSUEL_GNF', default=150000, cast=int)

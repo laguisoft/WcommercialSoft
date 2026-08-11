@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Renouveler l'abonnement - CommercialSoft</title>
+  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+</head>
+<body>
+  <div class="container" style="max-width: 560px; margin: 60px auto;">
+    <h2 class="mb-2 text-center">Renouveler l'abonnement</h2>
+    <p class="text-muted text-center">
+      Paiement sécurisé par Mobile Money via <strong>Djomy</strong> pour
+      <strong>{{ entreprise.nom }}</strong>.
+      {% if entreprise.date_fin_contrat %}
+        Abonnement actuel valable jusqu'au {{ entreprise.date_fin_contrat|date:"d/m/Y" }}.
+      {% endif %}
+    </p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-danger">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" class="card p-4 shadow-sm">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label">Durée</label>
+        <select name="duree_mois" class="form-select" required>
+          {% for choix in durees %}
+            <option value="{{ choix.mois }}">
+              {{ choix.mois }} mois — {{ choix.montant }} GNF
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Numéro de téléphone du payeur</label>
+        <input type="tel" name="payer_number" class="form-control"
+               placeholder="00224623707722" value="{{ entreprise.telephone }}" required>
+        <div class="form-text">Numéro Mobile Money (Orange Money, MTN MoMo, ...) au format international.</div>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-phone"></i> Payer avec Mobile Money
+      </button>
+    </form>
+
+    <p class="text-center mt-4"><a href="{% url 'logout' %}">Se déconnecter</a></p>
+  </div>
+
+  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

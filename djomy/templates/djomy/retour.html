@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Résultat du paiement - CommercialSoft</title>
+  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+</head>
+<body>
+  <div class="container text-center" style="max-width: 480px; margin: 80px auto;">
+    {% if paiement.statut == 'SUCCESS' %}
+      <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+      <h2 class="mt-3">Paiement réussi</h2>
+      <p>Votre abonnement a été prolongé de {{ paiement.duree_mois }} mois.</p>
+    {% elif paiement.en_cours %}
+      <i class="bi bi-hourglass-split text-warning" style="font-size: 3rem;"></i>
+      <h2 class="mt-3">Paiement en cours de traitement</h2>
+      <p>
+        Votre paiement est en cours de confirmation par Djomy. Cette page se
+        mettra à jour automatiquement ; vous pouvez aussi actualiser dans
+        quelques instants.
+      </p>
+    {% else %}
+      <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
+      <h2 class="mt-3">Paiement non abouti</h2>
+      <p>Statut : {{ paiement.get_statut_display }}. Vous pouvez réessayer.</p>
+    {% endif %}
+
+    <p class="text-muted">Référence : {{ paiement.merchant_reference }}</p>
+
+    <a href="{% url 'djomy_renouveler' %}" class="btn btn-outline-primary">Retour</a>
+  </div>
+
+  {% if paiement.en_cours %}
+  <script>
+    setTimeout(function () { window.location.reload(); }, 5000);
+  </script>
+  {% endif %}
+
+  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

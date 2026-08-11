@@ -41,6 +41,11 @@ class TenantMiddleware:
     def _est_chemin_exempte(self, path):
         if path.startswith('/admin/'):
             return True
+        # Tout /djomy/ (page de renouvellement, retour de paiement, webhook) doit
+        # rester accessible même à une entreprise bloquée : c'est le seul moyen
+        # pour elle de payer et donc de se débloquer elle-même.
+        if path.startswith('/djomy/'):
+            return True
         chemins_exemptes = (
             reverse('login'),
             reverse('logout'),

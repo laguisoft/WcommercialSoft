@@ -282,7 +282,7 @@
           <strong>Attention :</strong> votre abonnement se termine le {{ alerte_fin_contrat.date_fin_contrat|date:"d/m/Y" }}
           (dans {{ alerte_fin_contrat.jours_restants }} jour{{ alerte_fin_contrat.jours_restants|pluralize }}).
         {% endif %}
-        Merci de contacter l'administrateur de la plateforme pour renouveler votre accès.
+        <a href="{% url 'djomy_renouveler' %}" class="alert-link">Renouveler maintenant par Mobile Money</a>.
       </div>
     </div>
   </div>

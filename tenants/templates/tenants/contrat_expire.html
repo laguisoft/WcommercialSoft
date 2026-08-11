@@ -14,7 +14,7 @@
     {% else %}
       <p>L'abonnement associé à votre compte est arrivé à expiration.</p>
     {% endif %}
-    <p>Merci de contacter l'administrateur de la plateforme pour renouveler l'accès.</p>
+    <p><a href="{% url 'djomy_renouveler' %}">Renouveler maintenant par Mobile Money</a></p>
     <p><a href="{% url 'logout' %}">Se déconnecter</a></p>
   </div>
 </body>
