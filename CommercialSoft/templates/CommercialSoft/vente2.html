@@ -420,6 +420,7 @@
   <script src="{% static 'autre/dist/js/demo.js' %}"></script>
 
   <script src="{% static 'js/localforage.min.js' %}"></script>
+  <script>window.CSRF_TOKEN = "{{ csrf_token }}";</script>
   <script src="{% static 'js/offline-core.js' %}"></script>
   <script src="{% static 'js/vente.js' %}"></script>
 
@@ -1278,95 +1279,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 // --- 🌐 Sync ventes ---
-/*async function syncVentes() {
-  let ventes = await localforage.getItem("ventes");
-  if (ventes && ventes.length > 0) {
-    try {
-      let response = await fetch("/commerce/api/sync/ventes/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ventes })
-      });
-      let result = await response.json();
-      if (result.success) {
-        await localforage.removeItem("ventes");
-        console.log("✅ Ventes synchronisées !");
-      }
-    } catch (err) {
-      console.error("❌ Erreur synchro:", err);
-    }
-  }
-}*/
-
-
-let isSyncing = false; // 🔒 verrou pour éviter plusieurs syncs en même temps
-
-async function syncVentes() {
-  let etatSynchro = document.getElementById("etatSynchro");
-
-  if (isSyncing) return; // ⛔ empêche une deuxième exécution en parallèle
-  isSyncing = true;
-
-  let ventes = await localforage.getItem("ventes");
-  if (!ventes || ventes.length === 0) {
-    isSyncing = false;
-
-    return;
-  }
-
-  console.log(`🔄 Tentative de synchronisation de ${ventes.length} ventes...`);
-
-  for (let i = 0; i < ventes.length; i++) {
-    let vente = ventes[i];
-    console.log(`[DEBUG] vente[${i}] type=${typeof vente}`, JSON.stringify(vente).slice(0, 200));
-    try {
-      let response = await fetch("/commerce/api/sync/ventes/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify(vente),
-      });
-
-      let result = await response.json();
-      if (result.success) {
-        console.log(`✅ Vente ${i + 1}/${ventes.length} synchronisée !`);
-        ventes.splice(i, 1);
-        i--;
-        await localforage.setItem("ventes", ventes);
-      } else {
-        console.warn(`⚠️ Erreur sur la vente ${i + 1}:`, result.error);
-        if (result.traceback) console.error('[TRACEBACK]', result.traceback);
-      }
-    } catch (err) {
-      console.error("❌ Erreur réseau, arrêt de la synchronisation !");
-      break;
-    }
-
-    //affichage du message de synchronisation
-    
-    if (ventes.length > 0) {
-      etatSynchro.innerHTML = `Reste ${ventes.length} ventes à synchroniser...`;
-      etatSynchro.style.color = "orange";
-    } else {
-      etatSynchro.innerHTML = "✅ Toutes les ventes sont synchronisées !";
-      etatSynchro.style.color = "lime";
-    }
-
-
-    await new Promise(resolve => setTimeout(resolve, 500)); // petite pause
-  }
-
-  if (ventes.length === 0) {
-    await localforage.removeItem("ventes");
-    console.log("🎉 Toutes les ventes ont été synchronisées !");
-  }
-
-  isSyncing = false; // 🔓 libère le verrou
-}
-// ⏱️ Relancer toutes les 10 secondes si besoin
-setInterval(syncVentes, 10000);
+// La synchronisation des ventes en attente est gérée globalement par
+// static/js/offline-core.js (chargé ci-dessus), déclenchée dès le
+// chargement de n'importe quelle page de l'application — pas seulement
+// celle-ci — pour ne jamais attendre que l'utilisateur ouvre la page de
+// vente avant que les données hors-ligne soient envoyées. Elle met à jour
+// le même élément #etatSynchro que celui affiché sur cette page.
 
 
 // --- 🚀 Init ---
