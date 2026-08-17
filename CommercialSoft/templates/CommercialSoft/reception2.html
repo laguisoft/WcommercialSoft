@@ -233,7 +233,8 @@
 <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
 <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
-<script src="{% static 'js/localforage.min.js' %}"></script>
+<!-- localforage + offline-core.js (synchro ventes/réceptions) sont déjà
+     chargés globalement par starter-page.html, en dehors de ce bloc. -->
 
 <script>
 
@@ -244,9 +245,8 @@ document.addEventListener("DOMContentLoaded", function () {
         dateInput.value = today;
     }
 });
-    
+
 /* ================= Réception Offline/Online — clone de la Vente ================= */
-localforage.config({ name: "venteApp" }); // même DB que la vente pour partager les clés
 
 let panierR = [];
 let produitsCache = [];
@@ -726,38 +726,11 @@ document.getElementById("btnValiderReception").addEventListener("click", async f
   toastr.success("✅ Facture enregistrée localement !");
 });
 
-/* ---------- Synchronisation auto (toutes 10s) ---------- */
-let isSyncing = false;
-async function syncLivraisons(){
-  if (isSyncing) return; isSyncing = true;
-  let livs = await localforage.getItem("livraisons") || [];
-  if (!livs.length) {
-    etatSynchroReception.innerHTML="✅ Toutes les factures sont synchronisées !";
-    etatSynchroReception.style.color="lime"; isSyncing=false; return;
-  }
-  for (let i=0;i<livs.length;i++){
-    try{
-      const resp = await fetch("/commerce/api/sync/livraisons/", {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: JSON.stringify(livs[i])
-      });
-      const out = await resp.json();
-      if (out.success) { livs.splice(i,1); i--; await localforage.setItem("livraisons", livs); }
-      else { console.warn("⚠️ Erreur sync:", out.error); }
-    }catch(e){ console.error("❌ Erreur réseau sync"); break; }
-
-    if (livs.length>0) { etatSynchroReception.innerHTML=`Reste ${livs.length} facture(s) à synchroniser...`; etatSynchroReception.style.color="orange"; }
-    else { etatSynchroReception.innerHTML="✅ Toutes les factures sont synchronisées !"; etatSynchroReception.style.color="lime"; }
-    await new Promise(r=>setTimeout(r,400));
-  }
-  if (!livs.length) await localforage.removeItem("livraisons");
-  isSyncing=false;
-}
-setInterval(syncLivraisons, 10000);
+/* ---------- Synchronisation ---------- */
+// Gérée globalement par static/js/offline-core.js (chargé par
+// starter-page.html), déclenchée dès le chargement de n'importe quelle
+// page — pas seulement celle-ci. Elle met à jour ce même élément
+// #etatSynchroReception.
 window.addEventListener("load", chargerDonnees);
 
 /* ---------- Masque MM/AA (comme vente) ---------- */
