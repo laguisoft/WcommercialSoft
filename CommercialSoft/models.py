@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission, User
 from django.utils import timezone
 from django.conf import settings
+from django.core.validators import RegexValidator
 
 from tenants.models import TenantScopedModel
 # Create your models here.
@@ -49,6 +50,7 @@ class Produit(TenantScopedModel):
     seuil=models.PositiveIntegerField(default=0)
     commentaire=models.CharField(max_length=60, null=True, blank=True)
     quantiteTotal=models.PositiveBigIntegerField(default=0)
+    special=models.BooleanField(default=False, verbose_name="Produit special (infos client requises a la vente)")
 
     class Meta:
         constraints = [
@@ -129,9 +131,20 @@ class Client(TenantScopedModel):
         return self.nom
 
 
+class ClientSpecial(TenantScopedModel):
+    """Acheteur d'un produit special (table distincte des clients habituels)."""
+    nom=models.CharField(max_length=70)
+    prenom=models.CharField(max_length=70, null=True, blank=True)
+    telephone=models.CharField(max_length=20, validators=[RegexValidator(r'^\d+$', "Le telephone doit contenir uniquement des chiffres.")])
+
+    def __str__(self):
+        return f"{self.nom} {self.prenom}".strip() if self.prenom else self.nom
+
+
 class Commande(TenantScopedModel):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
+    clientSpecial=models.ForeignKey(ClientSpecial, on_delete=models.SET_NULL, null=True, blank=True, related_name='achats')
     montant=models.PositiveBigIntegerField()
     remise=models.PositiveBigIntegerField(default=0)
     date=models.DateTimeField(default=timezone.now, db_index=True)
@@ -336,3 +349,21 @@ class Retour(TenantScopedModel):
 
     def __str__(self):
         return f"{self.produit.libelle} - {self.quantite} - {self.date}"
+
+
+class ImportJournal(TenantScopedModel):
+    """Trace chaque import d'un export 'main' vers cette entreprise : sert de
+    garde-fou anti double-import (meme empreinte deja importee) et de journal
+    d'audit consultable."""
+    empreinte_sha256 = models.CharField(max_length=64, db_index=True)
+    importe_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    date_import = models.DateTimeField(default=timezone.now)
+    rapport = models.JSONField(default=dict)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'empreinte_sha256'], name='importjournal_empreinte_idx'),
+        ]
+
+    def __str__(self):
+        return f"Import {self.empreinte_sha256[:8]} vers {self.entreprise} le {self.date_import:%d/%m/%Y}"

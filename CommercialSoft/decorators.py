@@ -13,3 +13,14 @@ def client_required(view_func):
             raise PermissionDenied
         return view_func(request, *args, **kwargs)
     return wrapper
+
+
+def superadmin_required(view_func):
+    """Reserve la vue aux comptes superadmin (export/import de donnees, migrations client)."""
+    @login_required
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+    return wrapper

@@ -1,0 +1,98 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-10 offset-md-1">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Aperçu de l'import vers "{{ entreprise.nom }}"</h3>
+          </div>
+          <div class="card-body">
+
+            {% if rapport.deja_importe %}
+              <div class="alert alert-warning">
+                <strong>Attention :</strong> ce fichier (même empreinte) a déjà été importé
+                pour cette entreprise. Confirmer relancera quand même l'import — à utiliser
+                uniquement si c'est intentionnel.
+              </div>
+            {% endif %}
+
+            <h5>Contenu du fichier</h5>
+            <table class="table table-sm table-striped">
+              <thead><tr><th>Table</th><th class="text-right">Nombre d'enregistrements</th></tr></thead>
+              <tbody>
+                {% for modele, n in rapport.a_creer.items %}
+                <tr><td>{{ modele }}</td><td class="text-right">{{ n }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            {% if rapport.conflits %}
+            <h5>Conflits détectés (aucune donnée ne sera dupliquée ni écrasée)</h5>
+            <ul>
+              {% for conflit in rapport.conflits %}
+                <li>{{ conflit }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if rapport.info_boutique_non_importee %}
+            <div class="alert alert-info">
+              Les informations de boutique du fichier ({{ rapport.info_boutique_non_importee.nom }},
+              {{ rapport.info_boutique_non_importee.ville }}, {{ rapport.info_boutique_non_importee.telephone }})
+              ne sont <strong>pas</strong> importées automatiquement, pour ne jamais écraser les
+              informations déjà saisies pour "{{ entreprise.nom }}". Mettez-les à jour manuellement si besoin.
+            </div>
+            {% endif %}
+
+            <h5>Comptes utilisateurs à rattacher</h5>
+            <p>Pour chaque utilisateur historique, choisissez de le lier à un compte existant de "{{ entreprise.nom }}" ou d'en créer un nouveau.</p>
+
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="etape" value="2">
+              <input type="hidden" name="token" value="{{ token }}">
+              <input type="hidden" name="entreprise_id" value="{{ entreprise.id }}">
+
+              <table class="table table-sm">
+                <thead>
+                  <tr><th>Utilisateur (main)</th><th>Nom</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {% for u in rapport.utilisateurs %}
+                  <tr>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.nom_complet }}</td>
+                    <td>
+                      <select name="mapping_{{ u.ancien_pk }}" class="form-control form-control-sm" required>
+                        <option value="">--------</option>
+                        <option value="creer">Créer un nouveau compte{% if not u.login_disponible %} (login "{{ u.username }}" déjà pris ailleurs : un login dérivé sera utilisé){% endif %}</option>
+                        {% for su in utilisateurs_saas %}
+                          <option value="lier:{{ su.id }}">Lier à {{ su.username }} ({{ su.first_name }} {{ su.last_name }})</option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <button type="submit" class="btn btn-primary">Confirmer et importer</button>
+              <a href="{% url 'importEntreprise' %}" class="btn btn-secondary">Annuler</a>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

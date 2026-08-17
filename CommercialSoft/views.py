@@ -4,8 +4,8 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
-from .decorators import client_required
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, ClientSpecial, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
+from .decorators import client_required, superadmin_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -1808,18 +1808,128 @@ def modifierProduitAjax(request):
 @permission_required('CommercialSoft.change_commande')
 def modifier_commande(request, pk):
     commande = get_object_or_404(Commande, pk=pk)
+
     if request.method == "POST":
-        form = CommandeForm(request.POST, instance=commande)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Vente modifiée avec succès!")
-            return redirect('commerce_produitVendu')
-        else:
-            messages.error(request, "Erreur lors de la mise à jour de la produit.")
-    else:
-        form = CommandeForm(instance=commande)
-    
-    return render(request, 'CommercialSoft/modification.html', {'form': form})
+        try:
+            lignes = json.loads(request.POST.get('jsonDataInput', '[]'))
+        except json.JSONDecodeError:
+            lignes = []
+
+        date = _parse_date_vente(request.POST.get('date')) if request.POST.get('date') else commande.date
+        typeVente = request.POST.get('typeVente', commande.typeVente)
+        typePayement = request.POST.get('typePayement', commande.typePayement)
+        try:
+            remise = int(request.POST.get('remise') or 0)
+        except ValueError:
+            remise = 0
+        client_id = request.POST.get('client') or None
+
+        if not lignes:
+            return JsonResponse({"success": False, "message": "Veuillez ajouter au moins un produit."}, status=400)
+
+        if typePayement == "Pret" and not client_id:
+            return JsonResponse({"success": False, "message": "Veuillez sélectionner un client pour un prêt."}, status=400)
+
+        boutique = request.entreprise
+        verifier_stock = not (boutique and boutique.quantiteNegative)
+
+        try:
+            with transaction.atomic():
+                # Réajoute au stock les quantités des anciennes lignes avant de les remplacer
+                for ancienneLigne in commande.commandeproduit_set.select_related('produit').all():
+                    if ancienneLigne.produit:
+                        ancienneLigne.produit.quantite += ancienneLigne.quantite
+                        ancienneLigne.produit.save()
+                commande.commandeproduit_set.all().delete()
+
+                montantTotal = 0
+                montantAchat = 0
+                for item in lignes:
+                    produit_id = item.get('produit_id')
+                    quantite = int(item.get('quantite', 0))
+                    prix = int(item.get('prix', 0))
+                    if not produit_id or quantite <= 0:
+                        continue
+
+                    produit = Produit.objects.get(id=produit_id)
+                    if verifier_stock and quantite > produit.quantite:
+                        raise ValueError(f"La quantité de {produit.libelle} dépasse le stock disponible ({produit.quantite}).")
+
+                    produit.quantite -= quantite
+                    produit.save()
+
+                    CommandeProduit.objects.create(
+                        commande=commande,
+                        produit=produit,
+                        quantite=quantite,
+                        prix=prix,
+                        date=date,
+                    )
+                    montantTotal += prix * quantite
+                    montantAchat += produit.prixAchat * quantite
+
+                commande.date = date
+                commande.typeVente = typeVente
+                commande.typePayement = typePayement
+                commande.remise = remise
+                commande.montant = montantTotal
+                commande.montantAchat = montantAchat
+
+                if typePayement == "Pret":
+                    client = Client.objects.get(id=client_id)
+                    commande.client = client
+
+                    dateEcheance = _parse_date_vente(request.POST.get('dateEcheance')) if request.POST.get('dateEcheance') else None
+                    commentaire = request.POST.get('commentaire') or ""
+                    pret = PretClient.objects.filter(commande=commande).first()
+                    if pret:
+                        pret.client = client
+                        pret.montant = montantTotal - remise
+                        if dateEcheance:
+                            pret.dateEcheance = dateEcheance
+                        pret.commentaire = commentaire
+                        pret.save()
+                    else:
+                        PretClient.objects.create(
+                            client=client,
+                            montant=montantTotal - remise,
+                            date=date,
+                            dateEcheance=dateEcheance or date,
+                            commande=commande,
+                            commentaire=commentaire,
+                            user=request.user,
+                        )
+
+                commande.save()
+        except Produit.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Produit introuvable."}, status=400)
+        except Client.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Client introuvable."}, status=400)
+        except ValueError as e:
+            return JsonResponse({"success": False, "message": str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({"success": False, "message": f"Erreur d'enregistrement: {e}"}, status=400)
+
+        return JsonResponse({"success": True, "message": "Commande modifiée avec succès !"})
+
+    lignesInitiales = [
+        {
+            "produit_id": ligne.produit_id,
+            "nom": ligne.produit.libelle if ligne.produit else "",
+            "quantite": ligne.quantite,
+            "prix": ligne.prix,
+            "total": ligne.quantite * ligne.prix,
+        }
+        for ligne in commande.commandeproduit_set.select_related('produit').all()
+    ]
+    pret = PretClient.objects.filter(commande=commande).first()
+
+    context = {
+        'commande': commande,
+        'lignes_json': json.dumps(lignesInitiales),
+        'pret': pret,
+    }
+    return render(request, 'CommercialSoft/modificationCommande.html', context)
 
 
 
@@ -3206,6 +3316,106 @@ def benefice_sur_vente(request):
 @login_required
 def vente_par_pourcentage(request):
     return render(request, 'CommercialSoft/venteParPourcentage.html')
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def client_special_recherche(request):
+    return render(request, 'CommercialSoft/clientSpecial.html')
+
+
+def _recap_et_achats_produits_speciaux(lignes_qs):
+    """Construit la liste des achats (triee du plus recent au plus ancien) et le
+    recapitulatif par produit a partir d'un queryset de CommandeProduit."""
+    achats = []
+    recap = {}
+    for ligne in lignes_qs:
+        nom_produit = ligne.produit.libelle if ligne.produit else "inconnu"
+        achats.append({
+            "commande_id": ligne.commande.id,
+            "date": timezone.localtime(ligne.commande.date).strftime("%d-%m-%Y %H-%M"),
+            "produit": nom_produit,
+            "quantite": ligne.quantite,
+            "prix": ligne.prix,
+            "montant": ligne.prix * ligne.quantite,
+        })
+        recap.setdefault(nom_produit, {"nombreAchats": 0, "quantiteTotale": 0})
+        recap[nom_produit]["nombreAchats"] += 1
+        recap[nom_produit]["quantiteTotale"] += ligne.quantite
+
+    recap_liste = [
+        {"produit": produit, "nombreAchats": donnees["nombreAchats"], "quantiteTotale": donnees["quantiteTotale"]}
+        for produit, donnees in recap.items()
+    ]
+    return achats, recap_liste
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def recherche_client_special(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Requête invalide"}, status=400)
+
+    terme = request.POST.get('recherche', '').strip()
+
+    if not terme:
+        # Recherche vide : vue globale (tous les clients), sans infos personnelles
+        lignes = (
+            CommandeProduit.objects.filter(produit__special=True)
+            .select_related('produit', 'commande')
+            .order_by('-commande__date')
+        )
+        achats, recap_liste = _recap_et_achats_produits_speciaux(lignes)
+        return JsonResponse({
+            "global": True,
+            "nombreAchats": len(achats),
+            "recap": recap_liste,
+            "achats": achats,
+        })
+
+    clients = ClientSpecial.objects.filter(
+        Q(nom__icontains=terme) | Q(prenom__icontains=terme) | Q(telephone__icontains=terme)
+    ).order_by('nom')
+
+    resultats = [
+        {
+            "id": client.id,
+            "nom": client.nom,
+            "prenom": client.prenom or "",
+            "telephone": client.telephone,
+            "nombreAchats": CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True).count(),
+        }
+        for client in clients
+    ]
+
+    return JsonResponse({"global": False, "clients": resultats})
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def detail_client_special(request):
+    client_id = request.GET.get('id')
+    client = ClientSpecial.objects.filter(id=client_id).first()
+    if not client:
+        return JsonResponse({"error": "Client introuvable"}, status=404)
+
+    lignes = (
+        CommandeProduit.objects.filter(commande__clientSpecial=client, produit__special=True)
+        .select_related('produit', 'commande')
+        .order_by('-commande__date')
+    )
+    achats, recap_liste = _recap_et_achats_produits_speciaux(lignes)
+
+    return JsonResponse({
+        "client": {
+            "nom": client.nom,
+            "prenom": client.prenom or "",
+            "telephone": client.telephone,
+        },
+        "nombreAchats": len(achats),
+        "recap": recap_liste,
+        "achats": achats,
+    })
 
 
 
@@ -4887,6 +5097,92 @@ def import_excel_view(request):
     return render(request, "CommercialSoft/import_excel.html", {"form": form})
 
 
+#---------- Import complet d'une entreprise (depuis main) ---------------------------
+def _chemin_temp_import(token):
+    import os
+    import tempfile
+    return os.path.join(tempfile.gettempdir(), f"wcs_import_{token}.json")
+
+
+@superadmin_required
+def import_entreprise_view(request):
+    import uuid
+    from tenants.models import Entreprise
+    from .import_entreprise import analyser, executer, extraire_utilisateurs
+
+    etape = request.POST.get('etape', '1')
+
+    if request.method == "POST" and etape == '1':
+        fichier = request.FILES.get('fichier')
+        entreprise_id = request.POST.get('entreprise_id')
+        entreprise = get_object_or_404(Entreprise, pk=entreprise_id) if entreprise_id else None
+
+        if not fichier or not entreprise:
+            messages.error(request, "Veuillez choisir un fichier et une entreprise cible.")
+            return redirect('importEntreprise')
+
+        try:
+            paquet = json.loads(fichier.read().decode('utf-8'))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            messages.error(request, "Fichier invalide : ce n'est pas un export JSON valide.")
+            return redirect('importEntreprise')
+
+        if 'objets' not in paquet or 'format_version' not in paquet:
+            messages.error(request, "Fichier invalide : ce n'est pas un paquet d'export reconnu.")
+            return redirect('importEntreprise')
+
+        token = uuid.uuid4().hex
+        with open(_chemin_temp_import(token), 'w', encoding='utf-8') as f:
+            json.dump(paquet, f)
+
+        rapport = analyser(paquet, entreprise)
+        return render(request, 'CommercialSoft/import_entreprise_etape2.html', {
+            'entreprise': entreprise,
+            'token': token,
+            'rapport': rapport,
+            'utilisateurs_saas': entreprise.utilisateurs.all().order_by('username'),
+        })
+
+    if request.method == "POST" and etape == '2':
+        token = request.POST.get('token')
+        entreprise_id = request.POST.get('entreprise_id')
+        entreprise = get_object_or_404(Entreprise, pk=entreprise_id)
+        chemin = _chemin_temp_import(token)
+
+        try:
+            with open(chemin, encoding='utf-8') as f:
+                paquet = json.load(f)
+        except FileNotFoundError:
+            messages.error(request, "Session d'import expirée, veuillez recommencer.")
+            return redirect('importEntreprise')
+
+        mapping = {}
+        for obj in extraire_utilisateurs(paquet):
+            ancien_pk = obj['pk']
+            choix = request.POST.get(f'mapping_{ancien_pk}')
+            if choix == 'creer':
+                mapping[ancien_pk] = {'action': 'creer'}
+            elif choix and choix.startswith('lier:'):
+                mapping[ancien_pk] = {'action': 'lier', 'user_id': int(choix.split(':', 1)[1])}
+
+        try:
+            rapport = executer(paquet, entreprise, mapping, request.user)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return redirect('importEntreprise')
+        finally:
+            import os
+            if os.path.exists(chemin):
+                os.remove(chemin)
+
+        return render(request, 'CommercialSoft/import_entreprise_rapport.html', {
+            'entreprise': entreprise,
+            'rapport': rapport,
+        })
+
+    return render(request, 'CommercialSoft/import_entreprise.html', {
+        'entreprises': Entreprise.objects.all().order_by('nom'),
+    })
 
 
 
@@ -4894,7 +5190,7 @@ def import_excel_view(request):
 #---------- Gestion horconnexion ---------------------------
 @login_required
 def api_produits(request):
-    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal"))
+    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal", "special"))
     clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
     return JsonResponse({
         "produits": produits,
@@ -5018,9 +5314,27 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 import json
 
-from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, PretClient, VersementClient
+from CommercialSoft.models import Commande, CommandeProduit, Produit, Client, ClientSpecial, PretClient, VersementClient
 
 User = get_user_model()  # ✅ Récupère ton CustomUser
+
+def _get_or_create_client_special(nom, prenom, telephone):
+    """Recupere ou cree l'acheteur d'un produit special (table ClientSpecial,
+    distincte des clients habituels), identifie par son telephone (numerique).
+    Scope automatiquement a l'entreprise courante (TenantManager)."""
+    import re
+    nom = (nom or "").strip()
+    prenom = (prenom or "").strip()
+    telephone = re.sub(r'\D', '', telephone or "")
+    if not nom or not telephone:
+        return None
+
+    existant = ClientSpecial.objects.filter(telephone=telephone).first()
+    if existant:
+        return existant
+
+    return ClientSpecial.objects.create(nom=nom, prenom=prenom or None, telephone=telephone)
+
 
 def _parse_date_vente(date_str):
     """Accepte yyyy-MM-dd (ISO) ou dd/MM/yyyy (ancien format), retourne un objet date."""
@@ -5065,11 +5379,18 @@ def sync_ventes(request):
 
         if Commande.objects.filter(client_uid=id_local).exists():
             return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
-        
+
+        client_special = _get_or_create_client_special(
+            vente.get("clientSpecialNom"),
+            vente.get("clientSpecialPrenom"),
+            vente.get("clientSpecialTelephone"),
+        )
+
         montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
         commande = Commande.objects.create(
             user=User.objects.get(id=user_id),
             client =  client,
+            clientSpecial = client_special,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
             date = _parse_datetime_vente(vente.get("date")),

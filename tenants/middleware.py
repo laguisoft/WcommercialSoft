@@ -52,6 +52,9 @@ class TenantMiddleware:
             reverse('compte_non_rattache'),
             reverse('choisir_entreprise'),
             reverse('contrat_expire'),
+            # Outil superadmin : la cible est choisie explicitement dans le
+            # formulaire, aucune "entreprise courante" n'est necessaire pour y acceder.
+            reverse('importEntreprise'),
         )
         return path in chemins_exemptes
 

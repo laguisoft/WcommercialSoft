@@ -1,0 +1,77 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <div class="card card-success">
+          <div class="card-header">
+            <h3 class="card-title">Import terminé pour "{{ entreprise.nom }}"</h3>
+          </div>
+          <div class="card-body">
+
+            {% if rapport.comptes_crees %}
+            <div class="alert alert-warning">
+              <strong>Nouveaux comptes créés — mots de passe temporaires (à communiquer maintenant, non ré-affichables) :</strong>
+              <ul class="mb-0">
+                {% for login in rapport.comptes_crees %}
+                  <li>{{ login }}</li>
+                {% endfor %}
+              </ul>
+              <small>Les mots de passe générés ont été appliqués mais ne sont volontairement pas ré-affichés ici pour des raisons de sécurité ; utilisez la réinitialisation de mot de passe pour chaque compte si besoin.</small>
+            </div>
+            {% endif %}
+
+            {% if rapport.info_boutique_non_importee %}
+            <div class="alert alert-info">
+              Informations de boutique disponibles dans le fichier (non importées automatiquement) :
+              {{ rapport.info_boutique_non_importee.nom }}, {{ rapport.info_boutique_non_importee.ville }},
+              {{ rapport.info_boutique_non_importee.telephone }}
+            </div>
+            {% endif %}
+
+            <h5>Créés</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                {% for modele, n in rapport.crees.items %}
+                <tr><td>{{ modele }}</td><td class="text-right">{{ n }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <h5>Réutilisés (déjà présents pour cette entreprise)</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                {% for modele, n in rapport.reutilises.items %}
+                <tr><td>{{ modele }}</td><td class="text-right">{{ n }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            {% if rapport.ignores %}
+            <h5>Ignorés (référence manquante)</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                {% for modele, n in rapport.ignores.items %}
+                <tr><td>{{ modele }}</td><td class="text-right">{{ n }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% endif %}
+
+            <a href="{% url 'importEntreprise' %}" class="btn btn-primary">Nouvel import</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

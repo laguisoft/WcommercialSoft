@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, Categorie_Decaissement, Decaissement, VersementClient, PretClient, Client, Societe,
+    Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, Categorie_Decaissement, Decaissement, VersementClient, PretClient, Client, ClientSpecial, Societe,
     VersementFournisseur, DetteFournisseur, VersementGerant, Retour
 )
 
@@ -120,6 +120,16 @@ class clientAdmin(admin.ModelAdmin):
     list_display = ('societe', 'nom', 'telephone','adresse','email','matricule','pourcentage','detteMaximale','entreprise')
     search_fields = ('societe', 'nom', 'telephone','adresse','matricule')
     list_filter = ('societe', 'nom', 'telephone','adresse','matricule', 'entreprise')
+
+
+
+
+@admin.register(ClientSpecial)
+class clientSpecialAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'prenom', 'telephone', 'entreprise')
+    search_fields = ('nom', 'prenom', 'telephone')
+    list_filter = ('entreprise',)
+    ordering = ('nom',)
 
 
 
