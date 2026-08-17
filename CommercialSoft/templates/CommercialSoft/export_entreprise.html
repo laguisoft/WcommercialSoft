@@ -1,0 +1,60 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Exporter les données de l'entreprise</h3>
+          </div>
+          <div class="card-body">
+            <p>
+              Ce fichier contient <strong>toutes</strong> les données de l'entreprise
+              (produits, clients, ventes, dépenses, versements, prêts, etc.),
+              y compris les comptes utilisateurs (sans mot de passe). Il est destiné
+              à être importé dans une entreprise du Saas — aucune donnée n'est
+              supprimée ou modifiée par cet export.
+            </p>
+
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr><th>Table</th><th class="text-right">Nombre d'enregistrements</th></tr>
+              </thead>
+              <tbody>
+                {% for modele, n in compteurs %}
+                <tr>
+                  <td>{{ modele }}</td>
+                  <td class="text-right">{{ n }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Total</th>
+                  <th class="text-right">{{ total }}</th>
+                </tr>
+              </tfoot>
+            </table>
+
+            <form method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-download"></i> Télécharger l'export (JSON)
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

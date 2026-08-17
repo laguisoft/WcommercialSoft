@@ -243,6 +243,9 @@
                   <ul>
                     <li><a href="{% url 'chargeDonnee' %}">importer</a></li>
                     <li><a href="#">Sauvegarde</a></li>
+                    {% if user.is_superuser %}
+                    <li><a href="{% url 'exportEntreprise' %}">Exporter les données</a></li>
+                    {% endif %}
                   </ul>
                 </li>
                 {% endif %}

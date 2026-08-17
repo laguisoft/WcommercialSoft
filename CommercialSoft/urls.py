@@ -183,6 +183,7 @@ urlpatterns=[
 
     
     path('charge/donnee', views.import_excel_view,name="chargeDonnee"),
+    path('exporter/entreprise', views.export_entreprise_view, name="exportEntreprise"),
 
 
 

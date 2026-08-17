@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required, permission_required, 
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
 from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit, InfoBoutique
-from .decorators import client_required
+from .decorators import client_required, superadmin_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -5049,6 +5049,23 @@ def import_excel_view(request):
     return render(request, "CommercialSoft/import_excel.html", {"form": form})
 
 
+#---------- Export complet de l'entreprise (vers Saas) ---------------------------
+@superadmin_required
+def export_entreprise_view(request):
+    from .export_entreprise import construire_export, compter_objets, nom_fichier_export
+
+    if request.method == "POST":
+        paquet = construire_export()
+        contenu = json.dumps(paquet, ensure_ascii=False, indent=2)
+        response = HttpResponse(contenu, content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="{nom_fichier_export(paquet)}"'
+        return response
+
+    compteurs = compter_objets()
+    return render(request, "CommercialSoft/export_entreprise.html", {
+        "compteurs": sorted(compteurs.items()),
+        "total": sum(compteurs.values()),
+    })
 
 
 
