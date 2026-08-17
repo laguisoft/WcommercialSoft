@@ -321,11 +321,14 @@
   <!-- Main JS File -->
   <script src="{% static 'clinique/assets/js/main.js' %}"></script>
 
-
-  {% block js %}
-
-  <!-- Scripts PWA / Offline -->
+  <!-- Scripts PWA / Offline : chargés en dehors du bloc js redéfinissable
+       ci-dessous pour toujours s'exécuter, même sur les pages qui
+       redéfinissent ce bloc (ex. reception2.html) — la synchronisation
+       hors-ligne (ventes et réceptions en attente) doit démarrer dès
+       qu'une page s'affiche après connexion, sans attendre que
+       l'utilisateur ouvre la page de vente ou de réception concernée. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+  <script>window.CSRF_TOKEN = "{{ csrf_token }}";</script>
   <script src="{% static 'js/register-sw.js' %}"></script>
   <script src="{% static 'js/offline-core.js' %}"></script>
 
@@ -335,6 +338,7 @@
     window.USER_ID = "{{ request.user.id|default:0 }}";
   </script>
 
+  {% block js %}
   {% endblock %}
 
   {% if perms.CommercialSoft.add_commande %}
