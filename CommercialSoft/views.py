@@ -29,6 +29,43 @@ User = get_user_model()
 # filtre de date) ne fasse exploser le temps de réponse / la taille de la page.
 MAX_RESULTATS_RECHERCHE = 2000
 
+
+def utilisateur_de_entreprise(request, user_id):
+    """Résout un utilisateur par id, restreint aux comptes accessibles pour
+    l'entreprise courante (principale + entreprises additionnelles).
+
+    CustomUser n'est pas un TenantScopedModel (le login est partagé par tout
+    le Saas) : un `User.objects.get(id=...)` non filtré exposerait/laisserait
+    filtrer par un utilisateur de n'importe quelle autre entreprise cliente.
+    Retourne None si l'id est absent, invalide, ou n'appartient pas à
+    l'entreprise courante — à l'appelant de traiter ce cas comme "introuvable".
+    """
+    if not user_id:
+        return None
+    entreprise = getattr(request, 'entreprise', None)
+    if entreprise is None:
+        return None
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        return None
+    return User.objects.filter(
+        Q(entreprise=entreprise) | Q(entreprises_additionnelles=entreprise),
+        pk=user_id,
+    ).first()
+
+
+def utilisateurs_de_entreprise(request):
+    """Liste des utilisateurs accessibles pour l'entreprise courante (pour
+    peupler les listes déroulantes "Utilisateur" des pages de recherche).
+    Vide si aucune entreprise n'est résolue pour cette requête."""
+    entreprise = getattr(request, 'entreprise', None)
+    if entreprise is None:
+        return User.objects.none()
+    return User.objects.filter(
+        Q(entreprise=entreprise) | Q(entreprises_additionnelles=entreprise)
+    ).distinct()
+
 #------------------------ Gestion des droits d'acces avec les decorateur -----------------
 def est_administrateur(user):
     return user.groups.filter(name='Administrateur').exists()
@@ -411,9 +448,7 @@ def produit_livrer(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def produit_vendu(request):
-    users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
+    users = utilisateurs_de_entreprise(request)
     return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
 
 
@@ -443,9 +478,7 @@ def vente_par_type(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def detail_vente(request):
-    users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
+    users = utilisateurs_de_entreprise(request)
     return render(request, 'CommercialSoft/detailVente.html', {'users': users})
 
 
@@ -1312,11 +1345,10 @@ def recherche_vente(request):
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idUser and idUser != "0":
-            try:
-                user = User.objects.get(id=idUser)
-                filtre["user"] = user
-            except User.DoesNotExist:
+            user = utilisateur_de_entreprise(request, idUser)
+            if user is None:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+            filtre["user"] = user
 
         # Appliquer le filtre à la requête
         ventes = Commande.objects.filter(**filtre).select_related('user', 'client')
@@ -1646,11 +1678,10 @@ def recherche_detail_vente(request):
             filtre["date__lte"] = dateFin
 
         if idUser and idUser != "0":
-            try:
-                user = User.objects.get(id=idUser)
-                filtre["user"] = user
-            except User.DoesNotExist:
+            user = utilisateur_de_entreprise(request, idUser)
+            if user is None:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+            filtre["user"] = user
 
         commande_ids = list(
             Commande.objects.filter(**filtre).order_by('-date').values_list('id', flat=True)[:MAX_RESULTATS_RECHERCHE]
@@ -2426,8 +2457,10 @@ def recherche_versementGerant(request):
         numero = request.POST.get('idGerant', '0').strip()  # Récupérer le numéro envoyé
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
-        if numero :  # Si un numéro est saisi
-            user = User.objects.get(id=numero)
+        if numero and numero != "0":  # Si un numéro est saisi
+            user = utilisateur_de_entreprise(request, numero)
+            if user is None:
+                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
             versementGerants=VersementGerant.objects.filter(user=user,date__gte=dateDebut, date__lte=dateFin)
         else:  # Sinon, afficher les patients du jour
             versementGerants=VersementGerant.objects.filter(date__gte=dateDebut, date__lte=dateFin)
@@ -3056,9 +3089,7 @@ def societe_delete(request, pk):
 
 @login_required
 def bilan(request):
-    users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
+    users = utilisateurs_de_entreprise(request)
     return render(request, 'CommercialSoft/bilan.html',{'users':users})
 
 
@@ -3079,11 +3110,10 @@ def _construire_filtre_bilan(request):
         filtre["date__lte"] = dateFin
 
     if idUser and idUser != "0":
-        try:
-            user = User.objects.get(id=idUser)
-            filtre["user"] = user
-        except User.DoesNotExist:
+        user = utilisateur_de_entreprise(request, idUser)
+        if user is None:
             return filtre, JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+        filtre["user"] = user
 
     return filtre, None
 
@@ -3704,11 +3734,10 @@ def pdf_etat_detail_vente(request):
                 filtre["date__lte"] = dateFin
 
             if idUser and idUser != "0":
-                try:
-                    user = User.objects.get(id=idUser)
-                    filtre["user"] = user
-                except User.DoesNotExist:
+                user = utilisateur_de_entreprise(request, idUser)
+                if user is None:
                     return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+                filtre["user"] = user
 
             commandes = Commande.objects.filter(**filtre).order_by("id")
             produits_data = []
@@ -4217,12 +4246,11 @@ def pdf_etat_versementGerant(request):
         versements=VersementGerant.objects.filter(date__gte=dateDebut, date__lte=dateFin)
 
         # Filtrer par catégorie si elle est fournie
-        if gerantId:
-            try:
-                user = User.objects.get(id=gerantId)
-                versements=VersementGerant.objects.filter(user=user,date__gte=dateDebut, date__lte=dateFin)
-            except VersementGerant.DoesNotExist:
-                return JsonResponse({"error": "Client introuvable"}, status=404)
+        if gerantId and gerantId != "0":
+            user = utilisateur_de_entreprise(request, gerantId)
+            if user is None:
+                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+            versements=VersementGerant.objects.filter(user=user,date__gte=dateDebut, date__lte=dateFin)
 
         # Construire la réponse JSON
         montant=0
@@ -4534,9 +4562,7 @@ def retour_delete(request, pk):
 
 @login_required
 def retours(request):
-    users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
+    users = utilisateurs_de_entreprise(request)
     return render(request, 'CommercialSoft/listeRetour.html',{'users':users})
 
 
@@ -5063,12 +5089,19 @@ def sync_ventes(request):
         else:
             client = None
 
+        # user_id vient du client (poste hors-ligne) : on le restreint aux
+        # comptes de l'entreprise courante pour ne jamais attribuer une vente
+        # a un utilisateur d'une autre entreprise cliente du Saas.
+        vendeur = utilisateur_de_entreprise(request, user_id)
+        if vendeur is None:
+            return JsonResponse({"success": False, "message": "Utilisateur introuvable pour cette entreprise."}, status=400)
+
         if Commande.objects.filter(client_uid=id_local).exists():
             return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
-        
+
         montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
         commande = Commande.objects.create(
-            user=User.objects.get(id=user_id),
+            user=vendeur,
             client =  client,
             montant=montant_sans_remise,
             remise=vente.get("remise", 0),
@@ -5120,7 +5153,7 @@ def sync_ventes(request):
                     client=client,
                     montant=montant_verse,
                     date=_parse_date_vente(vente.get("date")),
-                    user=User.objects.get(id=user_id),
+                    user=vendeur,
                 )
 
             if montant_restant > 0:
@@ -5131,7 +5164,7 @@ def sync_ventes(request):
                     dateEcheance=_parse_date_vente(vente.get("dateEcheance")),
                     commande=commande,
                     commentaire=vente.get("commentaire"),
-                    user=User.objects.get(id=user_id),
+                    user=vendeur,
                 )
 
         return JsonResponse({"success": True, "message": "✅ Vente synchronisée avec succès !"})
