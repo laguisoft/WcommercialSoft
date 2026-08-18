@@ -40,7 +40,6 @@ MODELES_EXPORTES = [
     'CommercialSoft.DetteFournisseur',
     'CommercialSoft.VersementFournisseur',
     'CommercialSoft.VersementGerant',
-    'CommercialSoft.InfoBoutique',
     'CommercialSoft.Retour',
 ]
 
