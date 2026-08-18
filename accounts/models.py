@@ -22,6 +22,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
+    entreprise = models.ForeignKey(
+        'tenants.Entreprise', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='utilisateurs',
+    )
+    entreprises_additionnelles = models.ManyToManyField(
+        'tenants.Entreprise', blank=True, related_name='utilisateurs_additionnels',
+        help_text="Entreprises supplémentaires accessibles à cet utilisateur, en plus de son entreprise principale.",
+    )
 
     objects = UserManager()
 
@@ -30,3 +38,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.first_name+ " "+self.last_name
+
+    def entreprises_accessibles(self):
+        """Toutes les entreprises consultables par cet utilisateur (principale + additionnelles)."""
+        Entreprise = self.entreprises_additionnelles.model
+        ids = set(self.entreprises_additionnelles.values_list('id', flat=True))
+        if self.entreprise_id:
+            ids.add(self.entreprise_id)
+        return Entreprise.objects.filter(id__in=ids)

@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Choisir une entreprise - CommercialSoft</title>
+  <link href="{% static 'clinique/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'clinique/assets/css/main.css' %}" rel="stylesheet">
+</head>
+<body>
+  <div class="container" style="max-width: 720px; margin: 60px auto;">
+    <h2 class="mb-2 text-center">Choisir une entreprise</h2>
+    <p class="text-muted text-center">
+      {% if user.is_superuser %}
+        Vous êtes connecté en tant que super administrateur. Sélectionnez
+        l'entreprise que vous souhaitez consulter.
+      {% else %}
+        Votre compte est rattaché à plusieurs entreprises. Sélectionnez
+        celle que vous souhaitez consulter.
+      {% endif %}
+    </p>
+
+    <form method="get" class="mb-4">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <div class="input-group">
+        <input type="text" name="q" value="{{ q }}" class="form-control"
+               placeholder="Rechercher par nom, ville ou propriétaire…" autofocus>
+        <button class="btn btn-primary" type="submit">
+          <i class="bi bi-search"></i> Rechercher
+        </button>
+        {% if q %}
+        <a href="{% url 'choisir_entreprise' %}{% if next %}?next={{ next }}{% endif %}"
+           class="btn btn-outline-secondary">Effacer</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="list-group">
+      {% for entreprise in entreprises %}
+      <form method="post" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        {% csrf_token %}
+        <input type="hidden" name="entreprise_id" value="{{ entreprise.id }}">
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <div>
+          <strong>{{ entreprise.nom }}</strong>
+          {% if not entreprise.actif %}<span class="badge bg-secondary ms-2">Inactive</span>{% endif %}
+          <br>
+          <small class="text-muted">
+            {{ entreprise.ville }}{% if entreprise.proprietaire %} · {{ entreprise.proprietaire }}{% endif %}
+          </small>
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-primary">Choisir</button>
+      </form>
+      {% empty %}
+      <p class="text-center text-muted">Aucune entreprise ne correspond à la recherche.</p>
+      {% endfor %}
+    </div>
+
+    <p class="text-center mt-4"><a href="{% url 'logout' %}">Se déconnecter</a></p>
+  </div>
+
+  <script src="{% static 'clinique/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

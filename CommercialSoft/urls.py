@@ -69,6 +69,7 @@ urlpatterns=[
     path('vente/detail/client-special', views.detail_client_special, name="detailClientSpecial"),
     path('vente/facture/proforma', views.pdf_facture_proforma, name="pdf_facture_proforma"),
     path('pdf/facture/<int:commande_id>/', views.pdf_facture_proforma_2, name='pdf_facture_proforma_2'),
+    path('pdf/facture/demande/<int:demande_id>/', views.pdf_facture_proforma_demande, name='pdf_facture_proforma_demande'),
     path('commerce/detailVente/etat', views.pdf_etat_detail_vente,name="commerce_etatDetailVente"),
 
     #--

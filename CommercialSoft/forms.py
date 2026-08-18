@@ -27,7 +27,7 @@ class LoginForm(forms.Form):
 class FournisseurForm(forms.ModelForm):
     class Meta:
         model = Fournisseur
-        fields = '__all__'
+        fields = ['nom', 'adresse', 'telephone']
         widgets = {
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'adresse': forms.TextInput(attrs={'class': 'form-control'}),
@@ -228,7 +228,11 @@ class VersementClientForm(forms.ModelForm):
 
 class pretClientForm(forms.ModelForm):
     client = forms.ModelChoiceField(
-        queryset=PretClient._meta.get_field('client').remote_field.model.objects.all(),
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Client.objects.none(),
         required=False,
         empty_label="Sélectionnez un client"
     )
@@ -242,6 +246,7 @@ class pretClientForm(forms.ModelForm):
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['client'].queryset = Client.objects.all()
         self.fields['client'].required = False
         self.fields['dateEcheance'].required = False
 
@@ -267,11 +272,19 @@ class detteClientForm(forms.ModelForm):
 
 # Formulaire pour le modèle Depense
 class clientForm(forms.ModelForm):
+    societe = forms.ModelChoiceField(
+        # queryset vide au niveau classe : évalué au chargement du module, donc
+        # hors contexte de requête (le tenant courant n'est pas encore connu).
+        # Le vrai queryset (tenant-scopé) est assigné dans __init__, à chaque
+        # instanciation du formulaire pendant une requête.
+        queryset=Societe.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control select2bs4', "id": "idClient"}),
+    )
+
     class Meta:
         model = Client
         fields = ['societe', 'nom', 'telephone','adresse','email','matricule','pourcentage','detteMaximale']
         widgets = {
-            'societe': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idClient"}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'telephone': forms.NumberInput(attrs={'class': 'form-control'}),
             'adresse': forms.TextInput(attrs={'class': 'form-control'}),
@@ -280,6 +293,10 @@ class clientForm(forms.ModelForm):
             'pourcentage': forms.NumberInput(attrs={'class': 'form-control'}),
             'detteMaximale': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['societe'].queryset = Societe.objects.all()
 
 
 

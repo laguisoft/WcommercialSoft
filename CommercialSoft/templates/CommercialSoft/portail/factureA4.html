@@ -20,6 +20,19 @@
     </style>
 </head>
 <body>
+    {% if boutique.logo %}
+    <div style="width: 100%; margin-bottom: 10px;">
+        <img src="{{ boutique.logo.url }}" alt="{{ boutique.nom }}" width="675" height="100" style="display: block;">
+    </div>
+    <table class="header-boutique">
+        <tr>
+            <td style="width: 100%; text-align: right;">
+                <strong style="font-size: 14pt;">Facture N° {{ demande.id }}</strong><br>
+                Date : {{ demande.date }}
+            </td>
+        </tr>
+    </table>
+    {% else %}
     <table class="header-boutique">
         <tr>
             <td style="width: 60%; text-align: left;">
@@ -33,6 +46,7 @@
             </td>
         </tr>
     </table>
+    {% endif %}
 
     <h1 class="titre">Facture client</h1>
 

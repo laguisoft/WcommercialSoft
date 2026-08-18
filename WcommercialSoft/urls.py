@@ -14,6 +14,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 from django.urls import path, include
@@ -25,8 +27,9 @@ urlpatterns = [
     path('login/', include('accounts.urls')),
     path('accounts/', include('accounts.urls')),
     path('commerce/', include('CommercialSoft.urls')),
+    path('tenants/', include('tenants.urls')),
     #path('', include('pwa.urls')),  # expose manifest.json et serviceworker.js à la racine
-    
+
     # Pour la gestion hors ligne
     path("serviceworker.js", commerce_views.service_worker, name="serviceworker"),
     path("offline/", commerce_views.offline, name="offline"),
@@ -34,3 +37,6 @@ urlpatterns = [
 
 
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

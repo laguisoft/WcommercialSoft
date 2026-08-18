@@ -1,32 +1,32 @@
 from django.contrib import admin
 from .models import (
     Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, Categorie_Decaissement, Decaissement, VersementClient, PretClient, Client, Societe,
-    VersementFournisseur, DetteFournisseur, VersementGerant, InfoBoutique, Retour
+    VersementFournisseur, DetteFournisseur, VersementGerant, Retour
 )
 
 
 
 @admin.register(Fournisseur)
 class FournisseurAdmin(admin.ModelAdmin):
-    list_display = ('nom','adresse', 'telephone')
+    list_display = ('nom','adresse', 'telephone','entreprise')
     search_fields = ('nom', 'telephone')
-    list_filter = ('nom', 'telephone')
+    list_filter = ('nom', 'telephone', 'entreprise')
     ordering = ('nom',)
 
 
 @admin.register(Categorie)
 class CategorieAdmin(admin.ModelAdmin):
-    list_display = ('nom',)
+    list_display = ('nom','entreprise')
     search_fields = ('nom',)
-    list_filter = ('nom',)
+    list_filter = ('nom', 'entreprise')
     ordering = ('nom',)
 
 
 @admin.register(Produit)
 class ProduitAdmin(admin.ModelAdmin):
-    list_display = ('codebare','categorie', 'libelle','quantite','prixAchat','prixDetail','prixEnGros', 'autrePrix','date','datePeremption','seuil','commentaire','quantiteTotal')
+    list_display = ('codebare','categorie', 'libelle','quantite','prixAchat','prixDetail','prixEnGros', 'autrePrix','date','datePeremption','seuil','commentaire','quantiteTotal','entreprise')
     search_fields = ('codebare', 'libelle','categorie')
-    list_filter = ('codebare', 'libelle','categorie')
+    list_filter = ('codebare', 'libelle','categorie', 'entreprise')
     ordering = ('libelle',)
 
 
@@ -117,9 +117,9 @@ class pretClientAdmin(admin.ModelAdmin):
 
 @admin.register(Client)
 class clientAdmin(admin.ModelAdmin):
-    list_display = ('societe', 'nom', 'telephone','adresse','email','matricule','pourcentage','detteMaximale')
+    list_display = ('societe', 'nom', 'telephone','adresse','email','matricule','pourcentage','detteMaximale','entreprise')
     search_fields = ('societe', 'nom', 'telephone','adresse','matricule')
-    list_filter = ('societe', 'nom', 'telephone','adresse','matricule')
+    list_filter = ('societe', 'nom', 'telephone','adresse','matricule', 'entreprise')
 
 
 
@@ -161,15 +161,6 @@ class versementGerantAdmin(admin.ModelAdmin):
     search_fields = ('user', 'montant', 'date')
     list_filter = ('user', 'date')
     ordering = ('-date',)
-
-
-
-@admin.register(InfoBoutique)
-class infoBoutiqueAdmin(admin.ModelAdmin):
-    list_display=('nom', 'emplacement','ville','telephone','proprietaire')
-    search_fields=('nom', 'emplacement','ville','telephone','proprietaire') 
-    list_filter=('nom','telephone','proprietaire')
-    ordering=('nom',)
 
 
 

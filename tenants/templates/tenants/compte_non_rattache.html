@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Compte non rattaché</title>
+</head>
+<body>
+  <div style="max-width: 480px; margin: 80px auto; text-align: center; font-family: sans-serif;">
+    <h2>Compte non rattaché à une entreprise</h2>
+    <p>Votre compte n'est associé à aucune entreprise pour le moment.</p>
+    <p>Merci de contacter l'administrateur de la plateforme pour faire rattacher votre compte.</p>
+    <p><a href="{% url 'logout' %}">Se déconnecter</a></p>
+  </div>
+</body>
+</html>

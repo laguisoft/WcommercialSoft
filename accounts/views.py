@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm, CustomUserModificationForm
 from .models import CustomUser
@@ -31,6 +31,7 @@ def est_comptable(user):
 def register_view(request):
     form = CustomUserCreationForm(request.POST or None)
     if form.is_valid():
+        form.instance.entreprise = request.entreprise
         user = form.save()
         login(request, user)
         return redirect('login')
@@ -109,6 +110,7 @@ def create_user_view(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
+            form.instance.entreprise = request.entreprise
             form.save()
             messages.success(request, "Utilisateur créé avec succès !")
             # return redirect('user_list')  # si tu as une page liste
@@ -118,6 +120,8 @@ def create_user_view(request):
         form = CustomUserCreationForm()
 
     users = User.objects.all()
+    if request.entreprise is not None:
+        users = users.filter(entreprise=request.entreprise)
     context = {
         'form': form,
         'listes': users,
@@ -133,8 +137,11 @@ def create_user_view(request):
 
 @login_required
 def modifier_user(request, user_id):
-    user = CustomUser.objects.get(pk=user_id)
-    
+    users_scope = CustomUser.objects.all()
+    if request.entreprise is not None:
+        users_scope = users_scope.filter(entreprise=request.entreprise)
+    user = get_object_or_404(users_scope, pk=user_id)
+
     if request.method == "POST":
         form = CustomUserModificationForm(request.POST, instance=user)
         if form.is_valid():
@@ -146,7 +153,7 @@ def modifier_user(request, user_id):
     else:
         form = CustomUserModificationForm(instance=user)
 
-    users = CustomUser.objects.all()
+    users = users_scope
 
     return render(request, 'accounts/update.html', {
         'form': form,
@@ -160,11 +167,16 @@ def modifier_user(request, user_id):
 @login_required
 @permission_required('accounts.delete_customuser', raise_exception=True)
 def supprimer_user(request, user_id):
-    user = CustomUser.objects.get(id=user_id)
+    users_scope = CustomUser.objects.all()
+    if request.entreprise is not None:
+        users_scope = users_scope.filter(entreprise=request.entreprise)
+    user = get_object_or_404(users_scope, id=user_id)
     user.delete()
     messages.success(request, "Utilisateur supprimé avec succès.")
     form = CustomUserCreationForm()
-    users=CustomUserCreationForm.Meta.model.objects.all()
+    users = CustomUserCreationForm.Meta.model.objects.all()
+    if request.entreprise is not None:
+        users = users.filter(entreprise=request.entreprise)
 
     context = {
         'form': form,

@@ -14,18 +14,18 @@
         <div class="row gy-4">
 
           <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center">
-            <i class="fas fa-credit-card"></i>
+            <i class="fas fa-cart-shopping"></i>
             <div class="stats-item">
-              <span data-purecounter-start="0" data-purecounter-end="{{ total_pret|floatformat:0 }}" data-purecounter-duration="1" class="purecounter"></span>
-              <p>Total prêts / commandes à crédit</p>
+              <span data-purecounter-start="0" data-purecounter-end="{{ nombre_commandes }}" data-purecounter-duration="1" class="purecounter"></span>
+              <p>Nombre de commandes</p>
             </div>
           </div><!-- End Stats Item -->
 
           <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center">
-            <i class="fas fa-wallet"></i>
+            <i class="fas fa-hourglass-half"></i>
             <div class="stats-item">
-              <span data-purecounter-start="0" data-purecounter-end="{{ total_versement|floatformat:0 }}" data-purecounter-duration="1" class="purecounter"></span>
-              <p>Total versé</p>
+              <span data-purecounter-start="0" data-purecounter-end="{{ demandes_en_attente }}" data-purecounter-duration="1" class="purecounter"></span>
+              <p>Demandes en attente</p>
             </div>
           </div><!-- End Stats Item -->
 
