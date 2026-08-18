@@ -1,0 +1,85 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <div class="card card-danger">
+          <div class="card-header">
+            <h3 class="card-title">Supprimer l'entreprise "{{ entreprise.nom }}"</h3>
+          </div>
+          <div class="card-body">
+
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            {% endif %}
+
+            <div class="alert alert-danger">
+              <strong>Action irréversible.</strong> Supprimer cette entreprise supprime
+              <strong>en cascade</strong> toutes ses données métier ci-dessous. Les
+              comptes utilisateurs rattachés ne sont pas supprimés, mais deviennent
+              "non rattachés" (accès bloqué jusqu'à réaffectation).
+            </div>
+
+            <h5>Données qui seront supprimées</h5>
+            <table class="table table-sm table-striped">
+              <thead><tr><th>Table</th><th class="text-right">Nombre d'enregistrements</th></tr></thead>
+              <tbody>
+                {% for modele, n in compteurs %}
+                <tr><td>{{ modele }}</td><td class="text-right">{{ n }}</td></tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr><th>Total</th><th class="text-right">{{ total }}</th></tr>
+              </tfoot>
+            </table>
+
+            <p>
+              Une sauvegarde JSON complète de ces données sera automatiquement générée
+              et téléchargée <strong>avant</strong> la suppression — la suppression n'a
+              lieu que si cette sauvegarde a bien pu être écrite.
+            </p>
+
+            <form method="post" id="formSuppressionEntreprise">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="nom_confirmation">
+                  Pour confirmer, tapez exactement le nom de l'entreprise : <strong>{{ entreprise.nom }}</strong>
+                </label>
+                <input type="text" class="form-control" id="nom_confirmation" name="nom_confirmation" autocomplete="off" required>
+              </div>
+              <button type="submit" class="btn btn-danger" id="btnConfirmerSuppression" disabled>
+                <i class="fas fa-trash"></i> Sauvegarder puis supprimer définitivement
+              </button>
+              <a href="{% url 'choisir_entreprise' %}" class="btn btn-secondary">Annuler</a>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var nomAttendu = "{{ entreprise.nom|escapejs }}";
+    var champ = document.getElementById("nom_confirmation");
+    var bouton = document.getElementById("btnConfirmerSuppression");
+    champ.addEventListener("input", function () {
+      bouton.disabled = (champ.value !== nomAttendu);
+    });
+  })();
+</script>
+{% endblock %}

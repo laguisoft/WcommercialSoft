@@ -46,6 +46,11 @@ class TenantMiddleware:
         # pour elle de payer et donc de se débloquer elle-même.
         if path.startswith('/djomy/'):
             return True
+        # Outil superadmin de suppression d'entreprise : l'entreprise cible
+        # est dans l'URL elle-meme (id dynamique), aucune "entreprise
+        # courante" n'est necessaire pour y acceder.
+        if path.startswith('/tenants/entreprises/') and path.endswith('/supprimer/'):
+            return True
         chemins_exemptes = (
             reverse('login'),
             reverse('logout'),
