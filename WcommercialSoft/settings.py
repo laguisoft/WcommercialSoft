@@ -27,7 +27,7 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'True'
+DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
 # Définir ALLOWED_HOSTS via la variable d'environnement DJANGO_ALLOWED_HOSTS
 # (liste séparée par des virgules). Par défaut '*' pour ne pas casser les
@@ -88,7 +88,7 @@ WSGI_APPLICATION = 'WcommercialSoft.wsgi.application'
 # Configuration de la base de données via variables d'environnement.
 # Par defaut : SQLite (developpement). Pour la production avec MySQL,
 # definir DB_ENGINE=mysql ainsi que DB_NAME/DB_USER/DB_PASSWORD/DB_HOST/DB_PORT.
-"""
+
 DB_ENGINE = config('DB_ENGINE', default='sqlite')
 
 if DB_ENGINE == 'mysql':
@@ -117,7 +117,7 @@ else:
             },
         }
     }
-"""
+
 
 """
 
@@ -136,7 +136,7 @@ DATABASES = {
         }
     }
 
-"""
+
 
 
 DATABASES = {
@@ -148,7 +148,7 @@ DATABASES = {
             },
         }
     }
-
+"""
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
