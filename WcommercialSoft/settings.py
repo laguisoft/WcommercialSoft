@@ -27,7 +27,7 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
+DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
 # Définir ALLOWED_HOSTS via la variable d'environnement DJANGO_ALLOWED_HOSTS
 # (liste séparée par des virgules). Par défaut '*' pour ne pas casser les
