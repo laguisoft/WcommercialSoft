@@ -24,6 +24,23 @@ function _csrfToken() {
   return window.CSRF_TOKEN || "";
 }
 
+// Retire un element synchronise avec succes d'une file relue a l'instant
+// (pas d'un instantane pris en debut de boucle) : chaque envoi attend le
+// reseau, donc si l'utilisateur ajoute une nouvelle vente/livraison pendant
+// ce temps, une reecriture basee sur un instantane perime l'effacerait
+// silencieusement avant meme qu'elle ait pu etre envoyee.
+function _retirerDeFile(fileActuelle, elementEnvoye) {
+  const idx = fileActuelle.findIndex((e) =>
+    elementEnvoye.id_local
+      ? e.id_local === elementEnvoye.id_local
+      : JSON.stringify(e) === JSON.stringify(elementEnvoye)
+  );
+  if (idx === -1) return fileActuelle;
+  const copie = fileActuelle.slice();
+  copie.splice(idx, 1);
+  return copie;
+}
+
 let _syncVentesEnCours = false;
 
 // Synchronise les ventes enregistrées localement (clé "ventes"), une par
@@ -34,8 +51,8 @@ async function syncVentesOffline() {
   _syncVentesEnCours = true;
   try {
     const etat = document.getElementById("etatSynchro");
-    let ventes = (await localforage.getItem("ventes")) || [];
-    if (!ventes.length) {
+    const ventesAEnvoyer = (await localforage.getItem("ventes")) || [];
+    if (!ventesAEnvoyer.length) {
       if (etat) {
         etat.innerHTML = "✅ Toutes les ventes sont synchronisées !";
         etat.style.color = "lime";
@@ -43,14 +60,14 @@ async function syncVentesOffline() {
       return;
     }
 
-    for (let i = 0; i < ventes.length; i++) {
+    for (const vente of ventesAEnvoyer) {
       let out;
       try {
         const resp = await fetch("/commerce/api/sync/ventes/", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-CSRFToken": _csrfToken() },
           credentials: "same-origin",
-          body: JSON.stringify(ventes[i]),
+          body: JSON.stringify(vente),
         });
         out = await resp.json();
       } catch (err) {
@@ -58,21 +75,24 @@ async function syncVentesOffline() {
         // login renvoyee a la place du JSON attendu) : on l'affiche au lieu
         // de laisser le compteur bloque sans explication, et on arrete pour
         // cette passe (on reessaiera au prochain sondage).
+        const restantes = (await localforage.getItem("ventes")) || [];
         console.error("❌ Erreur réseau, arrêt de la synchronisation des ventes.", err);
         if (etat) {
-          etat.innerHTML = `❌ Synchronisation interrompue (connexion ou session à reconnecter). Reste ${ventes.length} vente(s).`;
+          etat.innerHTML = `❌ Synchronisation interrompue (connexion ou session à reconnecter). Reste ${restantes.length} vente(s).`;
           etat.style.color = "red";
         }
         break;
       }
 
       if (out.success) {
-        ventes.splice(i, 1);
-        i--;
-        await localforage.setItem("ventes", ventes);
+        // Relit la file au lieu d'ecrire un instantane perime : une vente
+        // ajoutee par l'utilisateur pendant cet envoi (attente reseau) ne
+        // doit pas etre effacee par cette ecriture.
+        const restantes = _retirerDeFile((await localforage.getItem("ventes")) || [], vente);
+        await localforage.setItem("ventes", restantes);
         if (etat) {
-          if (ventes.length > 0) {
-            etat.innerHTML = `Reste ${ventes.length} ventes à synchroniser...`;
+          if (restantes.length > 0) {
+            etat.innerHTML = `Reste ${restantes.length} ventes à synchroniser...`;
             etat.style.color = "orange";
           } else {
             etat.innerHTML = "✅ Toutes les ventes sont synchronisées !";
@@ -93,7 +113,8 @@ async function syncVentesOffline() {
       await new Promise((r) => setTimeout(r, 500));
     }
 
-    if (!ventes.length) await localforage.removeItem("ventes");
+    const restantesFin = (await localforage.getItem("ventes")) || [];
+    if (!restantesFin.length) await localforage.removeItem("ventes");
   } finally {
     _syncVentesEnCours = false;
   }
@@ -108,8 +129,8 @@ async function syncLivraisonsOffline() {
   _syncLivraisonsEnCours = true;
   try {
     const etat = document.getElementById("etatSynchroReception");
-    let livraisons = (await localforage.getItem("livraisons")) || [];
-    if (!livraisons.length) {
+    const livraisonsAEnvoyer = (await localforage.getItem("livraisons")) || [];
+    if (!livraisonsAEnvoyer.length) {
       if (etat) {
         etat.innerHTML = "✅ Toutes les factures sont synchronisées !";
         etat.style.color = "lime";
@@ -117,32 +138,35 @@ async function syncLivraisonsOffline() {
       return;
     }
 
-    for (let i = 0; i < livraisons.length; i++) {
+    for (const livraison of livraisonsAEnvoyer) {
       let out;
       try {
         const resp = await fetch("/commerce/api/sync/livraisons/", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-CSRFToken": _csrfToken() },
           credentials: "same-origin",
-          body: JSON.stringify(livraisons[i]),
+          body: JSON.stringify(livraison),
         });
         out = await resp.json();
       } catch (err) {
+        const restantes = (await localforage.getItem("livraisons")) || [];
         console.error("❌ Erreur réseau, arrêt de la synchronisation des livraisons.", err);
         if (etat) {
-          etat.innerHTML = `❌ Synchronisation interrompue (connexion ou session à reconnecter). Reste ${livraisons.length} facture(s).`;
+          etat.innerHTML = `❌ Synchronisation interrompue (connexion ou session à reconnecter). Reste ${restantes.length} facture(s).`;
           etat.style.color = "red";
         }
         break;
       }
 
       if (out.success) {
-        livraisons.splice(i, 1);
-        i--;
-        await localforage.setItem("livraisons", livraisons);
+        // Cf. syncVentesOffline : relit la file au lieu d'ecrire un
+        // instantane perime, pour ne pas effacer une facture ajoutee
+        // pendant cet envoi.
+        const restantes = _retirerDeFile((await localforage.getItem("livraisons")) || [], livraison);
+        await localforage.setItem("livraisons", restantes);
         if (etat) {
-          if (livraisons.length > 0) {
-            etat.innerHTML = `Reste ${livraisons.length} facture(s) à synchroniser...`;
+          if (restantes.length > 0) {
+            etat.innerHTML = `Reste ${restantes.length} facture(s) à synchroniser...`;
             etat.style.color = "orange";
           } else {
             etat.innerHTML = "✅ Toutes les factures sont synchronisées !";
@@ -159,7 +183,8 @@ async function syncLivraisonsOffline() {
       await new Promise((r) => setTimeout(r, 400));
     }
 
-    if (!livraisons.length) await localforage.removeItem("livraisons");
+    const restantesFin = (await localforage.getItem("livraisons")) || [];
+    if (!restantesFin.length) await localforage.removeItem("livraisons");
   } finally {
     _syncLivraisonsEnCours = false;
   }

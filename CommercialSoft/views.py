@@ -5467,74 +5467,79 @@ def sync_ventes(request):
             vente.get("clientSpecialTelephone"),
         )
 
-        montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
-        commande = Commande.objects.create(
-            user=vendeur,
-            client =  client,
-            clientSpecial = client_special,
-            montant=montant_sans_remise,
-            remise=vente.get("remise", 0),
-            date = _parse_datetime_vente(vente.get("date")),
-            #date = date(2025, 10, 14),  # Pour test
-            typeVente=vente.get("typeVente"),
-            typePayement=vente.get("typePayement", "Espece"),
-            montantAchat=0,
-            client_uid=id_local,  # Stocke l'ID local du client (si nécessaire pour le suivi
-        )
-        
-        montant_achat = 0
-
-        for item in vente.get("lignes", []):
-            produit = Produit.objects.get(id=int(item["produit_id"]))
-            quantite = int(item["quantite"])
-            prix = int(item["prix"])
-
-            # décrémenter le stock
-            produit.quantite -= quantite
-            produit.save()
-
-            CommandeProduit.objects.create(
-                commande=commande,
-                produit=produit,
-                quantite=quantite,
-                prix=prix,
-                date=_parse_date_vente(vente.get("date")),
+        # Toute la creation (commande + lignes + stock + pret/versement) est
+        # atomique : si une ligne echoue en cours de route (produit
+        # introuvable...), on ne doit pas laisser une Commande partielle en
+        # base — un retry ulterieur du meme id_local la retrouverait via le
+        # controle anti-doublon ci-dessus et repondrait "deja synchronisee"
+        # sans que la vente ait jamais ete correctement enregistree.
+        with transaction.atomic():
+            montant_sans_remise = vente.get("montant", 0) + vente.get("remise", 0)
+            commande = Commande.objects.create(
+                user=vendeur,
+                client =  client,
+                clientSpecial = client_special,
+                montant=montant_sans_remise,
+                remise=vente.get("remise", 0),
+                date = _parse_datetime_vente(vente.get("date")),
+                #date = date(2025, 10, 14),  # Pour test
+                typeVente=vente.get("typeVente"),
+                typePayement=vente.get("typePayement", "Espece"),
+                montantAchat=0,
+                client_uid=id_local,  # Stocke l'ID local du client (si nécessaire pour le suivi
             )
 
-            montant_achat += produit.prixAchat * quantite
-        
-        commande.montantAchat = montant_achat
-        commande.save()
+            montant_achat = 0
 
-        
-        
-        if vente.get("typePayement") == "Pret" and client_id:
-            montant_total = vente.get("montant") or 0
-            try:
-                montant_verse = int(vente.get("montantVerse") or 0)
-            except (TypeError, ValueError):
-                montant_verse = 0
-            montant_verse = max(0, min(montant_verse, montant_total))
-            montant_restant = montant_total - montant_verse
+            for item in vente.get("lignes", []):
+                produit = Produit.objects.get(id=int(item["produit_id"]))
+                quantite = int(item["quantite"])
+                prix = int(item["prix"])
 
-            if montant_verse > 0:
-                VersementClient.objects.create(
-                    client=client,
-                    montant=montant_verse,
-                    date=_parse_date_vente(vente.get("date")),
-                    user=vendeur,
-                )
+                # décrémenter le stock
+                produit.quantite -= quantite
+                produit.save()
 
-            if montant_restant > 0:
-                PretClient.objects.create(
-                    client=client,
-                    montant=montant_restant,
-                    date=_parse_date_vente(vente.get("date")),
-                    dateEcheance=_parse_date_vente(vente.get("dateEcheance")),
+                CommandeProduit.objects.create(
                     commande=commande,
-                    commentaire=vente.get("commentaire"),
-                    user=vendeur,
+                    produit=produit,
+                    quantite=quantite,
+                    prix=prix,
+                    date=_parse_date_vente(vente.get("date")),
                 )
+
+                montant_achat += produit.prixAchat * quantite
+
+            commande.montantAchat = montant_achat
+            commande.save()
+
+            if vente.get("typePayement") == "Pret" and client_id:
+                montant_total = vente.get("montant") or 0
+                try:
+                    montant_verse = int(vente.get("montantVerse") or 0)
+                except (TypeError, ValueError):
+                    montant_verse = 0
+                montant_verse = max(0, min(montant_verse, montant_total))
+                montant_restant = montant_total - montant_verse
+
+                if montant_verse > 0:
+                    VersementClient.objects.create(
+                        client=client,
+                        montant=montant_verse,
+                        date=_parse_date_vente(vente.get("date")),
+                        user=vendeur,
+                    )
+
+                if montant_restant > 0:
+                    PretClient.objects.create(
+                        client=client,
+                        montant=montant_restant,
+                        date=_parse_date_vente(vente.get("date")),
+                        dateEcheance=_parse_date_vente(vente.get("dateEcheance")),
+                        commande=commande,
+                        commentaire=vente.get("commentaire"),
+                        user=vendeur,
+                    )
 
         return JsonResponse({"success": True, "message": "✅ Vente synchronisée avec succès !"})
 
