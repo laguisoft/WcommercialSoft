@@ -44,6 +44,7 @@ async function syncVentesOffline() {
     }
 
     for (let i = 0; i < ventes.length; i++) {
+      let out;
       try {
         const resp = await fetch("/commerce/api/sync/ventes/", {
           method: "POST",
@@ -51,26 +52,42 @@ async function syncVentesOffline() {
           credentials: "same-origin",
           body: JSON.stringify(ventes[i]),
         });
-        const out = await resp.json();
-        if (out.success) {
-          ventes.splice(i, 1);
-          i--;
-          await localforage.setItem("ventes", ventes);
-        } else {
-          console.warn("⚠️ Erreur sync vente:", out.error || out.message);
-        }
+        out = await resp.json();
       } catch (err) {
-        console.error("❌ Erreur réseau, arrêt de la synchronisation des ventes.");
+        // Panne reseau, ou reponse non-JSON (ex: session expiree -> page de
+        // login renvoyee a la place du JSON attendu) : on l'affiche au lieu
+        // de laisser le compteur bloque sans explication, et on arrete pour
+        // cette passe (on reessaiera au prochain sondage).
+        console.error("❌ Erreur réseau, arrêt de la synchronisation des ventes.", err);
+        if (etat) {
+          etat.innerHTML = `❌ Synchronisation interrompue (connexion ou session à reconnecter). Reste ${ventes.length} vente(s).`;
+          etat.style.color = "red";
+        }
         break;
       }
 
-      if (etat) {
-        if (ventes.length > 0) {
-          etat.innerHTML = `Reste ${ventes.length} ventes à synchroniser...`;
-          etat.style.color = "orange";
-        } else {
-          etat.innerHTML = "✅ Toutes les ventes sont synchronisées !";
-          etat.style.color = "lime";
+      if (out.success) {
+        ventes.splice(i, 1);
+        i--;
+        await localforage.setItem("ventes", ventes);
+        if (etat) {
+          if (ventes.length > 0) {
+            etat.innerHTML = `Reste ${ventes.length} ventes à synchroniser...`;
+            etat.style.color = "orange";
+          } else {
+            etat.innerHTML = "✅ Toutes les ventes sont synchronisées !";
+            etat.style.color = "lime";
+          }
+        }
+      } else {
+        // Vente rejetee par le serveur (donnees invalides, produit
+        // supprime depuis...) : on l'affiche pour que ce ne soit pas juste
+        // "bloque" sans explication a l'ecran, et on passe a la suivante
+        // plutot que de reessayer en boucle la meme vente indefiniment.
+        console.warn("⚠️ Erreur sync vente:", out.error || out.message);
+        if (etat) {
+          etat.innerHTML = `⚠️ Vente non synchronisée : ${out.message || out.error || "erreur inconnue"}`;
+          etat.style.color = "red";
         }
       }
       await new Promise((r) => setTimeout(r, 500));
@@ -101,6 +118,7 @@ async function syncLivraisonsOffline() {
     }
 
     for (let i = 0; i < livraisons.length; i++) {
+      let out;
       try {
         const resp = await fetch("/commerce/api/sync/livraisons/", {
           method: "POST",
@@ -108,26 +126,34 @@ async function syncLivraisonsOffline() {
           credentials: "same-origin",
           body: JSON.stringify(livraisons[i]),
         });
-        const out = await resp.json();
-        if (out.success) {
-          livraisons.splice(i, 1);
-          i--;
-          await localforage.setItem("livraisons", livraisons);
-        } else {
-          console.warn("⚠️ Erreur sync livraison:", out.error);
-        }
+        out = await resp.json();
       } catch (err) {
-        console.error("❌ Erreur réseau, arrêt de la synchronisation des livraisons.");
+        console.error("❌ Erreur réseau, arrêt de la synchronisation des livraisons.", err);
+        if (etat) {
+          etat.innerHTML = `❌ Synchronisation interrompue (connexion ou session à reconnecter). Reste ${livraisons.length} facture(s).`;
+          etat.style.color = "red";
+        }
         break;
       }
 
-      if (etat) {
-        if (livraisons.length > 0) {
-          etat.innerHTML = `Reste ${livraisons.length} facture(s) à synchroniser...`;
-          etat.style.color = "orange";
-        } else {
-          etat.innerHTML = "✅ Toutes les factures sont synchronisées !";
-          etat.style.color = "lime";
+      if (out.success) {
+        livraisons.splice(i, 1);
+        i--;
+        await localforage.setItem("livraisons", livraisons);
+        if (etat) {
+          if (livraisons.length > 0) {
+            etat.innerHTML = `Reste ${livraisons.length} facture(s) à synchroniser...`;
+            etat.style.color = "orange";
+          } else {
+            etat.innerHTML = "✅ Toutes les factures sont synchronisées !";
+            etat.style.color = "lime";
+          }
+        }
+      } else {
+        console.warn("⚠️ Erreur sync livraison:", out.error);
+        if (etat) {
+          etat.innerHTML = `⚠️ Facture non synchronisée : ${out.error || out.message || "erreur inconnue"}`;
+          etat.style.color = "red";
         }
       }
       await new Promise((r) => setTimeout(r, 400));

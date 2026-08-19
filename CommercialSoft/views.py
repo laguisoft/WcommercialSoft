@@ -5455,8 +5455,11 @@ def sync_ventes(request):
         if vendeur is None:
             return JsonResponse({"success": False, "message": "Utilisateur introuvable pour cette entreprise."}, status=400)
 
-        if Commande.objects.filter(client_uid=id_local).exists():
-            return JsonResponse({"success": True, "error": "Aucune donnée reçue"}, status=400)
+        if id_local and Commande.objects.filter(client_uid=id_local).exists():
+            # Deja synchronisee (rejeu apres coupure reseau juste apres un
+            # premier succes cote serveur) : on repond succes pour que le
+            # client la retire de la file, sans la recreer en double.
+            return JsonResponse({"success": True, "message": "Vente déjà synchronisée"})
 
         client_special = _get_or_create_client_special(
             vente.get("clientSpecialNom"),
