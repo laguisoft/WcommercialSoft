@@ -233,8 +233,11 @@
 <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
 <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
-<!-- localforage + offline-core.js (synchro ventes/réceptions) sont déjà
-     chargés globalement par starter-page.html, en dehors de ce bloc. -->
+<!-- Auto-hébergé (pas de CDN) pour rester disponible hors-ligne. Chargés ici
+     (pas dans starter-page.html) pour que la synchro des réceptions ne
+     tourne que sur cette page, pas sur tout l'app. -->
+<script src="{% static 'js/localforage.min.js' %}?v=2"></script>
+<script src="{% static 'js/offline-core.js' %}?v=2"></script>
 
 <script>
 
