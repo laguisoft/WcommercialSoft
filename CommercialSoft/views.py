@@ -1856,7 +1856,17 @@ def modifier_commande(request, pk):
         except json.JSONDecodeError:
             lignes = []
 
-        date = _parse_date_vente(request.POST.get('date')) if request.POST.get('date') else commande.date
+        # `date` (date nue) sert aux lignes CommandeProduit (DateField) ;
+        # `commande_date` (datetime timezone-aware) sert a Commande.date
+        # (DateTimeField) — assigner directement une date nue a ce champ
+        # produit un "naive datetime" a la sauvegarde (Django la complete a
+        # minuit dans un fuseau non defini au lieu du fuseau du serveur).
+        if request.POST.get('date'):
+            date = _parse_date_vente(request.POST.get('date'))
+            commande_date = _parse_datetime_vente(request.POST.get('date'))
+        else:
+            date = commande.date.date()
+            commande_date = commande.date
         typeVente = request.POST.get('typeVente', commande.typeVente)
         typePayement = request.POST.get('typePayement', commande.typePayement)
         try:
@@ -1909,7 +1919,7 @@ def modifier_commande(request, pk):
                     montantTotal += prix * quantite
                     montantAchat += produit.prixAchat * quantite
 
-                commande.date = date
+                commande.date = commande_date
                 commande.typeVente = typeVente
                 commande.typePayement = typePayement
                 commande.remise = remise
