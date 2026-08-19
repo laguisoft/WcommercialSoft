@@ -24,6 +24,20 @@ function _csrfToken() {
   return window.CSRF_TOKEN || "";
 }
 
+// Identifiant local unique (cle de deduplication cote serveur, cf.
+// sync_ventes/id_local). Utilise crypto.randomUUID() quand disponible :
+// horodatage + petit nombre aleatoire (l'ancien format) peut techniquement
+// entrer en collision entre deux postes hors-ligne differents qui
+// enregistrent une vente au meme instant, ce qui ferait passer a tort la
+// seconde vente pour "deja synchronisee" cote serveur et la ferait
+// disparaitre sans avoir jamais ete enregistree.
+function _idLocalUnique() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return Date.now() + "_" + Math.floor(Math.random() * 100000) + "_" + Math.floor(Math.random() * 100000);
+}
+
 // fetch() n'a pas de delai d'attente par defaut : une connexion qui reste
 // "connectee" mais ne repond jamais (wifi capte mais sans reel acces
 // internet, requete qui ne repond jamais...) laisse le await fetch(...)

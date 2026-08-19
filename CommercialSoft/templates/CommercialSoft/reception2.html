@@ -236,8 +236,8 @@
 <!-- Auto-hébergé (pas de CDN) pour rester disponible hors-ligne. Chargés ici
      (pas dans starter-page.html) pour que la synchro des réceptions ne
      tourne que sur cette page, pas sur tout l'app. -->
-<script src="{% static 'js/localforage.min.js' %}?v=4"></script>
-<script src="{% static 'js/offline-core.js' %}?v=4"></script>
+<script src="{% static 'js/localforage.min.js' %}?v=5"></script>
+<script src="{% static 'js/offline-core.js' %}?v=5"></script>
 
 <script>
 
@@ -712,7 +712,7 @@ document.getElementById("btnValiderReception").addEventListener("click", async f
 
   const total = parseInt((montantTotalEl.value||"0").toString().replace(/\s/g,'')) || 0;
   const livraisonData = {
-    id_local: Date.now()+"_"+Math.floor(Math.random()*100000),
+    id_local: _idLocalUnique(),
     lignes: panierR,
     date: (dateEl && dateEl.value) ? dateEl.value : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
     montant: total,

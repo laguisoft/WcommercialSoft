@@ -1,12 +1,12 @@
 // CommercialSoft/templates/CommercialSoft/serviceworker.js
 
-const CACHE_NAME = "app-shell-v4";
+const CACHE_NAME = "app-shell-v5";
 const APP_SHELL = [
   "/",
   "/offline/",           // on ajoute la page offline
-  "/static/js/localforage.min.js?v=4", // requis par offline-core.js : doit rester disponible hors-ligne
+  "/static/js/localforage.min.js?v=5", // requis par offline-core.js : doit rester disponible hors-ligne
   "/static/js/register-sw.js",
-  "/static/js/offline-core.js?v=4",
+  "/static/js/offline-core.js?v=5",
   "/static/js/vente.js",
   "/commerce/vente/",          // page de vente
   "/commerce/dashboard/",
