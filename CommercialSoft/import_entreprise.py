@@ -124,11 +124,17 @@ def analyser(paquet, entreprise):
 
     User = get_user_model()
     for obj in extraire_utilisateurs(paquet):
+        compte_existant = User.objects.filter(username=obj['fields']['username']).first()
         rapport['utilisateurs'].append({
             'ancien_pk': obj['pk'],
             'username': obj['fields']['username'],
             'nom_complet': f"{obj['fields'].get('first_name', '')} {obj['fields'].get('last_name', '')}".strip(),
-            'login_disponible': not User.objects.filter(username=obj['fields']['username']).exists(),
+            'login_disponible': compte_existant is None,
+            'compte_existant': {
+                'id': compte_existant.id,
+                'nom_complet': f"{compte_existant.first_name} {compte_existant.last_name}".strip(),
+                'entreprise': compte_existant.entreprise.nom if compte_existant.entreprise_id else None,
+            } if compte_existant else None,
         })
 
     if 'commercialsoft.infoboutique' in groupes:
@@ -164,6 +170,12 @@ def _resoudre_utilisateurs(paquet, entreprise, mapping_utilisateurs):
 
         if choix.get('action') == 'lier':
             utilisateur = User.objects.get(pk=choix['user_id'])
+            deja_accessible = (
+                utilisateur.entreprise_id == entreprise.id
+                or utilisateur.entreprises_additionnelles.filter(pk=entreprise.id).exists()
+            )
+            if not deja_accessible:
+                utilisateur.entreprises_additionnelles.add(entreprise)
         elif choix.get('action') == 'creer':
             username = _nom_utilisateur_disponible(obj['fields']['username'])
             mot_de_passe = get_random_string(12)

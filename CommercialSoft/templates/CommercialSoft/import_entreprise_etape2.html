@@ -75,9 +75,14 @@
                     <td>
                       <select name="mapping_{{ u.ancien_pk }}" class="form-control form-control-sm" required>
                         <option value="">--------</option>
-                        <option value="creer">Créer un nouveau compte{% if not u.login_disponible %} (login "{{ u.username }}" déjà pris ailleurs : un login dérivé sera utilisé){% endif %}</option>
+                        <option value="creer">Créer un nouveau compte{% if not u.login_disponible %} (login "{{ u.username }}" déjà pris : un login dérivé sera utilisé){% endif %}</option>
+                        {% if u.compte_existant %}
+                          <option value="lier:{{ u.compte_existant.id }}">Lier au compte existant "{{ u.username }}"{% if u.compte_existant.entreprise %} (actuellement dans {{ u.compte_existant.entreprise }}){% else %} (sans entreprise){% endif %}</option>
+                        {% endif %}
                         {% for su in utilisateurs_saas %}
-                          <option value="lier:{{ su.id }}">Lier à {{ su.username }} ({{ su.first_name }} {{ su.last_name }})</option>
+                          {% if not u.compte_existant or su.id != u.compte_existant.id %}
+                            <option value="lier:{{ su.id }}">Lier à {{ su.username }} ({{ su.first_name }} {{ su.last_name }})</option>
+                          {% endif %}
                         {% endfor %}
                       </select>
                     </td>
