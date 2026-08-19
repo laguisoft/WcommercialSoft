@@ -101,7 +101,7 @@
                   <td class="text-center">{{ demande.id }}</td>
                   <td>{{ demande.client.nom }}</td>
                   <td class="text-center">{{ demande.date }}</td>
-                  <td class="text-center">{{ demande.nb_lignes }}</td>
+                  <td class="text-center">{{ demande.lignes.count }}</td>
                   <td class="text-center">
                     {% if demande.statut == 'En attente' %}
                       <span class="badge bg-warning">En attente</span>
@@ -120,27 +120,6 @@
                 {% endfor %}
               </tbody>
             </table>
-          </div>
-          <div class="card-footer clearfix">
-            <ul class="pagination pagination-sm m-0 justify-content-center">
-              <li class="page-item">
-                {% if demandes.has_previous %}
-                  <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ demandes.previous_page_number }}">«</a>
-                {% endif %}
-              </li>
-              {% for num in demandes.paginator.page_range %}
-                {% if demandes.number == num %}
-                  <li class="page-item active"><a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ num }}">{{ num }}</a></li>
-                {% else %}
-                  <li class="page-item"><a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ num }}">{{ num }}</a></li>
-                {% endif %}
-              {% endfor %}
-              <li class="page-item">
-                {% if demandes.has_next %}
-                  <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ demandes.next_page_number }}">»</a>
-                {% endif %}
-              </li>
-            </ul>
           </div>
         </div>
       </div>

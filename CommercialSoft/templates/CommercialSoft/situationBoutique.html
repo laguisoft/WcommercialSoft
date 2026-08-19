@@ -40,17 +40,6 @@
                             </div>
                           </div>
 
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <select class="form-control select2bs4" id="idCategorie" style="width: 100%;">
-                                  <option value="0">Toutes les categories</option>
-                                  {% for categorie in categories %}
-                                    <option value="{{ categorie.id }}">{{ categorie.nom }}</option>
-                                  {% endfor %}
-                                </select>
-                            </div>
-                          </div>
-
                           <div class="col-md-3">
                             <div class="form-group">
                                 <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
@@ -181,7 +170,6 @@
       const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
       const typePrix = $('#idTypePrix').val();  // ID de l'examen sélectionné
-      const idCategorie = $('#idCategorie').val();
 
       var montant=0;
       var benefice=0;
@@ -194,7 +182,6 @@
         type: "POST",
         data: {
             typePrix: typePrix,
-            idCategorie: idCategorie,
             csrfmiddlewaretoken: csrfToken
         },
         success: function (response) {
@@ -241,7 +228,6 @@
         const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
         const typePrix = $('#idTypePrix').val();  // ID de l'examen sélectionné
-        const idCategorie = $('#idCategorie').val();
 
         // Ouvrir une nouvelle fenêtre où le PDF sera affiché
         let pdfWindow = window.open("", "_blank");
@@ -251,7 +237,6 @@
             type: "POST",
             data: {
                 typePrix: typePrix,
-                idCategorie: idCategorie,
                 csrfmiddlewaretoken: csrfToken
             },
             xhrFields: {

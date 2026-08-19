@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
 from .forms import *
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit, InfoBoutique
 from .decorators import client_required, superadmin_required
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -13,20 +13,13 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, BigIntegerField, OuterRef, Subquery, Count, Q
+from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, OuterRef, Subquery, Q
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 import json
 User = get_user_model()
 
 # Create your views here.
-
-# Filet de sécurité anti-dénis-de-service pour les endpoints de recherche AJAX :
-# ces vues renvoient un tableau HTML construit côté client (pas de pagination
-# interactive), donc on plafonne le nombre de lignes sérialisées pour éviter
-# qu'une entreprise avec un historique très volumineux (ou une recherche sans
-# filtre de date) ne fasse exploser le temps de réponse / la taille de la page.
-MAX_RESULTATS_RECHERCHE = 2000
 
 #------------------------ Gestion des droits d'acces avec les decorateur -----------------
 def est_administrateur(user):
@@ -91,15 +84,10 @@ def login_view(request):
 
 @login_required
 def dashboard(request):
-    info_boutique = request.entreprise
-    produits_stats = Produit.objects.aggregate(
-        total=Count('id'),
-        perimes=Count('id', filter=Q(datePeremption__lt=now())),
-        rupture=Count('id', filter=Q(quantite__lte=F('seuil'))),
-    )
-    total_produits = produits_stats['total']
-    produits_perimes = produits_stats['perimes']
-    produits_rupture = produits_stats['rupture']
+    info_boutique = InfoBoutique.objects.first()
+    total_produits = Produit.objects.count()
+    produits_perimes = Produit.objects.filter(datePeremption__lt=now()).count()
+    produits_rupture = Produit.objects.filter(quantite__lte=F('seuil')).count()
 
     total_pret_subquery = PretClient.objects.filter(client=OuterRef('pk')).values('client').annotate(total=Sum('montant')).values('total')
     total_versement_subquery = VersementClient.objects.filter(client=OuterRef('pk')).values('client').annotate(total=Sum('montant')).values('total')
@@ -139,7 +127,6 @@ def fournisseur_list_create(request):
         if form.is_valid():
             four = form.save(commit=False)
             four.date = timezone.now().date()
-            four.entreprise = request.entreprise
             four.save()  # Sauvegarder après modification
             messages.success(request, "Fournisseur créée avec succès !")
             return redirect('commerce_fournisseur')
@@ -148,7 +135,7 @@ def fournisseur_list_create(request):
     else:
         form = FournisseurForm()
     
-    fournisseur = Fournisseur.objects.all().order_by('nom')
+    fournisseur = Fournisseur.objects.all()
     paginator = Paginator(fournisseur, 15)
     page = request.GET.get('page')
     paginated = paginator.get_page(page)
@@ -216,23 +203,9 @@ def recherche_fournisseur(request):
     if request.method == "POST":
         numero = request.POST.get('idFournisseur', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
-        fournisseurs = Fournisseur.objects.filter(id=numero) if numero else Fournisseur.objects.all().order_by('nom')
-
-        # Un seul aller-retour en base pour tous les fournisseurs (sous-requêtes
-        # corrélées au lieu d'un .aggregate() par ligne dans la boucle Python).
-        pret_sq = (DetteFournisseur.objects.filter(fournisseur=OuterRef('pk'))
-                   .order_by().values('fournisseur').annotate(total=Sum('montant')).values('total'))
-        versement_sq = (VersementFournisseur.objects.filter(fournisseur=OuterRef('pk'))
-                        .order_by().values('fournisseur').annotate(total=Sum('montant')).values('total'))
-
-        fournisseurs = fournisseurs.annotate(
-            total_pret_calc=Coalesce(Subquery(pret_sq, output_field=BigIntegerField()), 0),
-            total_versement_calc=Coalesce(Subquery(versement_sq, output_field=BigIntegerField()), 0),
-        )
-
-        if not numero:
-            fournisseurs = fournisseurs[:MAX_RESULTATS_RECHERCHE]
-
+        fournisseurs = Fournisseur.objects.filter(id=numero) if numero else Fournisseur.objects.all()
+        
+        print(f"Valeur de numero : '{numero}'")  # Debugging
         # Construire une réponse JSON
         fournisseurs_data = [
             {
@@ -240,13 +213,15 @@ def recherche_fournisseur(request):
                 "nom": fournisseur.nom,
                 "telephone": fournisseur.telephone,
                 "adresse": fournisseur.adresse,
-                "total_pret": fournisseur.total_pret_calc,
-                "total_versement": fournisseur.total_versement_calc,
-                "balance": fournisseur.total_pret_calc - fournisseur.total_versement_calc,
+                "total_pret": fournisseur.detteFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0,
+                "total_versement": fournisseur.versementFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0,
+                "balance": (fournisseur.detteFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0) - 
+                           (fournisseur.versementFournisseur.aggregate(Sum('montant'))['montant__sum'] or 0),
             }
             for fournisseur in fournisseurs
         ]
 
+        
         return JsonResponse({"fournisseurs": fournisseurs_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -264,7 +239,6 @@ def categorie_list_create(request):
     if request.method == "POST":
         form = CategorieForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Categorie créée avec succès !")
             return redirect('commerce_categorie')
@@ -321,7 +295,6 @@ def produit_list_create(request):
     if request.method == "POST":
         form = ProduitForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Produit créée avec succès !")
             return redirect('commerce_produit')
@@ -388,22 +361,16 @@ def valider_quantite(request):
 @login_required
 def produit_perime(request):
     aujourdhui = timezone.now().date()
-    produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui).order_by('datePeremption')
-    paginator = Paginator(produits_perimes, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
-    return render(request, 'CommercialSoft/produitPerime.html',{'listes':paginated})
+    produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui)
+    return render(request, 'CommercialSoft/produitPerime.html',{'listes':produits_perimes})
 
 
 
 
 @login_required
 def produit_rupture(request):
-    produits_rupture=Produit.objects.filter(quantite__lte=F('seuil')).order_by('libelle')
-    paginator = Paginator(produits_rupture, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
-    return render(request, 'CommercialSoft/produitEnRupture.html',{'listes':paginated})
+    produits_rupture=Produit.objects.filter(quantite__lte=F('seuil'))
+    return render(request, 'CommercialSoft/produitEnRupture.html',{'listes':produits_rupture})
 
 
 
@@ -416,9 +383,7 @@ def produit_livrer(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def produit_vendu(request):
-    users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
+    users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/produitVendu.html', {'users': users})
 
 
@@ -449,9 +414,7 @@ def vente_par_type(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def detail_vente(request):
-    users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
+    users = User.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/detailVente.html', {'users': users})
 
 
@@ -510,7 +473,6 @@ def reception_create(request):
             with transaction.atomic():  # évite les données partielles
                 try:
                     # ✅ Enregistrer la livraison
-                    livraison_form.instance.entreprise = request.entreprise
                     livraison = livraison_form.save()
 
                     # ✅ Traiter chaque ligne du formset
@@ -520,7 +482,6 @@ def reception_create(request):
 
                         livraison_produit = form.save(commit=False)
                         livraison_produit.livraison = livraison
-                        livraison_produit.entreprise = request.entreprise
 
                         # ✅ Mise à jour du stock produit
                         produit_id=livraison_produit.produit.id
@@ -806,7 +767,7 @@ def reception_create(request):
     livraison_form = LivraisonForm()
     detteFournisseur_form = DetteFournisseurForm()
     produits = Produit.objects.all()
-    boutique= request.entreprise
+    boutique= InfoBoutique.objects.first()
     return render(request, 'CommercialSoft/reception2.html', {
         'commande_form': livraison_form,
         'pret_form': detteFournisseur_form,
@@ -873,7 +834,6 @@ def detail_reception(request, pk):
         if form.is_valid():  # Vérifier la validité AVANT d'utiliser form
             produit = form.save(commit=False)
             produit.livraison = livraison
-            produit.entreprise = request.entreprise
             produit.save()
             return redirect('commerce_detailReception', pk=pk)  # Rediriger après un POST réussi
 
@@ -937,7 +897,7 @@ def recherche_reception_produit(request):
 
         # Construction de la réponse
         resultats = []
-        for lp in livraisons_produits.order_by('-livraison__date')[:MAX_RESULTATS_RECHERCHE]:
+        for lp in livraisons_produits:
             resultats.append({
                 "id": lp.produit.id,
                 "fournisseur": lp.livraison.fournisseur.nom,
@@ -1022,9 +982,9 @@ def recherche_produit(request):
                 "peremption": produit.datePeremption.strftime("%Y-%m-%d") if produit.datePeremption else None,
                 "seuil": produit.seuil,
             }
-            for produit in produits.order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
+            for produit in produits
         ]
-
+        
         return JsonResponse({"produits": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -1052,27 +1012,19 @@ def recherche_produit_livrer(request):
             except Categorie.DoesNotExist:
                 return JsonResponse({"error": "Numero facture introuvable"}, status=404)
 
-        montant_sq = (LivraisonProduit.objects.filter(livraison=OuterRef('pk'))
-                      .order_by().values('livraison')
-                      .annotate(total=Sum(F('quantite') * F('prix')))
-                      .values('total'))
-
-        livraisons = livraisons.select_related('fournisseur').annotate(
-            montant_calc=Coalesce(Subquery(montant_sq, output_field=BigIntegerField()), 0)
-        )
-
+       
         # Construire la réponse JSON
         produits_data = [
             {
                 "id":livraison.id,
                 "fournisseur": livraison.fournisseur.nom,
                 "date": livraison.date,
-                "montant": livraison.montant_calc,
+                "montant": LivraisonProduit.objects.filter(livraison=livraison).aggregate(total=Sum(F('quantite')*F('prix')))['total'] or 0,
                 "numFacture": livraison.numeroFacture,
             }
-            for livraison in livraisons.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for livraison in livraisons
         ]
-
+        
         return JsonResponse({"livraison": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -1192,17 +1144,10 @@ def vente_creates(request):
                     commande = commande_form.save(commit=False)
                     commande.user = request.user
                     commande.montantAchat = 0
-                    commande.entreprise = request.entreprise
                     commande.save()
 
                     montantAchat = 0
                     montantTotal = 0
-
-                    produit_ids = [item.get('id') for item in produits_data if item.get('id')]
-                    produits_par_id = {
-                        produit.id: produit
-                        for produit in Produit.objects.select_for_update().filter(id__in=produit_ids)
-                    }
 
                     for item in produits_data:
                         produit_id = item.get('id')
@@ -1212,9 +1157,7 @@ def vente_creates(request):
                         if not produit_id or quantite <= 0:
                             continue
 
-                        produit = produits_par_id.get(int(produit_id))
-                        if produit is None:
-                            continue
+                        produit = Produit.objects.get(id=produit_id)
 
                         if quantite > produit.quantite:
                             messages.error(request, f"La quantité de {produit.libelle} est insuffisante.")
@@ -1247,7 +1190,6 @@ def vente_creates(request):
                             pret.montant = commande.montant
                             pret.date = commande.date
                             pret.payer = "Non"
-                            pret.entreprise = request.entreprise
                             pret.save()
                             commande.client = pret.client
                             commande.save()
@@ -1278,7 +1220,7 @@ def vente_creates(request):
     commande_form = CommandeForm()
     pret_form = pretClientForm()
     produits = Produit.objects.all()
-    boutique= request.entreprise
+    boutique= InfoBoutique.objects.first()
     return render(request, 'CommercialSoft/vente2.html', {
         'commande_form': commande_form,
         'pret_form': pret_form,
@@ -1334,7 +1276,7 @@ def recherche_vente(request):
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre_ventes).select_related('user', 'client')
+        ventes = Commande.objects.filter(**filtre_ventes)
 
         montantRetour = (
                             Retour.objects
@@ -1357,7 +1299,7 @@ def recherche_vente(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for vente in ventes
         ]
 
         return JsonResponse({"vente": produits_data,"montantRetour": montantRetour})
@@ -1400,7 +1342,7 @@ def recherche_vente_client(request):
                 return JsonResponse({"error": "Client introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre).select_related('client')
+        ventes = Commande.objects.filter(**filtre)
 
         # Construire la réponse JSON
         produits_data = [
@@ -1415,7 +1357,7 @@ def recherche_vente_client(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for vente in ventes
         ]
 
         return JsonResponse({"vente": produits_data})
@@ -1465,7 +1407,7 @@ def recherche_vente_payement(request):
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre).select_related('client')
+        ventes = Commande.objects.filter(**filtre)
 
         # Construire la réponse JSON
         produits_data = [
@@ -1481,7 +1423,7 @@ def recherche_vente_payement(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for vente in ventes
         ]
 
         return JsonResponse({"vente": produits_data})
@@ -1523,7 +1465,7 @@ def recherche_vente_type(request):
                 return JsonResponse({"error": "Type introuvable"}, status=404)
 
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre).select_related('client')
+        ventes = Commande.objects.filter(**filtre)
 
         # Construire la réponse JSON
         produits_data = [
@@ -1538,7 +1480,7 @@ def recherche_vente_type(request):
                 "client": vente.client.nom if vente.client else "",
                 "montantAchat":vente.montantAchat,
             }
-            for vente in ventes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for vente in ventes
         ]
 
         return JsonResponse({"vente": produits_data})
@@ -1621,7 +1563,7 @@ def recherche_situation_vente(request):
                 .values_list("produit", "total")
             )
 
-            produits = Produit.objects.all().order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
+            produits = Produit.objects.all()
             for produit in produits:
                 produits_infos.append({
                     "id": produit.id,
@@ -1697,28 +1639,20 @@ def recherche_detail_vente(request):
             except User.DoesNotExist:
                 return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
 
-        commande_ids = list(
-            Commande.objects.filter(**filtre).order_by('-date').values_list('id', flat=True)[:MAX_RESULTATS_RECHERCHE]
-        )
+        commandes = Commande.objects.filter(**filtre)
+        produits_data = []
 
-        commandesP = (
-            CommandeProduit.objects
-            .filter(commande_id__in=commande_ids)
-            .select_related('produit')
-            .order_by('-commande__date', 'commande_id', 'id')
-        )
-
-        produits_data = [
-            {
-                "id": commandeP.id,
-                "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
-                "quantite": commandeP.quantite,
-                "prix": commandeP.prix,
-                "date": commandeP.date,
-                "montant": commandeP.prix * commandeP.quantite,
-            }
-            for commandeP in commandesP
-        ]
+        for commande in commandes:
+            commandesP = CommandeProduit.objects.filter(commande=commande).order_by('id')
+            for commandeP in commandesP:
+                produits_data.append({
+                    "id": commandeP.id,
+                    "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
+                    "quantite": commandeP.quantite,
+                    "prix" : commandeP.prix,
+                    "date" : commandeP.date,
+                    "montant" : commandeP.prix*commandeP.quantite,
+                })
 
         return JsonResponse({"listes": produits_data}, safe=False)
 
@@ -1875,7 +1809,7 @@ def modifier_commande(request, pk):
         if typePayement == "Pret" and not client_id:
             return JsonResponse({"success": False, "message": "Veuillez sélectionner un client pour un prêt."}, status=400)
 
-        boutique = request.entreprise
+        boutique = InfoBoutique.objects.first()
         verifier_stock = not (boutique and boutique.quantiteNegative)
 
         try:
@@ -2009,7 +1943,6 @@ def depense_list_create(request):
         if form.is_valid():
             depense= form.save(commit=False)  # Sauvegarder après modification
             depense.user=request.user
-            depense.entreprise = request.entreprise
             depense.save()
             messages.success(request, "Dépense créée avec succès !")
             return redirect('commerce_depense')
@@ -2018,7 +1951,7 @@ def depense_list_create(request):
     else:
         form = DepenseForm()
     
-    depense = Depense.objects.select_related('categorie').order_by('-date')
+    depense = Depense.objects.all().order_by('-date')
     paginator = Paginator(depense, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2072,10 +2005,10 @@ def recherche_depense(request):
         dateFin = request.POST.get("dateFin")
         if numero :  # Si un numéro est saisi
             categorie = Categorie_Depense.objects.get(id=numero)
-            depenses=Depense.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
+            depenses=Depense.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin)
         else:  # Sinon, afficher les patients du jour
-            depenses=Depense.objects.filter(date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
-
+            depenses=Depense.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+            
         # Construire une réponse JSON
         patients_data = [
             {
@@ -2087,9 +2020,9 @@ def recherche_depense(request):
                 "date": depense.date,
                 "categorie":depense.categorie.nom,
             }
-            for depense in depenses.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for depense in depenses
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2121,7 +2054,6 @@ def categorie_depense_list_create(request):
     if request.method == "POST":
         form = CategorieDepenseForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Categorie créée avec succès !")
             return redirect('commerce_categorieDepense')
@@ -2185,7 +2117,6 @@ def decaissement_list_create(request):
         if form.is_valid():
             decais= form.save(commit=False)  # Sauvegarder après modification
             decais.user=request.user
-            decais.entreprise = request.entreprise
             decais.save()
             messages.success(request, "Décaissement créée avec succès !")
             return redirect('commerce_decaissement')
@@ -2194,7 +2125,7 @@ def decaissement_list_create(request):
     else:
         form = DecaissementForm()
     
-    decaiss = Decaissement.objects.select_related('categorie').order_by('-date')
+    decaiss = Decaissement.objects.all().order_by('-date')
     paginator = Paginator(decaiss, 15)
     page = request.GET.get('page')
     paginated_decaiss = paginator.get_page(page)
@@ -2246,10 +2177,10 @@ def recherche_decaissement(request):
         dateFin = request.POST.get("dateFin")
         if numero :  # Si un numéro est saisi
             categorie = Categorie_Decaissement.objects.get(id=numero)
-            decaiss=Decaissement.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
+            decaiss=Decaissement.objects.filter(categorie=categorie,date__gte=dateDebut, date__lte=dateFin)
         else:  # Sinon, afficher les patients du jour
-            decaiss=Decaissement.objects.filter(date__gte=dateDebut, date__lte=dateFin).select_related('categorie')
-
+            decaiss=Decaissement.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+            
         # Construire une réponse JSON
         patients_data = [
             {
@@ -2259,9 +2190,9 @@ def recherche_decaissement(request):
                 "date": dec.date,
                 "categorie":dec.categorie.nom,
             }
-            for dec in decaiss.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for dec in decaiss
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2292,7 +2223,6 @@ def categorie_decaissement_list_create(request):
     if request.method == "POST":
         form = CategorieDecaissementForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Categorie créée avec succès !")
             return redirect('commerce_categorieDecaissement')
@@ -2386,7 +2316,6 @@ def versementClient_list_create(request):
         if form.is_valid():
             versement= form.save(commit=False)  # Sauvegarder après modification
             versement.user=request.user
-            versement.entreprise = request.entreprise
             versement.save()
             messages.success(request, "Versement créée avec succès !")
             return redirect('imprimer_recu_versement', versement.id)
@@ -2396,7 +2325,7 @@ def versementClient_list_create(request):
     else:
         form = VersementClientForm()
     
-    versementClient = VersementClient.objects.select_related('client').order_by('-date')
+    versementClient = VersementClient.objects.all().order_by('-date')
     paginator = Paginator(versementClient, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2486,9 +2415,9 @@ def recherche_versementClient(request):
                 "montant": versement.montant,
                 "date":versement.date,
             }
-            for versement in versementClients.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for versement in versementClients
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2528,7 +2457,6 @@ def versementGerant_list_create(request):
     if request.method == "POST":
         form = VersementGerantForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Versement créée avec succès !")
             return redirect('commerce_versementGerant')
@@ -2596,9 +2524,9 @@ def recherche_versementGerant(request):
                 "date":versement.date,
                 "user": versement.user.first_name +" "+versement.user.last_name
             }
-            for versement in versementGerants.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for versement in versementGerants
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2633,7 +2561,6 @@ def pretClient_list_create(request):
         if form.is_valid():
             dette = form.save(commit=False)
             dette.user=request.user
-            dette.entreprise = request.entreprise
             dette.save()  # Sauvegarder après modification
             messages.success(request, "pret créée avec succès !")
             return redirect('commerce_pretClient')
@@ -2642,7 +2569,7 @@ def pretClient_list_create(request):
     else:
         form = detteClientForm()
     
-    pret = PretClient.objects.select_related('client').order_by('-date')
+    pret = PretClient.objects.all().order_by('-date')
     paginator = Paginator(pret, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2727,8 +2654,12 @@ def recherche_pretClient(request):
         if numero:
             client = Client.objects.get(id=numero)
             filtre["client"]=client
-        pretClients = PretClient.objects.filter(**filtre).select_related('client', 'user')
-
+        if numero :  # Si un numéro est saisi
+            
+            pretClients=PretClient.objects.filter(**filtre)
+        else:  # Sinon, afficher les patients du jour
+            pretClients=PretClient.objects.filter(**filtre)
+            
         # Construire une réponse JSON
         patients_data = [
             {
@@ -2740,9 +2671,9 @@ def recherche_pretClient(request):
                 "commentaire":pret.commentaire or "",
                 "user": pret.user.first_name+ " "+pret.user.last_name,
             }
-            for pret in pretClients.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for pret in pretClients
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2779,7 +2710,6 @@ def versementFournisseur_list_create(request):
     if request.method == "POST":
         form = VersementFournisseurForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Versement créée avec succès !")
             return redirect('commerce_versementFournisseur')
@@ -2857,9 +2787,9 @@ def recherche_versementFournisseur(request):
                 "montant": versement.montant,
                 "date":versement.date,
             }
-            for versement in versementFournisseurs.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for versement in versementFournisseurs
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -2899,7 +2829,6 @@ def detteFournisseur_list_create(request):
     if request.method == "POST":
         form = DetteFournisseurForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Dette créée avec succès !")
             return redirect('commerce_detteFournisseur')
@@ -2908,7 +2837,7 @@ def detteFournisseur_list_create(request):
     else:
         form = DetteFournisseurForm()
     
-    detteFournisseur = DetteFournisseur.objects.select_related('fournisseur').order_by('-date')
+    detteFournisseur = DetteFournisseur.objects.all().order_by('-date')
     paginator = Paginator(detteFournisseur, 15)
     page = request.GET.get('page')
     paginated_depense = paginator.get_page(page)
@@ -2966,9 +2895,9 @@ def recherche_detteFournisseur(request):
                 "montant": dette.montant,
                 "date":dette.date,
             }
-            for dette in detteFournisseurs.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for dette in detteFournisseurs
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -3004,7 +2933,6 @@ def client_list_create(request):
     if request.method == "POST":
         form = clientForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "Client créée avec succès !")
             return redirect('commerce_client')
@@ -3059,23 +2987,9 @@ def recherche_client(request):
         numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
         numero=int(numero)
         
-        clients = Client.objects.filter(id=numero) if numero else Client.objects.all().order_by('nom')
-
-        # Un seul aller-retour en base pour tous les clients (sous-requêtes
-        # corrélées au lieu d'un .aggregate() par ligne dans la boucle Python).
-        pret_sq = (PretClient.objects.filter(client=OuterRef('pk'))
-                   .order_by().values('client').annotate(total=Sum('montant')).values('total'))
-        versement_sq = (VersementClient.objects.filter(client=OuterRef('pk'))
-                        .order_by().values('client').annotate(total=Sum('montant')).values('total'))
-
-        clients = clients.annotate(
-            total_pret_calc=Coalesce(Subquery(pret_sq, output_field=BigIntegerField()), 0),
-            total_versement_calc=Coalesce(Subquery(versement_sq, output_field=BigIntegerField()), 0),
-        )
-
-        if not numero:
-            clients = clients[:MAX_RESULTATS_RECHERCHE]
-
+        clients = Client.objects.filter(id=numero) if numero else Client.objects.all()
+        
+        print(f"Valeur de numero : '{numero}'")  # Debugging
         # Construire une réponse JSON
         clients_data = [
             {
@@ -3087,14 +3001,16 @@ def recherche_client(request):
                 "matricule": client.matricule,
                 "pourcentage": client.pourcentage,
                 "detteMaximale": client.detteMaximale,
-                "total_pret": client.total_pret_calc,
-                "total_versement": client.total_versement_calc,
-                "balance": client.total_pret_calc - client.total_versement_calc,
+                "total_pret": client.prets.aggregate(Sum('montant'))['montant__sum'] or 0,
+                "total_versement": client.versements.aggregate(Sum('montant'))['montant__sum'] or 0,
+                "balance": (client.prets.aggregate(Sum('montant'))['montant__sum'] or 0) -
+                           (client.versements.aggregate(Sum('montant'))['montant__sum'] or 0),
                 "has_account": bool(client.user_id),
             }
             for client in clients
         ]
 
+        
         return JsonResponse({"clients": clients_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -3155,7 +3071,6 @@ def societe_list_create(request):
     if request.method == "POST":
         form = societeForm(request.POST)
         if form.is_valid():
-            form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
             messages.success(request, "societe créée avec succès !")
             return redirect('commerce_societe')
@@ -3213,87 +3128,80 @@ def societe_delete(request, pk):
 @login_required
 def bilan(request):
     users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
     return render(request, 'CommercialSoft/bilan.html',{'users':users})
 
 
 
 
-def _construire_filtre_bilan(request):
-    """Construit le filtre dynamique (date/user) commun à recherche_bilan et
-    pdf_etat_bilan. Retourne (filtre, filtre_ventes, erreur) ; erreur est une
-    JsonResponse à renvoyer telle quelle si l'utilisateur demandé n'existe pas.
-    (VersementClient/Depense/Retour/PretClient utilisent un DateField, mais
-    Commande.date est un DateTimeField : on a donc besoin d'un filtre distinct
-    (filtre_ventes) pour que la date de fin inclue toute la journée sur les
-    ventes, sinon les ventes faites après minuit du jour de fin sont exclues)"""
-    idUser = request.POST.get('idUser')
-    dateDebut = request.POST.get("dateDebut")
-    dateFin = request.POST.get("dateFin")
-
-    filtre = {}
-    filtre_ventes = {}
-    if dateDebut:
-        filtre["date__gte"] = dateDebut
-        filtre_ventes["date__gte"] = dateDebut
-    if dateFin:
-        filtre["date__lte"] = dateFin
-        fin = _borne_fin_journee(dateFin)
-        if fin:
-            filtre_ventes["date__lt"] = fin
-
-    if idUser and idUser != "0":
-        try:
-            user = User.objects.get(id=idUser)
-            filtre["user"] = user
-            filtre_ventes["user"] = user
-        except User.DoesNotExist:
-            return filtre, filtre_ventes, JsonResponse({"error": "Utilisateur introuvable"}, status=404)
-
-    return filtre, filtre_ventes, None
-
-
-def _calculer_totaux_bilan(filtre, filtre_ventes):
-    """Calcule les totaux du bilan (vente nette, prêts, dépenses, retours,
-    caisse) pour un filtre donné. Un seul aggregate() pour montant+remise
-    au lieu de deux allers-retours séparés sur le même queryset."""
-    pretReclamer = VersementClient.objects.filter(**filtre)
-    depense = Depense.objects.filter(**filtre)
-    retour = Retour.objects.filter(**filtre)
-    ventes = Commande.objects.filter(**filtre_ventes)
-    pret = PretClient.objects.filter(**filtre)
-
-    totaux_vente = ventes.aggregate(montant=Sum('montant'), remise=Sum('remise'))
-    total_montant = totaux_vente['montant'] or 0
-    total_remise = totaux_vente['remise'] or 0
-    total_net_vente = total_montant - total_remise
-
-    total_pretReclamer = pretReclamer.aggregate(total=Sum('montant'))['total'] or 0
-    total_pret = pret.aggregate(total=Sum('montant'))['total'] or 0
-    total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
-    total_retour = retour.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
-
-    caisse = total_net_vente + total_pretReclamer - total_pret - total_depense - total_retour
-
-    return {
-        "totalVente": total_net_vente,
-        "totalPretReclame": total_pretReclamer,
-        "totalPret": total_pret,
-        "totalDepense": total_depense,
-        "totalRetour": total_retour,
-        "caisse": caisse,
-    }
-
-
 @login_required
 def recherche_bilan(request):
     if request.method == "POST":
-        filtre, filtre_ventes, erreur = _construire_filtre_bilan(request)
-        if erreur:
-            return erreur
+        idUser = request.POST.get('idUser')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
 
-        return JsonResponse(_calculer_totaux_bilan(filtre, filtre_ventes))
+        # Construire le filtre dynamique
+        # (VersementClient/Depense/Retour/PretClient utilisent un DateField,
+        # mais Commande.date est un DateTimeField : on a donc besoin d'un
+        # filtre distinct pour que la date de fin inclue toute la journée
+        # sur les ventes, sinon les ventes faites après minuit du jour de
+        # fin sont exclues)
+        filtre = {}
+        filtre_ventes = {}
+
+        # Ajouter les filtres pour les dates si elles sont fournies
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+            filtre_ventes["date__gte"] = dateDebut
+        if dateFin:
+            filtre["date__lte"] = dateFin
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre_ventes["date__lt"] = fin
+
+
+
+        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+        if idUser and idUser != "0":
+            try:
+                user = User.objects.get(id=idUser)
+                filtre["user"] = user
+                filtre_ventes["user"] = user
+            except User.DoesNotExist:
+                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+
+        #pret reclamer
+        pretReclamer = VersementClient.objects.filter(**filtre)
+        depense = Depense.objects.filter(**filtre)
+
+        # Appliquer le filtre à la requête
+        retour=Retour.objects.filter(**filtre)
+        ventes = Commande.objects.filter(**filtre_ventes)
+        pret=PretClient.objects.filter(**filtre)
+        
+        # Calculer les totaux
+        total_montant = ventes.aggregate(Sum('montant'))['montant__sum'] or 0
+        total_remise = ventes.aggregate(Sum('remise'))['remise__sum'] or 0
+        total_net_vente = total_montant - total_remise  # Calcul de la différence
+        # pret reclamer
+        total_pretReclamer = pretReclamer.aggregate(Sum('montant'))['montant__sum'] or 0
+        total_pret = pret.aggregate(Sum('montant'))['montant__sum'] or 0
+        
+        total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+
+        total_retour = retour.aggregate(total=Sum(F('quantite')* F('prix')))['total'] or 0
+
+        caisse=total_net_vente+total_pretReclamer-total_pret-total_depense-total_retour or 0
+
+        # Retourner la réponse JSON
+        return JsonResponse({
+            "totalVente": total_net_vente,
+            "totalPretReclame": total_pretReclamer,
+            "totalPret": total_pret,
+            "totalDepense":total_depense,
+            "totalRetour":total_retour,
+            "caisse":caisse
+        })
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
@@ -3307,8 +3215,7 @@ def recherche_bilan(request):
 @login_required
 @user_passes_test(est_administrateur)
 def situation_boutique(request):
-    categories = Categorie.objects.order_by('nom')
-    return render(request, 'CommercialSoft/situationBoutique.html', {'categories': categories})
+    return render(request, 'CommercialSoft/situationBoutique.html')
 
 
 
@@ -3330,14 +3237,9 @@ def recherche_situation_boutique(request):
         if typePrix not in prix_mapping:
             return JsonResponse({"error": "Type de prix invalide"}, status=400)
 
-        idCategorie = request.POST.get('idCategorie')
-
         # Récupération des produits
-        produits = Produit.objects.all().order_by('libelle')
-        if idCategorie:
-            produits = produits.filter(categorie_id=idCategorie)
-        produits = produits[:MAX_RESULTATS_RECHERCHE]
-
+        produits = Produit.objects.all()
+        
         # Construction des données de réponse
         clients_data = [
             {
@@ -3506,11 +3408,11 @@ def recherche_benefice_sur_vente(request):
                 "net":commande.montant-commande.remise,
                 "benefice": commande.montant-commande.montantAchat-commande.remise,
             }
-            for commande in commandes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for commande in commandes
         ]
-
+        
         return JsonResponse({"patients": patients_data})
-
+    
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
 
@@ -3538,7 +3440,7 @@ def recherche_pourcentage_sur_vente(request):
         if fin:
             filtre_dates["date__lt"] = fin
         commandes=Commande.objects.filter(**filtre_dates)
-
+        
         # Construire une réponse JSON
         patients_data = [
             {
@@ -3549,9 +3451,9 @@ def recherche_pourcentage_sur_vente(request):
                 "net":commande.montant-commande.remise,
                 "benefice": commande.montant-commande.montantAchat-commande.remise,
             }
-            for commande in commandes.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for commande in commandes
         ]
-
+        
         return JsonResponse({"patients": patients_data})
     
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -3567,42 +3469,23 @@ def recherche_pourcentage_sur_vente(request):
 
 from io import BytesIO
 from django.template.loader import get_template
-from django.conf import settings
 from xhtml2pdf import pisa
 from django.http import HttpResponse, JsonResponse
 import os
-
-def pdf_link_callback(uri, rel):
-    """Resout les URLs /static/ et /media/ (ex: logo d'entreprise) en chemins
-    absolus sur le disque, seule facon pour xhtml2pdf d'embarquer ces images
-    dans le PDF genere."""
-    if uri.startswith(settings.MEDIA_URL):
-        path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, "", 1))
-    elif uri.startswith(settings.STATIC_URL):
-        path = os.path.join(settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, "", 1))
-        if not os.path.isfile(path):
-            for static_dir in settings.STATICFILES_DIRS:
-                candidat = os.path.join(static_dir, uri.replace(settings.STATIC_URL, "", 1))
-                if os.path.isfile(candidat):
-                    path = candidat
-                    break
-    else:
-        return uri
-    return path
 
 def convert_html_to_pdf(source_html, output_filename):
     # Ouvre le fichier de destination pour écrire le PDF
     with open(output_filename, "w+b") as result_file:
         # Crée le PDF à partir du contenu HTML
-        pisa_status = pisa.CreatePDF(source_html, dest=result_file, link_callback=pdf_link_callback)
-
+        pisa_status = pisa.CreatePDF(source_html, dest=result_file)
+    
     return pisa_status.err
 
 def generate_pdf_from_template(template_name, context, output_filename):
     # Charge le fichier HTML à partir du répertoire templates
     template = get_template(template_name)
     html_content = template.render(context)
-
+    
     # Appel de la fonction pour générer le PDF
     return convert_html_to_pdf(html_content, output_filename)
 
@@ -3622,7 +3505,7 @@ def recu(request, pk):
     total_formatte = intcomma(total).replace(",", ".")
     net=total-commande.remise 
     net_formatte = intcomma(net).replace(",", ".")
-    infoBoutique=request.entreprise
+    infoBoutique=InfoBoutique.objects.first()
     context = {'listes': produits,'total':total_formatte,'net':net_formatte,'remise':commande.remise,'boutique':infoBoutique,'commande':commande}
     
     # Chemin vers le fichier HTML dans le répertoire templates
@@ -3648,7 +3531,7 @@ from django.shortcuts import render
 from django.contrib.humanize.templatetags.humanize import intcomma
 from datetime import date
 
-from CommercialSoft.models import Client  # ✅ importer en haut
+from CommercialSoft.models import Client, InfoBoutique  # ✅ importer en haut
 
 @login_required
 @permission_required('CommercialSoft.view_commande')
@@ -3694,7 +3577,8 @@ def recu_offline(request):
             except Client.DoesNotExist:
                 commande["client"] = f"Client #{client_id}"
 
-        infoBoutique = request.entreprise
+        from CommercialSoft.models import InfoBoutique
+        infoBoutique = InfoBoutique.objects.first()
 
         context = {
             "listes": produits,
@@ -3747,7 +3631,7 @@ def generate_pdf_response_vrais(template_src, context_dict):
 
     result = BytesIO()
     try:
-        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result, link_callback=pdf_link_callback)
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
         if not pdf.err:
             print("PDF généré avec succès.")
             response = HttpResponse(result.getvalue(), content_type='application/pdf')
@@ -3806,7 +3690,7 @@ def pdf_Produit_disponible(request):
         ]
 
         
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfProduitDisponible.html", context)
 
@@ -3853,7 +3737,7 @@ def pdf_inventaire(request):
         ]
 
         
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfInventaire.html", context)
 
@@ -3901,7 +3785,7 @@ def pdf_Produit_livrer(request):
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
         
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfProduitLivrer.html", context)
 
@@ -3949,7 +3833,7 @@ def pdf_etat_depense(request):
             montant_total = sum(p["montant"] for p in produits_data)
             montant_formate = "{:,.0f}".format(montant_total).replace(",", " ")
 
-            infoBoutique = request.entreprise
+            infoBoutique = InfoBoutique.objects.first()
 
             context = {
                 'listes': produits_data,
@@ -4018,7 +3902,7 @@ def pdf_etat_detail_vente(request):
             montant_total = sum(p["montant"] for p in produits_data)
             montant_formate = "{:,.0f}".format(montant_total).replace(",", " ")
 
-            infoBoutique = request.entreprise
+            infoBoutique = InfoBoutique.objects.first()
 
             context = {
                 'listes': produits_data,
@@ -4070,7 +3954,7 @@ def pdf_etat_versementClient(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementClient.html", context)
 
@@ -4116,7 +4000,7 @@ def pdf_etat_versementFournisseur(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementFournisseur.html", context)
 
@@ -4164,7 +4048,7 @@ def pdf_etat_client(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
           
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatClient.html", context)
@@ -4224,7 +4108,7 @@ def pdf_etat_situation_client(request):
         def formater(montant):
             return "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique = request.entreprise
+        infoBoutique = InfoBoutique.objects.first()
         context = {
             'listes': produits_data,
             'montantPret': formater(montant_pret),
@@ -4304,7 +4188,7 @@ def pdf_etat_situation_fournisseur(request):
         montantVersement_formate = "{:,.0f}".format(montantVersement).replace(",", " ")
         balance_formate = "{:,.0f}".format(balance).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montantPret': montantPret_formate,'montantVersement':montantVersement_formate, 'balance':balance_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationFournisseur.html", context)
 
@@ -4334,13 +4218,9 @@ def pdf_etat_situation_boutique(request):
         if typePrix not in prix_mapping:
             return JsonResponse({"error": "Type de prix invalide"}, status=400)
 
-        idCategorie = request.POST.get('idCategorie')
-
         # Récupération des produits
         produits = Produit.objects.all()
-        if idCategorie:
-            produits = produits.filter(categorie_id=idCategorie)
-
+        
         # Construction des données de réponse
         produits_data = [
             {
@@ -4361,7 +4241,7 @@ def pdf_etat_situation_boutique(request):
         montant_formate = "{:,.0f}".format(montantTotal).replace(",", " ")
         benefice_formate = "{:,.0f}".format(benefice).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'benefice':benefice_formate,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationBoutique.html", context)
@@ -4396,7 +4276,7 @@ def pdf_etat_produit_perime(request):
             for produit in produits
         ]
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitPerime.html", context)
@@ -4430,7 +4310,7 @@ def pdf_etat_produit_rupture(request):
             for produit in produits
         ]
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitRupture.html", context)
@@ -4481,7 +4361,7 @@ def pdf_etat_pretClient(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatPretClient.html", context)
@@ -4530,7 +4410,7 @@ def pdf_etat_versementGerant(request):
         # Formatage avec séparateur de milliers (ex: 1 234 567)
         montant_formate = "{:,.0f}".format(montant).replace(",", " ")
 
-        infoBoutique=request.entreprise
+        infoBoutique=InfoBoutique.objects.first()
         context = {'listes': produits_data, 'montant': montant_formate,'boutique':infoBoutique}
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatVersementGerant.html", context)
 
@@ -4620,7 +4500,7 @@ def pdf_etat_situation_vente(request):
                         "stock": produit.quantite or 0
                     })
 
-            infoBoutique=request.entreprise
+            infoBoutique=InfoBoutique.objects.first()
             context = {'listes': produits_infos, 'boutique':infoBoutique}
             return generate_pdf_response_vrais("CommercialSoft/pdfEtatSituationVente.html", context)
     except Exception as e:
@@ -4669,7 +4549,7 @@ def pdf_etat_reception_produit(request):
                     "date_livraison": lp.livraison.date.strftime("%Y-%m-%d"),
                 })
 
-            infoBoutique=request.entreprise
+            infoBoutique=InfoBoutique.objects.first()
             context = {'listes': resultats, 'boutique':infoBoutique}
             return generate_pdf_response_vrais("CommercialSoft/pdfReceptionProduit.html", context)
 
@@ -4777,10 +4657,10 @@ def recherche_retours(request):
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
-        retours=Retour.objects.select_related('produit', 'user')
+        retours=Retour.objects.all()
 
         if dateDebut and dateFin:
-            retours = retours.filter(date__gte=dateDebut, date__lte=dateFin)
+            retours = Retour.objects.filter(date__gte=dateDebut, date__lte=dateFin)  # Récupérer tous les produits par défaut
 
        
         # Construire la réponse JSON
@@ -4794,9 +4674,9 @@ def recherche_retours(request):
                 "montant": retour.prix * retour.quantite,
                 "user": f"{retour.user.first_name} {retour.user.last_name}",
             }
-            for retour in retours.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for retour in retours
         ]
-
+        
         return JsonResponse({"livraison": produits_data})
 
     return JsonResponse({"error": "Requête invalide"}, status=400)
@@ -4825,8 +4705,6 @@ def retour_delete(request, pk):
 @login_required
 def retours(request):
     users = User.objects.all()
-    if request.entreprise is not None:
-        users = users.filter(entreprise=request.entreprise)
     return render(request, 'CommercialSoft/listeRetour.html',{'users':users})
 
 
@@ -4842,7 +4720,7 @@ def pdf_facture_proforma(request):
             data_json = request.POST.get('data')
             donnees = json.loads(data_json)
 
-            infoBoutique = request.entreprise
+            infoBoutique = InfoBoutique.objects.first()
 
             # Calcul du total
             total = sum(item.get("montant", 0) for item in donnees)
@@ -4876,7 +4754,7 @@ def pdf_facture_proforma(request):
             data_json = request.POST.get('data')
             data = json.loads(data_json)
 
-            infoBoutique = request.entreprise
+            infoBoutique = InfoBoutique.objects.first()
 
             # Liste des articles
             donnees = data.get("produits", [])
@@ -4935,7 +4813,7 @@ def pdf_facture_proforma_2(request, commande_id):
         commande = get_object_or_404(Commande, id=commande_id)
 
         # ✅ 2️⃣ Informations de la boutique
-        infoBoutique = request.entreprise
+        infoBoutique = InfoBoutique.objects.first()
 
         # ✅ 3️⃣ Liste des lignes de la commande
         lignes = CommandeProduit.objects.filter(commande=commande)
@@ -4984,41 +4862,6 @@ def pdf_facture_proforma_2(request, commande_id):
         return HttpResponse("Erreur serveur : " + str(e), status=500)
 
 
-@login_required
-@permission_required('CommercialSoft.add_commande')
-def pdf_facture_proforma_demande(request, demande_id):
-    """Apercu/impression proforma d'une demande de commande client pas
-    encore validee (donc basee sur les quantites/prix demandes, avant
-    tout ajustement par le gerant)."""
-    demande = get_object_or_404(CommandeClient, id=demande_id)
-    lignes = demande.lignes.select_related('produit')
-
-    donnees = [
-        {
-            "produit": ligne.produit.libelle,
-            "quantite": ligne.quantiteDemandee,
-            "prix": ligne.prixUnitaire,
-            "montant": ligne.quantiteDemandee * ligne.prixUnitaire,
-        }
-        for ligne in lignes
-    ]
-
-    total = sum(item["montant"] for item in donnees)
-
-    context = {
-        'id': demande.id,
-        'listes': donnees,
-        'boutique': request.entreprise,
-        'total': "{:,}".format(total).replace(",", " "),
-        'remise': "0",
-        'total_net': "{:,}".format(total).replace(",", " "),
-        'date': demande.date.strftime("%d/%m/%Y") if demande.date else timezone.now().strftime("%d/%m/%Y à %H:%M"),
-        'client': demande.client.nom if demande.client else "",
-        'numero_client': demande.client.telephone if demande.client else "",
-    }
-    return generate_pdf_response_vrais("CommercialSoft/pdfFactureProforma.html", context)
-
-
 
 
 
@@ -5029,33 +4872,81 @@ def pdf_facture_proforma_demande(request, demande_id):
 def pdf_etat_bilan(request):
     if request.method == "POST":
         try:
+            idUser = request.POST.get('idUser')
             dateDebut = request.POST.get("dateDebut")
             dateFin = request.POST.get("dateFin")
 
-            filtre, filtre_ventes, erreur = _construire_filtre_bilan(request)
-            if erreur:
-                return erreur
+            # Construire le filtre dynamique
+            # (VersementClient/Depense/Retour/PretClient utilisent un
+            # DateField, mais Commande.date est un DateTimeField : on a donc
+            # besoin d'un filtre distinct pour que la date de fin inclue
+            # toute la journée sur les ventes, sinon les ventes faites après
+            # minuit du jour de fin sont exclues)
+            filtre = {}
+            filtre_ventes = {}
 
-            totaux = _calculer_totaux_bilan(filtre, filtre_ventes)
+            # Ajouter les filtres pour les dates si elles sont fournies
+            if dateDebut:
+                filtre["date__gte"] = dateDebut
+                filtre_ventes["date__gte"] = dateDebut
+            if dateFin:
+                filtre["date__lte"] = dateFin
+                fin = _borne_fin_journee(dateFin)
+                if fin:
+                    filtre_ventes["date__lt"] = fin
+
+
+
+            # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+            if idUser and idUser != "0":
+                try:
+                    user = User.objects.get(id=idUser)
+                    filtre["user"] = user
+                    filtre_ventes["user"] = user
+                except User.DoesNotExist:
+                    return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+
+            #pret reclamer
+            pretReclamer = VersementClient.objects.filter(**filtre)
+            depense = Depense.objects.filter(**filtre)
+
+            # Appliquer le filtre à la requête
+            retour=Retour.objects.filter(**filtre)
+            ventes = Commande.objects.filter(**filtre_ventes)
+            pret=PretClient.objects.filter(**filtre)
+            
+            # Calculer les totaux
+            total_montant = ventes.aggregate(Sum('montant'))['montant__sum'] or 0
+            total_remise = ventes.aggregate(Sum('remise'))['remise__sum'] or 0
+            total_net_vente = total_montant - total_remise  # Calcul de la différence
+            # pret reclamer
+            total_pretReclamer = pretReclamer.aggregate(Sum('montant'))['montant__sum'] or 0
+            total_pret = pret.aggregate(Sum('montant'))['montant__sum'] or 0
+            
+            total_depense = depense.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
+
+            total_retour = retour.aggregate(total=Sum(F('quantite')* F('prix')))['total'] or 0
+
+            caisse=total_net_vente+total_pretReclamer-total_pret-total_depense-total_retour or 0
 
             if dateDebut == dateFin:
                 intervalle= "du "+dateDebut
             else:
                 intervalle= "du "+dateDebut+" au "+dateFin
 
-            infoBoutique = request.entreprise
+            infoBoutique = InfoBoutique.objects.first()
 
 
             def formater(montant):
                 return "{:,.0f}".format(montant).replace(",", " ")
 
             context = {
-                "totalVente": formater(totaux["totalVente"]),
-                "totalPretReclame": formater(totaux["totalPretReclame"]),
-                "totalPret": formater(totaux["totalPret"]),
-                "totalDepense":formater(totaux["totalDepense"]),
-                "totalRetour":formater(totaux["totalRetour"]),
-                "caisse":formater(totaux["caisse"]),
+                "totalVente": formater(total_net_vente),
+                "totalPretReclame": formater(total_pretReclamer),
+                "totalPret": formater(total_pret),
+                "totalDepense":formater(total_depense),
+                "totalRetour":formater(total_retour),
+                "caisse":formater(caisse),
                 'boutique': infoBoutique,
                 "intervalle": intervalle
             }
@@ -5098,7 +4989,6 @@ def import_excel_view(request):
                     for _, row in df.iterrows():
                         Societe.objects.update_or_create(
                             nom=row["nom"],
-                            entreprise=request.entreprise,
                             defaults={
                                 "adresse": row.get("adresse", None),
                                 "telephone": row.get("telephone", None),
@@ -5109,13 +4999,10 @@ def import_excel_view(request):
                     for _, row in df.iterrows():
                         societe_obj = None
                         if "societe" in df.columns and not pd.isna(row["societe"]):
-                            societe_obj, _ = Societe.objects.get_or_create(
-                                nom=row["societe"], entreprise=request.entreprise
-                            )
+                            societe_obj, _ = Societe.objects.get_or_create(nom=row["societe"])
 
                         Client.objects.update_or_create(
                             nom=row["nom"],
-                            entreprise=request.entreprise,
                             defaults={
                                 "societe": societe_obj,
                                 "telephone": row.get("telephone", None),
@@ -5131,13 +5018,10 @@ def import_excel_view(request):
                     for _, row in df.iterrows():
                         categorie_obj = None
                         if "categorie" in df.columns and not pd.isna(row["categorie"]):
-                            categorie_obj, _ = Categorie.objects.get_or_create(
-                                nom=row["categorie"], entreprise=request.entreprise
-                            )
+                            categorie_obj, _ = Categorie.objects.get_or_create(nom=row["categorie"])
 
                         Produit.objects.update_or_create(
                             libelle=row["libelle"],
-                            entreprise=request.entreprise,
                             defaults={
                                 "codebare": row.get("codebare", None),
                                 "categorie": categorie_obj,
@@ -5478,13 +5362,11 @@ def portail_accueil(request):
     total_pret = client.prets.aggregate(total=Sum('montant'))['total'] or 0
     total_versement = client.versements.aggregate(total=Sum('montant'))['total'] or 0
     solde = total_pret - total_versement
-    nombre_commandes = Commande.objects.filter(client=client).count()
-    demandes_en_attente = client.demandes_commande.filter(statut='En attente').count()
     dernieres_demandes = client.demandes_commande.order_by('-date', '-id')[:5]
     return render(request, 'CommercialSoft/portail/accueil.html', {
         'client': client,
-        'nombre_commandes': nombre_commandes,
-        'demandes_en_attente': demandes_en_attente,
+        'total_pret': total_pret,
+        'total_versement': total_versement,
         'solde': solde,
         'dernieres_demandes': dernieres_demandes,
     })
@@ -5511,7 +5393,6 @@ def portail_commande_creer(request):
 
     with transaction.atomic():
         demande = CommandeClient.objects.create(
-            entreprise=client.entreprise,
             client=client,
             commentaire=request.POST.get('commentaire') or None,
         )
@@ -5525,7 +5406,6 @@ def portail_commande_creer(request):
             except Produit.DoesNotExist:
                 continue
             CommandeClientProduit.objects.get_or_create(
-                entreprise=client.entreprise,
                 demande=demande,
                 produit=produit,
                 defaults={'quantiteDemandee': quantite, 'prixUnitaire': produit.prixDetail},
@@ -5579,7 +5459,7 @@ def portail_commande_detail(request, pk):
         'demande': demande,
         'lignes': lignes,
         'total_facture': total_facture,
-        'boutique': request.entreprise,
+        'boutique': InfoBoutique.objects.first(),
     })
 
 
@@ -5595,34 +5475,30 @@ def portail_facture_pdf(request, pk):
         'demande': demande,
         'lignes': lignes,
         'total_facture': total_facture,
-        'boutique': request.entreprise,
+        'boutique': InfoBoutique.objects.first(),
     }
     return generate_pdf_response_vrais("CommercialSoft/portail/factureA4.html", context)
 
 
 @client_required
 def portail_versements(request):
-    a_filtre = bool(request.GET)
+    versements = request.user.client_profile.versements.order_by('-date', '-id')
+
     date_debut = request.GET.get('date_debut', '')
     date_fin = request.GET.get('date_fin', '')
 
-    if a_filtre:
-        versements = request.user.client_profile.versements.order_by('-date', '-id')
-        if _parse_date_filtre(date_debut):
-            versements = versements.filter(date__gte=date_debut)
-        if _parse_date_filtre(date_fin):
-            versements = versements.filter(date__lte=date_fin)
-        total_versements = versements.aggregate(total=Sum('montant'))['total'] or 0
-    else:
-        versements = VersementClient.objects.none()
-        total_versements = 0
+    if _parse_date_filtre(date_debut):
+        versements = versements.filter(date__gte=date_debut)
+    if _parse_date_filtre(date_fin):
+        versements = versements.filter(date__lte=date_fin)
+
+    total_versements = versements.aggregate(total=Sum('montant'))['total'] or 0
 
     return render(request, 'CommercialSoft/portail/versements.html', {
         'versements': versements,
         'total_versements': total_versements,
         'date_debut': date_debut,
         'date_fin': date_fin,
-        'a_filtre': a_filtre,
     })
 
 
@@ -5633,30 +5509,17 @@ def portail_versements(request):
 @login_required
 @permission_required('CommercialSoft.add_commande')
 def demandes_commande_liste(request):
-    demandes = (
-        CommandeClient.objects.select_related('client')
-        .filter(statut='En attente')
-        .annotate(nb_lignes=Count('lignes'))
-        .order_by('-date', '-id')
-    )
-    en_attente = demandes.count()
-    paginator = Paginator(demandes, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    demandes = CommandeClient.objects.select_related('client').filter(statut='En attente').order_by('-date', '-id')
     return render(request, 'CommercialSoft/demandesCommande.html', {
-        'demandes': paginated,
-        'en_attente': en_attente,
+        'demandes': demandes,
+        'en_attente': demandes.count(),
     })
 
 
 @login_required
 @permission_required('CommercialSoft.add_commande')
 def demandes_commande_historique(request):
-    demandes = (
-        CommandeClient.objects.select_related('client')
-        .annotate(nb_lignes=Count('lignes'))
-        .order_by('-date', '-id')
-    )
+    demandes = CommandeClient.objects.select_related('client').order_by('-date', '-id')
 
     statut = request.GET.get('statut', '')
     date_debut = request.GET.get('date_debut', '')
@@ -5674,21 +5537,13 @@ def demandes_commande_historique(request):
 
     clients = Client.objects.filter(demandes_commande__isnull=False).distinct().order_by('nom')
 
-    paginator = Paginator(demandes, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
-
-    querystring = request.GET.copy()
-    querystring.pop('page', None)
-
     return render(request, 'CommercialSoft/demandesCommandeHistorique.html', {
-        'demandes': paginated,
+        'demandes': demandes,
         'statut': statut,
         'date_debut': date_debut,
         'date_fin': date_fin,
         'client_id': client_id,
         'clients': clients,
-        'querystring': querystring.urlencode(),
     })
 
 
@@ -5822,10 +5677,7 @@ def client_compte_creer(request, pk):
         elif User.objects.filter(username=username).exists():
             messages.error(request, "Ce nom d'utilisateur est déjà utilisé.")
         else:
-            user = User.objects.create_user(
-                username=username, password=password1, is_staff=False,
-                entreprise=request.entreprise,
-            )
+            user = User.objects.create_user(username=username, password=password1, is_staff=False)
             client.user = user
             client.save()
             messages.success(request, f"Compte portail créé pour {client.nom}.")

@@ -5,23 +5,20 @@ from .models import CustomUser
 @admin.register(CustomUser)
 class UserAdmin(BaseUserAdmin):
     model = CustomUser
-    list_display = ('username', 'first_name', 'last_name', 'entreprise', 'is_staff', 'is_active', 'date_joined')
-    list_filter = ('is_staff', 'is_active', 'is_superuser', 'entreprise')
+    list_display = ('username', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined')
+    list_filter = ('is_staff', 'is_active', 'is_superuser')
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Informations personnelles', {'fields': ('first_name', 'last_name')}),
-        ('Entreprise', {'fields': ('entreprise', 'entreprises_additionnelles')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Dates importantes', {'fields': ('last_login', 'date_joined')}),
     )
 
-    filter_horizontal = ('entreprises_additionnelles', 'groups', 'user_permissions')
-
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'entreprise', 'is_staff', 'is_active')}
+            'fields': ('username', 'password1', 'password2', 'is_staff', 'is_active')}
         ),
     )
 

@@ -146,11 +146,27 @@
 
     <div class="container">
 
-        {% include 'CommercialSoft/partials/pdf_entete.html' %}
+        <div class="header">
+            <table style="width: 100%; font-size: 14pt; border: none;">
+                <tr>
+                    <!-- Colonne de gauche -->
+                    <td style="width: 60%; text-align: left; padding: 5px; border: none;">
+                        <strong style="font-size: 14pt; text-align: center;">{{ boutique.nom }}</strong><br>
+                        {{ boutique.telephone }}
+                    </td>
+            
+                    <!-- Colonne de droite -->
+                    <td style="width: 40%; text-align: right; padding: 5px; border: none;">
+                        <strong style="font-size: 14pt; text-align: center;">{{ boutique.ville }}</strong><br>
+                        {{ boutique.emplacement }}
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         
         
-        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 20px 0px 0px 0px;">Facture N° {% if id %} {{id}} {% else %}____{% endif %}</h1>
+        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Facture N° {% if id %} {{id}} {% else %}____{% endif %}</h1>
         {% if client %}
         <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;">Nom client : {{client}}</h3>
         <h3 style="color: #2d3e50;font-size: 15px; padding: 0px; margin: 0px;"> Telephone : {{numero_client}}</h3>

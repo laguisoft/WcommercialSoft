@@ -3,43 +3,31 @@ from django.contrib.auth.models import AbstractUser, Group, Permission, User
 from django.utils import timezone
 from django.conf import settings
 from django.core.validators import RegexValidator
-
-from tenants.models import TenantScopedModel
 # Create your models here.
 
 
 
 
-class Fournisseur(TenantScopedModel):
-    nom=models.CharField(max_length=100)
+class Fournisseur(models.Model):
+    nom=models.CharField(max_length=100, unique=True)
     adresse=models.CharField(max_length=30)
     telephone=models.CharField(max_length=20)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'nom'], name='fournisseur_nom_unique_par_entreprise'),
-        ]
+    def __str__(self):
+        return self.nom
+    
+
+class Categorie(models.Model):
+    nom=models.CharField(max_length=30, unique=True)
 
     def __str__(self):
         return self.nom
 
 
-class Categorie(TenantScopedModel):
-    nom=models.CharField(max_length=30)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'nom'], name='categorie_nom_unique_par_entreprise'),
-        ]
-
-    def __str__(self):
-        return self.nom
-
-
-class Produit(TenantScopedModel):
-    codebare=models.CharField(max_length=100, null=True, blank=True)
+class Produit(models.Model):
+    codebare=models.CharField(max_length=100, unique=True, null=True, blank=True)
     categorie=models.ForeignKey(Categorie, on_delete=models.SET_NULL, null=True, blank=True)
-    libelle=models.CharField(max_length=60)
+    libelle=models.CharField(max_length=60, unique=True)
     quantite=models.IntegerField()
     prixAchat=models.DecimalField(max_digits=30, decimal_places=0)
     prixEnGros=models.DecimalField(max_digits=30, decimal_places=0)
@@ -52,41 +40,24 @@ class Produit(TenantScopedModel):
     quantiteTotal=models.PositiveBigIntegerField(default=0)
     special=models.BooleanField(default=False, verbose_name="Produit special (infos client requises a la vente)")
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'codebare'], name='produit_codebare_unique_par_entreprise'),
-            models.UniqueConstraint(fields=['entreprise', 'libelle'], name='produit_libelle_unique_par_entreprise'),
-        ]
-        indexes = [
-            models.Index(fields=['entreprise', 'datePeremption'], name='produit_entr_peremption_idx'),
-        ]
-
     def __str__(self):
         return self.libelle
 
 
-class Livraison(TenantScopedModel):
+class Livraison(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE)
     date=models.DateField(default=timezone.now, db_index=True)
     montant=models.BigIntegerField()
     numeroFacture=models.CharField(max_length=20, blank=True, null=True)
     typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Pret','Pret')])
     # pour la gestion hors ligne
-    client_uid = models.CharField(max_length=64, null=True, blank=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'client_uid'], name='livraison_client_uid_unique_par_entreprise'),
-        ]
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='livraison_entr_date_idx'),
-        ]
+    client_uid = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
     def __str__(self):
         return self.fournisseur.nom
 
 
-class LivraisonProduit(TenantScopedModel):
+class LivraisonProduit(models.Model):
     livraison=models.ForeignKey(Livraison, on_delete=models.CASCADE)
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
     quantite=models.PositiveIntegerField()
@@ -96,23 +67,18 @@ class LivraisonProduit(TenantScopedModel):
     peremption=models.DateField(null=True, blank=True)
 
 
-class Societe(TenantScopedModel):
-    nom=models.CharField(max_length=100)
+class Societe(models.Model):
+    nom=models.CharField(max_length=100, unique=True)
     adresse=models.CharField(max_length=100, null=True, blank=True)
     telephone=models.CharField(max_length=20)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'nom'], name='societe_nom_unique_par_entreprise'),
-        ]
-
     def __str__(self):
         return self.nom
+    
 
-
-class Client(TenantScopedModel):
+class Client(models.Model):
     societe=models.ForeignKey(Societe, on_delete=models.CASCADE, null=True)
-    nom=models.CharField(max_length=70)
+    nom=models.CharField(max_length=70, unique=True)
     telephone=models.CharField(max_length=20,null=True,blank=True)
     adresse=models.CharField(max_length=30, null=True, blank=True)
     email=models.EmailField(max_length=50, null=True, blank=True)
@@ -122,16 +88,11 @@ class Client(TenantScopedModel):
     # Compte du portail client, cree et lie par le gerant
     user=models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='client_profile')
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'nom'], name='client_nom_unique_par_entreprise'),
-        ]
-
     def __str__(self):
         return self.nom
 
 
-class ClientSpecial(TenantScopedModel):
+class ClientSpecial(models.Model):
     """Acheteur d'un produit special (table distincte des clients habituels)."""
     nom=models.CharField(max_length=70)
     prenom=models.CharField(max_length=70, null=True, blank=True)
@@ -141,7 +102,7 @@ class ClientSpecial(TenantScopedModel):
         return f"{self.nom} {self.prenom}".strip() if self.prenom else self.nom
 
 
-class Commande(TenantScopedModel):
+class Commande(models.Model):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True)
     clientSpecial=models.ForeignKey(ClientSpecial, on_delete=models.SET_NULL, null=True, blank=True, related_name='achats')
@@ -152,21 +113,13 @@ class Commande(TenantScopedModel):
     typePayement=models.CharField(max_length=20, default="Espece", choices=[('Espece','Espece'),('Pret','Pret'),('Don','Don'),('Orange Money','Orange Money')])
     montantAchat=models.PositiveBigIntegerField()
     # pour la gestion hors ligne
-    client_uid = models.CharField(max_length=64, null=True, blank=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['entreprise', 'client_uid'], name='commande_client_uid_unique_par_entreprise'),
-        ]
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='commande_entr_date_idx'),
-        ]
+    client_uid = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
     def __str__(self):
         return str(self.montant)
 
 
-class CommandeProduit(TenantScopedModel):
+class CommandeProduit(models.Model):
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE, null=True)
     commande=models.ForeignKey(Commande, on_delete=models.CASCADE)
     quantite=models.PositiveIntegerField()
@@ -175,12 +128,9 @@ class CommandeProduit(TenantScopedModel):
 
     class Meta:
         unique_together = ['produit', 'commande']
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='commandeproduit_entr_date_idx'),
-        ]
 
 
-class CommandeClient(TenantScopedModel):
+class CommandeClient(models.Model):
     """Demande de commande passee par un client depuis le portail.
     Reste 'En attente' tant qu'un employe n'a pas verifie les quantites
     disponibles et valide; la validation declenche la vente reelle (Commande)."""
@@ -197,16 +147,11 @@ class CommandeClient(TenantScopedModel):
     traitePar=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='demandes_traitees')
     dateTraitement=models.DateTimeField(null=True, blank=True)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='commandeclient_entr_date_idx'),
-        ]
-
     def __str__(self):
         return f"Demande #{self.id} - {self.client.nom}"
 
 
-class CommandeClientProduit(TenantScopedModel):
+class CommandeClientProduit(models.Model):
     demande=models.ForeignKey(CommandeClient, on_delete=models.CASCADE, related_name='lignes')
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
     quantiteDemandee=models.PositiveIntegerField()
@@ -217,7 +162,7 @@ class CommandeClientProduit(TenantScopedModel):
         unique_together = ['demande', 'produit']
 
 
-class Categorie_Depense(TenantScopedModel):
+class Categorie_Depense(models.Model):
     nom=models.CharField(max_length=50)
     description=models.CharField(max_length=50, null=True, blank=True)
 
@@ -227,7 +172,7 @@ class Categorie_Depense(TenantScopedModel):
 
 
 
-class Depense(TenantScopedModel):
+class Depense(models.Model):
     intitule=models.CharField(max_length=100)
     quantite=models.PositiveIntegerField()
     prix=models.PositiveIntegerField()
@@ -235,15 +180,10 @@ class Depense(TenantScopedModel):
     categorie=models.ForeignKey(Categorie_Depense, on_delete=models.CASCADE)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='depense_entr_date_idx'),
-        ]
 
 
 
-
-class Categorie_Decaissement(TenantScopedModel):
+class Categorie_Decaissement(models.Model):
     nom=models.CharField(max_length=50)
     description=models.CharField(max_length=50, null=True, blank=True)
 
@@ -253,36 +193,26 @@ class Categorie_Decaissement(TenantScopedModel):
 
 
 
-class Decaissement(TenantScopedModel):
+class Decaissement(models.Model):
     motif=models.CharField(max_length=100)
     montant=models.PositiveBigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
     categorie=models.ForeignKey(Categorie_Decaissement, on_delete=models.CASCADE)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='decaissement_entr_date_idx'),
-        ]
 
 
 
-
-class VersementClient(TenantScopedModel):
+class VersementClient(models.Model):
     client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='versements')
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='versementclient_entr_date_idx'),
-        ]
 
 
 
-
-class PretClient(TenantScopedModel):
+class PretClient(models.Model):
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, related_name='prets')
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
@@ -292,60 +222,52 @@ class PretClient(TenantScopedModel):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     commentaire=models.CharField(max_length=50, null=True, blank=True)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='pretclient_entr_date_idx'),
-        ]
 
 
 
 
-
-class DetteFournisseur(TenantScopedModel):
+class DetteFournisseur(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE, related_name='detteFournisseur')
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
     facture=models.ForeignKey(Livraison, on_delete=models.CASCADE, related_name='livraison', null=True, blank=True)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='dettefournisseur_entr_date_idx'),
-        ]
 
 
-class VersementFournisseur(TenantScopedModel):
+class VersementFournisseur(models.Model):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE, related_name='versementFournisseur')
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='versementfourn_entr_date_idx'),
-        ]
 
 
-class VersementGerant(TenantScopedModel):
+class VersementGerant(models.Model):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='versementgerant_entr_date_idx'),
-        ]
 
 
-class Retour(TenantScopedModel):
+class InfoBoutique(models.Model):
+    nom=models.CharField(max_length=100, unique=True)
+    emplacement=models.CharField(max_length=50, null=True, blank=True)
+    ville=models.CharField(max_length=30)
+    telephone=models.CharField(max_length=20, null=True, blank=True)
+    email=models.EmailField(max_length=70, null=True, blank=True)
+    proprietaire=models.CharField(max_length=100, null=True, blank=True) 
+    quantiteNegative=models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nom
+    
+
+
+class Retour(models.Model):
     produit=models.ForeignKey(Produit, on_delete=models.CASCADE)
     quantite=models.PositiveIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     prix=models.PositiveBigIntegerField()
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['entreprise', 'date'], name='retour_entr_date_idx'),
-        ]
 
     def __str__(self):
         return f"{self.produit.libelle} - {self.quantite} - {self.date}"
