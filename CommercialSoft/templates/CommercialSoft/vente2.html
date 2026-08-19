@@ -921,7 +921,7 @@ async function validerVente() {
     let venteData = {
       id_local: Date.now() + "_" + Math.floor(Math.random() * 100000), // identifiant unique
       lignes: panier,
-      date: new Date().toISOString().slice(0, 10),
+      date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
       remise,
       montant,
       typeVente,
@@ -1320,7 +1320,7 @@ if (result.isConfirmed) {
 document.addEventListener("DOMContentLoaded", function () {
     const dateInput = document.getElementById("idCommande");
     if (dateInput && !dateInput.value) {
-        let today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+        let today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); // yyyy-mm-dd
         dateInput.value = today;
     }
 });
