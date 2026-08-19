@@ -24,6 +24,20 @@ function _csrfToken() {
   return window.CSRF_TOKEN || "";
 }
 
+// fetch() n'a pas de delai d'attente par defaut : une connexion qui reste
+// "connectee" mais ne repond jamais (wifi capte mais sans reel acces
+// internet, requete qui ne repond jamais...) laisse le await fetch(...)
+// bloque indefiniment. Comme _syncVentesEnCours/_syncLivraisonsEnCours
+// reste alors bloque a true, plus aucune synchro (ni le sondage toutes les
+// 10s, ni la reconnexion) ne peut redemarrer : le bandeau reste fige sur
+// le dernier message affiche (souvent "Tout est synchronise") alors que
+// des ventes/factures restent en attente. On borne donc chaque requete.
+function _fetchAvecTimeout(url, options, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 // Retire un element synchronise avec succes d'une file relue a l'instant
 // (pas d'un instantane pris en debut de boucle) : chaque envoi attend le
 // reseau, donc si l'utilisateur ajoute une nouvelle vente/livraison pendant
@@ -63,7 +77,7 @@ async function syncVentesOffline() {
     for (const vente of ventesAEnvoyer) {
       let out;
       try {
-        const resp = await fetch("/commerce/api/sync/ventes/", {
+        const resp = await _fetchAvecTimeout("/commerce/api/sync/ventes/", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-CSRFToken": _csrfToken() },
           credentials: "same-origin",
@@ -141,7 +155,7 @@ async function syncLivraisonsOffline() {
     for (const livraison of livraisonsAEnvoyer) {
       let out;
       try {
-        const resp = await fetch("/commerce/api/sync/livraisons/", {
+        const resp = await _fetchAvecTimeout("/commerce/api/sync/livraisons/", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-CSRFToken": _csrfToken() },
           credentials: "same-origin",
