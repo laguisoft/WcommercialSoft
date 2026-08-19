@@ -354,7 +354,10 @@
        hors-ligne (ventes et réceptions en attente) doit démarrer dès
        qu'une page s'affiche après connexion, sans attendre que
        l'utilisateur ouvre la page de vente ou de réception concernée. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+  <!-- Auto-hébergé (pas de CDN) : la synchro hors-ligne doit pouvoir
+       charger localforage même sans connexion, ce qu'un <script src> pointant
+       vers un CDN externe ne permet pas. -->
+  <script src="{% static 'js/localforage.min.js' %}"></script>
   <script>window.CSRF_TOKEN = "{{ csrf_token }}";</script>
   <script src="{% static 'js/register-sw.js' %}"></script>
   <script src="{% static 'js/offline-core.js' %}"></script>

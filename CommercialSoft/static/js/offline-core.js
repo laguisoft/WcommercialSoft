@@ -5,9 +5,18 @@
 // page affichée après connexion — pas seulement quand l'utilisateur ouvre
 // la page de vente ou de réception concernée.
 
-localforage.config({
-  name: "venteApp", // même DB que vente2.html / reception2.html, pour partager les clés
-});
+// localforage est chargé en auto-hébergé (voir starter-page.html / vente2.html) pour
+// rester disponible hors-ligne, mais si le script n'a pas pu se charger (cache PWA pas
+// encore rempli, fichier statique manquant...) on évite qu'une ReferenceError ici ne
+// tue le reste de ce script : sans ce garde, aucun des listeners plus bas (sync auto au
+// chargement, à la reconnexion, au message du service worker) ne serait jamais enregistré.
+if (typeof localforage === "undefined") {
+  console.error("❌ localforage indisponible : synchronisation hors-ligne désactivée pour cette page.");
+} else {
+  localforage.config({
+    name: "venteApp", // même DB que vente2.html / reception2.html, pour partager les clés
+  });
+}
 
 function _csrfToken() {
   return window.CSRF_TOKEN || "";
@@ -19,7 +28,7 @@ let _syncVentesEnCours = false;
 // une, dans l'ordre — même format d'appel que /commerce/api/sync/ventes/
 // attend (un objet vente par requête, pas un tableau).
 async function syncVentesOffline() {
-  if (_syncVentesEnCours) return;
+  if (typeof localforage === "undefined" || _syncVentesEnCours) return;
   _syncVentesEnCours = true;
   try {
     const etat = document.getElementById("etatSynchro");
@@ -76,7 +85,7 @@ let _syncLivraisonsEnCours = false;
 // Synchronise les réceptions/livraisons enregistrées localement (clé
 // "livraisons"), une par une — même principe que syncVentesOffline.
 async function syncLivraisonsOffline() {
-  if (_syncLivraisonsEnCours) return;
+  if (typeof localforage === "undefined" || _syncLivraisonsEnCours) return;
   _syncLivraisonsEnCours = true;
   try {
     const etat = document.getElementById("etatSynchroReception");
