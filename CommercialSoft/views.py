@@ -1341,7 +1341,9 @@ def recherche_vente(request):
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre["date__lt"] = fin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idUser and idUser != "0":
@@ -1359,7 +1361,7 @@ def recherche_vente(request):
                             .annotate(montant=ExpressionWrapper(F('prix') * F('quantite'), output_field=DecimalField(max_digits=38, decimal_places=2)))
                             .aggregate(total=Sum('montant'))['total'] or 0
                         )
-        
+
         # Construire la réponse JSON
         produits_data = [
             {
@@ -1401,7 +1403,9 @@ def recherche_vente_client(request):
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre["date__lt"] = fin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if idClient and idClient != "0":
@@ -1453,7 +1457,9 @@ def recherche_vente_payement(request):
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre["date__lt"] = fin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if payement and payement != "0":
@@ -1505,7 +1511,9 @@ def recherche_vente_type(request):
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre["date__lt"] = fin
 
         # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
         if type and type != "0":
@@ -1675,7 +1683,9 @@ def recherche_detail_vente(request):
         if dateDebut:
             filtre["date__gte"] = dateDebut
         if dateFin:
-            filtre["date__lte"] = dateFin
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre["date__lt"] = fin
 
         if idUser and idUser != "0":
             user = utilisateur_de_entreprise(request, idUser)
@@ -3217,7 +3227,9 @@ def _construire_filtre_bilan(request):
     if dateDebut:
         filtre["date__gte"] = dateDebut
     if dateFin:
-        filtre["date__lte"] = dateFin
+        fin = _borne_fin_journee(dateFin)
+        if fin:
+            filtre["date__lt"] = fin
 
     if idUser and idUser != "0":
         user = utilisateur_de_entreprise(request, idUser)
@@ -3458,7 +3470,16 @@ def recherche_benefice_sur_vente(request):
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
-        commandes=Commande.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+        # Commande.date est un DateTimeField : dateFin est repoussé au
+        # lendemain pour inclure toute la journée de fin, sinon les ventes
+        # faites après minuit du jour de fin sont exclues
+        filtre_dates = {}
+        if dateDebut:
+            filtre_dates["date__gte"] = dateDebut
+        fin = _borne_fin_journee(dateFin)
+        if fin:
+            filtre_dates["date__lt"] = fin
+        commandes = Commande.objects.filter(**filtre_dates)
 
         # Construire une réponse JSON
         patients_data = [
@@ -3492,7 +3513,16 @@ def recherche_pourcentage_sur_vente(request):
         dateFin = request.POST.get("dateFin")
         type = request.POST.get("type")
 
-        commandes=Commande.objects.filter(typeVente=type, date__gte=dateDebut, date__lte=dateFin)
+        # Commande.date est un DateTimeField : dateFin est repoussé au
+        # lendemain pour inclure toute la journée de fin, sinon les ventes
+        # faites après minuit du jour de fin sont exclues
+        filtre_dates = {"typeVente": type}
+        if dateDebut:
+            filtre_dates["date__gte"] = dateDebut
+        fin = _borne_fin_journee(dateFin)
+        if fin:
+            filtre_dates["date__lt"] = fin
+        commandes = Commande.objects.filter(**filtre_dates)
 
         # Construire une réponse JSON
         patients_data = [
@@ -3941,7 +3971,9 @@ def pdf_etat_detail_vente(request):
             if dateDebut:
                 filtre["date__gte"] = dateDebut
             if dateFin:
-                filtre["date__lte"] = dateFin
+                fin = _borne_fin_journee(dateFin)
+                if fin:
+                    filtre["date__lt"] = fin
 
             if idUser and idUser != "0":
                 user = utilisateur_de_entreprise(request, idUser)
@@ -5381,6 +5413,19 @@ def _parse_datetime_vente(date_str):
     pour les champs DateTimeField (ex: Commande.date)."""
     from datetime import datetime
     return timezone.make_aware(datetime.combine(_parse_date_vente(date_str), datetime.min.time()))
+
+
+def _borne_fin_journee(date_str):
+    """Retourne la date (ISO) du lendemain de date_str, pour filtrer un
+    DateTimeField avec 'date__lt' plutot que 'date__lte'/'date__lte' :
+    Commande.date a une heure, donc date__lte=dateFin (interprete comme
+    dateFin 00:00:00) exclurait les ventes faites plus tard dans la journee.
+    On evite aussi le lookup '__date' (fonction SQL custom sur SQLite) qui
+    peut lever une erreur selon le format de stockage des dates."""
+    from datetime import timedelta
+    if not date_str:
+        return None
+    return (_parse_date_vente(date_str) + timedelta(days=1)).isoformat()
 
 
 def sync_ventes(request):
