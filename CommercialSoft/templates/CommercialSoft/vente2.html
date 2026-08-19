@@ -942,6 +942,12 @@ async function validerVente() {
   panier = [];
   infoClientSpecial = null;
 
+  // Tente une synchro tout de suite (sans attendre le sondage 10s), pour
+  // que le bandeau reflete l'etat reel au plus vite plutot que de rester
+  // sur "Tout est synchronise" pendant jusqu'a 10s apres une vente ajoutee
+  // juste apres un sondage.
+  if (window.offlineSync) window.offlineSync.syncVentesOffline();
+
     // ✅ Réinitialiser les champs après validation
   document.getElementById("remise").value = "";
   document.getElementById("remisePourcent").value = "";

@@ -725,6 +725,10 @@ document.getElementById("btnValiderReception").addEventListener("click", async f
   queue.push(livraisonData);
   await localforage.setItem("livraisons", queue);
 
+  // Cf. vente2.html : tente une synchro immediate au lieu d'attendre le
+  // sondage 10s, pour que le bandeau reflete l'etat reel sans delai.
+  if (window.offlineSync) window.offlineSync.syncLivraisonsOffline();
+
   panierR = []; afficherPanierR(); rebuildHiddenFormset(); montantTotalEl.value = 0; inputR.focus();
   toastr.success("✅ Facture enregistrée localement !");
 });
