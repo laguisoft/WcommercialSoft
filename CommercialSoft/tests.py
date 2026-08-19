@@ -53,19 +53,7 @@ def _paquet_export_exemple():
 class ProduitsSpeciauxTests(TestCase):
     """Verifie le fonctionnement de ClientSpecial et son etancheite entre tenants."""
 
-
-class UtilisateurDeEntrepriseTests(TestCase):
-    """CustomUser n'est pas un TenantScopedModel (login partage par tout le
-    Saas) : ces helpers doivent etre le seul point de resolution d'un
-    utilisateur a partir d'un id fourni par le client, pour ne jamais
-    exposer/filtrer par un compte d'une autre entreprise."""
-
-
     def setUp(self):
-        User = get_user_model()
-        self.entreprise_a = Entreprise.objects.create(nom="Boutique A", ville="Conakry")
-        self.entreprise_b = Entreprise.objects.create(nom="Boutique B", ville="Kankan")
-
         User = get_user_model()
         self.entreprise_a = Entreprise.objects.create(nom="Boutique A", ville="Conakry")
         self.entreprise_b = Entreprise.objects.create(nom="Boutique B", ville="Kankan")
@@ -360,12 +348,18 @@ class ImportEntrepriseViewTests(TestCase):
         self.assertTrue(ImportJournal.objects.filter(entreprise=self.entreprise).exists())
 
 
-# --- Tenant-scoping tests from origin/claude (kept intact) ---
+class UtilisateurDeEntrepriseTests(TestCase):
+    """CustomUser n'est pas un TenantScopedModel (login partage par tout le
+    Saas) : ces helpers doivent etre le seul point de resolution d'un
+    utilisateur a partir d'un id fourni par le client, pour ne jamais
+    exposer/filtrer par un compte d'une autre entreprise."""
 
     def setUp(self):
         User = get_user_model()
-        self.vendeur_a = User.objects.create_user(username="vendeur_a", password="x", entreprise=self.entreprise_a)
-        self.vendeur_b = User.objects.create_user(username="vendeur_b", password="x", entreprise=self.entreprise_b)
+        self.entreprise_a = Entreprise.objects.create(nom="Boutique H", ville="Conakry")
+        self.entreprise_b = Entreprise.objects.create(nom="Boutique I", ville="Kankan")
+        self.vendeur_a = User.objects.create_user(username="vendeur_h", password="x", entreprise=self.entreprise_a)
+        self.vendeur_b = User.objects.create_user(username="vendeur_i", password="x", entreprise=self.entreprise_b)
 
     def test_utilisateur_de_entreprise_refuse_un_id_dune_autre_entreprise(self):
         request = type('R', (), {'entreprise': self.entreprise_a})()
@@ -384,29 +378,28 @@ class ImportEntrepriseViewTests(TestCase):
     def test_utilisateurs_de_entreprise_exclut_les_autres_entreprises(self):
         request = type('R', (), {'entreprise': self.entreprise_a})()
         noms = set(utilisateurs_de_entreprise(request).values_list('username', flat=True))
-        self.assertIn('vendeur_a', noms)
-        self.assertNotIn('vendeur_b', noms)
+        self.assertIn('vendeur_h', noms)
+        self.assertNotIn('vendeur_i', noms)
 
     def test_utilisateurs_de_entreprise_inclut_les_entreprises_additionnelles(self):
         self.vendeur_b.entreprises_additionnelles.add(self.entreprise_a)
         request = type('R', (), {'entreprise': self.entreprise_a})()
         noms = set(utilisateurs_de_entreprise(request).values_list('username', flat=True))
-        self.assertIn('vendeur_b', noms)
+        self.assertIn('vendeur_i', noms)
 
 
 class RechercheVenteTenantScopingTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.entreprise_a = Entreprise.objects.create(nom="Boutique C", ville="Labe")
-        self.entreprise_b = Entreprise.objects.create(nom="Boutique D", ville="Mamou")
-        self.vendeur_a = User.objects.create_user(username="vendeur_c", password="secret123", entreprise=self.entreprise_a)
-        self.vendeur_b = User.objects.create_user(username="vendeur_d", password="secret123", entreprise=self.entreprise_b)
+        self.entreprise_a = Entreprise.objects.create(nom="Boutique J", ville="Labe")
+        self.entreprise_b = Entreprise.objects.create(nom="Boutique K", ville="Mamou")
+        self.vendeur_a = User.objects.create_user(username="vendeur_j", password="secret123", entreprise=self.entreprise_a)
+        self.vendeur_b = User.objects.create_user(username="vendeur_k", password="secret123", entreprise=self.entreprise_b)
         self.vendeur_a.user_permissions.add(*self._permissions())
-        self.client.login(username="vendeur_c", password="secret123")
+        self.client.login(username="vendeur_j", password="secret123")
 
     @staticmethod
     def _permissions():
-        from django.contrib.auth.models import Permission
         return Permission.objects.filter(codename__in=["view_commande", "view_versementgerant"])
 
     def test_recherche_vente_refuse_un_utilisateur_dune_autre_entreprise(self):
@@ -438,11 +431,10 @@ class RechercheVenteTenantScopingTests(TestCase):
 class SyncVentesTenantScopingTests(TestCase):
     def setUp(self):
         User = get_user_model()
-        self.entreprise_a = Entreprise.objects.create(nom="Boutique E", ville="Boke")
-        self.entreprise_b = Entreprise.objects.create(nom="Boutique F", ville="Kindia")
-        self.vendeur_a = User.objects.create_user(username="vendeur_e", password="secret123", entreprise=self.entreprise_a)
-        self.vendeur_b = User.objects.create_user(username="vendeur_f", password="secret123", entreprise=self.entreprise_b)
-        from .models import Categorie, Produit
+        self.entreprise_a = Entreprise.objects.create(nom="Boutique L", ville="Boke")
+        self.entreprise_b = Entreprise.objects.create(nom="Boutique M", ville="Kindia")
+        self.vendeur_a = User.objects.create_user(username="vendeur_l", password="secret123", entreprise=self.entreprise_a)
+        self.vendeur_b = User.objects.create_user(username="vendeur_m", password="secret123", entreprise=self.entreprise_b)
         self.categorie = Categorie.objects.create(entreprise=self.entreprise_a, nom="Cat")
         self.produit = Produit.objects.create(
             entreprise=self.entreprise_a, categorie=self.categorie, libelle="Produit E",
@@ -458,28 +450,24 @@ class SyncVentesTenantScopingTests(TestCase):
         }
 
     def test_sync_ventes_refuse_dattribuer_la_vente_a_un_utilisateur_dune_autre_entreprise(self):
-        self.client.login(username="vendeur_e", password="secret123")
+        self.client.login(username="vendeur_l", password="secret123")
         response = self.client.post(
             reverse("sync_ventes"), data=json.dumps(self._payload(self.vendeur_b.id)), content_type="application/json"
         )
         self.assertEqual(response.status_code, 400)
         self.assertFalse(response.json()["success"])
-
-        from .models import Commande
         self.assertFalse(Commande.objects.filter(client_uid="sync-1").exists())
 
     def test_sync_ventes_fonctionne_pour_un_utilisateur_de_la_meme_entreprise(self):
-        self.client.login(username="vendeur_e", password="secret123")
+        self.client.login(username="vendeur_l", password="secret123")
         response = self.client.post(
             reverse("sync_ventes"), data=json.dumps(self._payload(self.vendeur_a.id)), content_type="application/json"
         )
         self.assertEqual(response.status_code, 200, response.content)
 
-        from .models import Commande
         commande = Commande.objects.get(client_uid="sync-1")
         self.assertEqual(commande.user, self.vendeur_a)
         self.assertEqual(commande.entreprise, self.entreprise_a)
-
 
 
 class SynchronisationHorsLigneGlobaleTests(TestCase):
@@ -518,3 +506,109 @@ class SynchronisationHorsLigneGlobaleTests(TestCase):
         self.assertContains(response, "js/offline-core.js")
         self.assertContains(response, 'id="etatSynchro"')
 
+
+class SuppressionEntrepriseTests(TestCase):
+    """La suppression d'une Entreprise entraine, en cascade, la perte de
+    toutes ses donnees metier (TenantScopedModel) : ces tests verifient la
+    sauvegarde automatique prealable et la confirmation renforcee."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique N", ville="Kissidougou")
+        self.autre_entreprise = Entreprise.objects.create(nom="Boutique O", ville="Gueckedou")
+        self.superadmin = User.objects.create_superuser(username="root3", password="secret123")
+        self.gerant = User.objects.create_user(username="gerant_n", password="secret123", entreprise=self.entreprise)
+
+        self.categorie = Categorie.objects.create(entreprise=self.entreprise, nom="Cat N")
+        self.produit = Produit.objects.create(
+            entreprise=self.entreprise, categorie=self.categorie, libelle="Produit N",
+            quantite=5, prixAchat=100, prixEnGros=150, prixDetail=200,
+        )
+        Produit.objects.create(
+            entreprise=self.autre_entreprise, libelle="Produit O",
+            quantite=5, prixAchat=100, prixEnGros=150, prixDetail=200,
+        )
+
+    def test_reservee_au_superadmin(self):
+        self.client.login(username="gerant_n", password="secret123")
+        response = self.client.get(reverse("supprimer_entreprise", args=[self.entreprise.id]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_apercu_affiche_les_comptages(self):
+        self.client.login(username="root3", password="secret123")
+        response = self.client.get(reverse("supprimer_entreprise", args=[self.entreprise.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Boutique N")
+        compteurs = dict(response.context['compteurs'])
+        self.assertEqual(compteurs['commercialsoft.produit'], 1)
+
+    def test_nom_de_confirmation_incorrect_ne_supprime_rien(self):
+        self.client.login(username="root3", password="secret123")
+        response = self.client.post(
+            reverse("supprimer_entreprise", args=[self.entreprise.id]),
+            data={'nom_confirmation': 'Mauvais nom'},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Entreprise.objects.filter(pk=self.entreprise.id).exists())
+        self.assertTrue(Produit.objects.filter(entreprise=self.entreprise).exists())
+
+    def test_suppression_ecrit_une_sauvegarde_et_supprime_en_cascade(self):
+        import glob
+        import os
+
+        from tenants.backup import DOSSIER_SAUVEGARDES
+
+        self.client.login(username="root3", password="secret123")
+        avant = set(glob.glob(os.path.join(DOSSIER_SAUVEGARDES, "*.json")))
+
+        response = self.client.post(
+            reverse("supprimer_entreprise", args=[self.entreprise.id]),
+            data={'nom_confirmation': 'Boutique N'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIn('attachment;', response['Content-Disposition'])
+
+        paquet = json.loads(response.content)
+        self.assertEqual(paquet['entreprise']['nom'], 'Boutique N')
+        self.assertEqual(paquet['compteurs']['commercialsoft.produit'], 1)
+        self.assertIn('gerant_n', paquet['utilisateurs_detaches_non_supprimes'])
+
+        # L'entreprise et ses donnees ont bien ete supprimees...
+        self.assertFalse(Entreprise.objects.filter(pk=self.entreprise.id).exists())
+        self.assertFalse(Produit.objects.filter(entreprise_id=self.entreprise.id).exists())
+
+        # ...mais le compte utilisateur survit, juste detache
+        self.gerant.refresh_from_db()
+        self.assertIsNone(self.gerant.entreprise)
+
+        # ...et l'autre entreprise n'est pas touchee
+        self.assertTrue(Produit.objects.filter(entreprise=self.autre_entreprise).exists())
+
+        # une sauvegarde a bien ete ecrite sur disque
+        apres = set(glob.glob(os.path.join(DOSSIER_SAUVEGARDES, "*.json")))
+        self.assertEqual(len(apres - avant), 1)
+
+    def test_admin_delete_model_sauvegarde_avant_suppression(self):
+        import glob
+        import os
+
+        from tenants.backup import DOSSIER_SAUVEGARDES
+        from tenants.admin import EntrepriseAdmin
+        from django.contrib.admin.sites import AdminSite
+        from django.test import RequestFactory
+
+        avant = set(glob.glob(os.path.join(DOSSIER_SAUVEGARDES, "*.json")))
+
+        admin_instance = EntrepriseAdmin(Entreprise, AdminSite())
+        request = RequestFactory().post("/admin/tenants/entreprise/")
+        request.user = self.superadmin
+        request.session = self.client.session
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        request._messages = FallbackStorage(request)
+
+        admin_instance.delete_model(request, self.entreprise)
+
+        self.assertFalse(Entreprise.objects.filter(pk=self.entreprise.id).exists())
+        apres = set(glob.glob(os.path.join(DOSSIER_SAUVEGARDES, "*.json")))
+        self.assertEqual(len(apres - avant), 1)
