@@ -357,10 +357,10 @@
   <!-- Auto-hébergé (pas de CDN) : la synchro hors-ligne doit pouvoir
        charger localforage même sans connexion, ce qu'un <script src> pointant
        vers un CDN externe ne permet pas. -->
-  <script src="{% static 'js/localforage.min.js' %}"></script>
+  <script src="{% static 'js/localforage.min.js' %}?v=2"></script>
   <script>window.CSRF_TOKEN = "{{ csrf_token }}";</script>
   <script src="{% static 'js/register-sw.js' %}"></script>
-  <script src="{% static 'js/offline-core.js' %}"></script>
+  <script src="{% static 'js/offline-core.js' %}?v=2"></script>
 
   <!-- si tu veux logger automatiquement l’utilisateur -->
   <script>
