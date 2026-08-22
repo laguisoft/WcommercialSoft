@@ -920,7 +920,12 @@ async function validerVente() {
     let venteData = {
       id_local: (typeof _idLocalUnique === "function") ? _idLocalUnique() : (Date.now() + "_" + Math.floor(Math.random() * 100000) + "_" + Math.floor(Math.random() * 100000)), // identifiant unique ; repli local si offline-core.js pas encore charge/mis a jour
       lignes: panier,
-      date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
+      // Utilise la date choisie dans le champ date de la vente (#idCommande)
+      // si elle est renseignee, sinon la date du jour. Avant, cette valeur
+      // etait ignoree et remplacee par la date du jour dans tous les cas,
+      // rendant impossible l'enregistrement d'une vente a une date passee.
+      date: (document.getElementById("idCommande") && document.getElementById("idCommande").value)
+        || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10),
       remise,
       montant,
       typeVente,
