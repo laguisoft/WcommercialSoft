@@ -3,13 +3,18 @@ from django.contrib.auth.models import Group, Permission
 from django.test import TestCase
 from django.urls import reverse
 
+import os
+from datetime import date
+
 from .export_entreprise import (
     MODELES_EXPORTES,
     UTILISATEUR_MODEL_LABEL,
     compter_objets,
     construire_export,
+    construire_exports_mensuels,
+    taille_octets,
 )
-from .models import Categorie, Client, Produit, Societe
+from .models import Categorie, Client, Commande, CommandeProduit, Produit, Societe
 
 
 class ExportEntrepriseTests(TestCase):
@@ -74,6 +79,90 @@ class ExportEntrepriseTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertIn("attachment;", response["Content-Disposition"])
+
+
+class ExportEntrepriseDecoupageMensuelTests(TestCase):
+    """export_entreprise bascule automatiquement sur plusieurs fichiers
+    mensuels quand l'export complet depasse le seuil de taille, pour eviter
+    une erreur '413 Request Entity Too Large' a l'upload dans Saas."""
+
+    def setUp(self):
+        self.categorie = Categorie.objects.create(nom="Boissons")
+        self.produits = [
+            Produit.objects.create(
+                categorie=self.categorie, libelle=f"Produit{i}", quantite=100,
+                prixAchat=100, prixEnGros=150, prixDetail=200, quantiteTotal=100,
+            )
+            for i in range(3)
+        ]
+        self.client_obj = Client.objects.create(nom="Client Test", pourcentage=0, detteMaximale=0)
+        User = get_user_model()
+        self.user = User.objects.create_user(username="vendeur1", password="secret123")
+
+        # Des ventes reparties sur 3 mois distincts
+        for mois in (1, 2, 3):
+            for jour in range(1, 4):
+                d = date(2025, mois, jour)
+                commande = Commande.objects.create(
+                    user=self.user, client=self.client_obj, montant=1000, montantAchat=500,
+                    date=d, typeVente="detail", typePayement="Espece",
+                )
+                CommandeProduit.objects.create(
+                    commande=commande, produit=self.produits[jour % 3], quantite=1, prix=1000, date=d,
+                )
+
+    def test_taille_octets_reflete_le_contenu_reel(self):
+        paquet = construire_export()
+        self.assertGreater(taille_octets(paquet), 0)
+
+    def test_construire_exports_mensuels_couvre_toutes_les_commandes_sans_doublon(self):
+        paquets = construire_exports_mensuels()
+
+        self.assertEqual(len(paquets), 3)
+        empreintes = {p["empreinte_sha256"] for p in paquets}
+        self.assertEqual(len(empreintes), 3, "chaque lot doit avoir une empreinte distincte")
+
+        total_commandes = sum(p["compteurs"]["commercialsoft.commande"] for p in paquets)
+        self.assertEqual(total_commandes, 9)
+
+        # Les donnees de reference (produits, client) sont repetees a l'identique dans chaque lot
+        for p in paquets:
+            self.assertEqual(p["compteurs"]["commercialsoft.produit"], 3)
+            self.assertEqual(p["compteurs"]["commercialsoft.client"], 1)
+            self.assertEqual(p["lot"]["total"], 3)
+
+        # Une commande et sa ligne de produit restent toujours dans le meme lot
+        for p in paquets:
+            self.assertEqual(
+                p["compteurs"]["commercialsoft.commande"],
+                p["compteurs"]["commercialsoft.commandeproduit"],
+            )
+
+    def test_export_entreprise_bascule_automatiquement_sous_seuil_bas(self):
+        from io import StringIO
+        from django.core.management import call_command
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as dossier:
+            sortie = StringIO()
+            call_command("export_entreprise", "--seuil-mo", "0.001", "--dossier", dossier, stdout=sortie)
+
+            fichiers = sorted(os.listdir(dossier))
+            self.assertEqual(len(fichiers), 3)
+            self.assertIn("decoupage automatique", sortie.getvalue())
+
+    def test_export_entreprise_reste_un_seul_fichier_sous_le_seuil(self):
+        from io import StringIO
+        from django.core.management import call_command
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as dossier:
+            sortie = StringIO()
+            chemin_sortie = os.path.join(dossier, "complet.json")
+            call_command("export_entreprise", "--output", chemin_sortie, stdout=sortie)
+
+            self.assertTrue(os.path.exists(chemin_sortie))
+            self.assertEqual(os.listdir(dossier), ["complet.json"])
 
 
 class SynchronisationHorsLigneGlobaleTests(TestCase):
