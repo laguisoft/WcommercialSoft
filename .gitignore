@@ -10,6 +10,9 @@ __pycache__/
 staticfiles/
 media/
 
+# Sauvegardes automatiques generees avant suppression d'une entreprise
+sauvegardes_entreprises/
+
 # Fichiers de config
 .env
 *.env
