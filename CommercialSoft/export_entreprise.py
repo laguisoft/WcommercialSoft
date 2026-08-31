@@ -14,6 +14,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core import serializers
 from django.db.models import Max, Min
+from django.utils import timezone as dj_timezone
 
 FORMAT_VERSION = 1
 
@@ -84,6 +85,14 @@ CHAMP_DATE_PERIODIQUE = {
     'CommercialSoft.VersementFournisseur': 'date',
     'CommercialSoft.VersementGerant': 'date',
     'CommercialSoft.Retour': 'date',
+}
+
+# Parmi les modeles ci-dessus, ceux dont le champ de date est un
+# DateTimeField (et non un DateField) : necessitent une borne aware pour
+# eviter l'avertissement "received a naive datetime" (USE_TZ=True).
+MODELES_CHAMP_DATETIME = {
+    'CommercialSoft.Commande',
+    'CommercialSoft.CommandeProduit',
 }
 
 UTILISATEUR_MODEL_LABEL = 'accounts.customuser'
@@ -159,6 +168,14 @@ def taille_octets(paquet):
     """Taille reelle du paquet une fois serialise (indent inclus, comme le
     fichier ecrit sur disque), pour decider s'il faut decouper l'export."""
     return len(json.dumps(paquet, ensure_ascii=False, indent=2).encode('utf-8'))
+
+
+def _debut_jour_aware(jour):
+    """Convertit une date calendaire en datetime aware a minuit (fuseau
+    courant), pour comparer sans avertissement une DateTimeField timezone-
+    aware a une borne de periode qui n'est au depart qu'une simple date."""
+    naif = datetime.combine(jour, datetime.min.time())
+    return dj_timezone.make_aware(naif) if dj_timezone.is_naive(naif) else naif
 
 
 def _mois_suivant(jour):
@@ -246,11 +263,17 @@ def construire_exports_mensuels():
         objets = list(objets_reference) + list(utilisateurs)
         compteurs = compteurs_base()
 
+        borne_debut_aware = _debut_jour_aware(debut_periode)
+        borne_fin_aware = _debut_jour_aware(fin_periode)
         for label, champ in CHAMP_DATE_PERIODIQUE.items():
             modele = apps.get_model(label)
+            if label in MODELES_CHAMP_DATETIME:
+                borne_debut, borne_fin = borne_debut_aware, borne_fin_aware
+            else:
+                borne_debut, borne_fin = debut_periode, fin_periode
             queryset = modele.objects.filter(**{
-                f"{champ}__gte": debut_periode,
-                f"{champ}__lt": fin_periode,
+                f"{champ}__gte": borne_debut,
+                f"{champ}__lt": borne_fin,
             }).order_by('pk')
             objets_modele = json.loads(serializers.serialize('json', queryset))
             objets.extend(objets_modele)
