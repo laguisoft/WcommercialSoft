@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from . import import_entreprise as import_entreprise_module
+from . import reparer_import_client_portail as reparation_module
 from .models import Categorie, Client, ClientSpecial, Commande, CommandeProduit, ImportJournal, Produit
 from .views import utilisateur_de_entreprise, utilisateurs_de_entreprise
 from tenants.models import Entreprise
@@ -357,6 +358,111 @@ class ImportEntrepriseModuleTests(TestCase):
 
         client_existant.refresh_from_db()
         self.assertEqual(client_existant.user_id, compte_saas_existant.id)
+
+
+class ReparationImportClientPortailTests(TestCase):
+    """Outil de reparation pour les Client importes AVANT le correctif du
+    lien vers leur compte portail (import_entreprise.executer) : rejoue le
+    meme fichier d'export deja utilise, sans repasser par un nouvel import
+    (bloque par le controle 'deja importe')."""
+
+    def setUp(self):
+        self.entreprise = Entreprise.objects.create(nom="Boutique G", ville="Kindia")
+        User = get_user_model()
+        self.superadmin = User.objects.create_superuser(username="root3", password="secret123")
+
+    def _paquet(self, empreinte, nom_client="Client Avec Compte"):
+        return {
+            'format_version': 1,
+            'exporte_le': '2026-08-01T00:00:00+00:00',
+            'empreinte_sha256': empreinte,
+            'compteurs': {},
+            'objets': [
+                {'model': 'accounts.customuser', 'pk': 1, 'fields': {
+                    'username': 'ancien_vendeur', 'first_name': '', 'last_name': '',
+                    'is_active': True, 'groupes': ['Administrateur'],
+                }},
+                {'model': 'accounts.customuser', 'pk': 2, 'fields': {
+                    'username': 'ancien_client_portail', 'first_name': '', 'last_name': '',
+                    'is_active': True, 'groupes': ['Client Boutique'],
+                }},
+                {'model': 'commercialsoft.client', 'pk': 30, 'fields': {
+                    'societe': None, 'nom': nom_client, 'telephone': '620000001', 'adresse': None,
+                    'email': None, 'matricule': None, 'pourcentage': 0, 'detteMaximale': 0, 'user': 2,
+                }},
+            ],
+        }
+
+    def _importer_sans_lien(self, paquet):
+        """Simule un import fait avant le correctif : le Client se retrouve
+        sans compte portail, mais le compte Saas existe deja (cas --creer)."""
+        mapping = {1: {'action': 'creer'}, 2: {'action': 'creer'}}
+        import_entreprise_module.executer(paquet, self.entreprise, mapping, self.superadmin)
+        Client.objects.filter(entreprise=self.entreprise, nom="Client Avec Compte").update(user=None)
+
+    def test_analyser_resout_automatiquement_le_meme_nom_dutilisateur(self):
+        paquet = self._paquet('empreinte-reparation-1')
+        self._importer_sans_lien(paquet)
+
+        rapport = reparation_module.analyser_reparation(paquet, self.entreprise)
+        self.assertEqual(rapport['resolus'], [{
+            'client': 'Client Avec Compte', 'username': 'ancien_client_portail',
+            'user_id': get_user_model().objects.get(username='ancien_client_portail').id,
+        }])
+        self.assertEqual(rapport['deja_lies'], [])
+        self.assertEqual(rapport['ambigus'], [])
+
+    def test_executer_reparation_relie_automatiquement(self):
+        paquet = self._paquet('empreinte-reparation-2')
+        self._importer_sans_lien(paquet)
+
+        rapport = reparation_module.executer_reparation(paquet, self.entreprise)
+        self.assertEqual(rapport['lies'], ['Client Avec Compte'])
+
+        client = Client.objects.get(entreprise=self.entreprise, nom="Client Avec Compte")
+        compte_portail = get_user_model().objects.get(username='ancien_client_portail')
+        self.assertEqual(client.user_id, compte_portail.id)
+
+    def test_executer_reparation_ne_touche_pas_un_client_deja_relie(self):
+        paquet = self._paquet('empreinte-reparation-3')
+        self._importer_sans_lien(paquet)
+        client = Client.objects.get(entreprise=self.entreprise, nom="Client Avec Compte")
+        autre_compte = get_user_model().objects.create_user(
+            username="deja_correct", password="x", entreprise=self.entreprise,
+        )
+        client.user = autre_compte
+        client.save(update_fields=['user'])
+
+        rapport = reparation_module.executer_reparation(paquet, self.entreprise)
+        self.assertEqual(rapport['lies'], [])
+
+        client.refresh_from_db()
+        self.assertEqual(client.user_id, autre_compte.id)
+
+    def test_executer_reparation_avec_lier_explicite_pour_un_cas_ambigu(self):
+        paquet = self._paquet('empreinte-reparation-4')
+        # Le compte Saas n'a pas garde le meme username (ex : relie via --lier
+        # a un compte deja existant lors de l'import d'origine).
+        mapping = {1: {'action': 'creer'}, 2: {'action': 'creer'}}
+        import_entreprise_module.executer(paquet, self.entreprise, mapping, self.superadmin)
+        client = Client.objects.get(entreprise=self.entreprise, nom="Client Avec Compte")
+        compte_reel = client.user
+        compte_reel.username = "nom_different_du_username_saas"
+        compte_reel.save(update_fields=['username'])
+        client.user = None
+        client.save(update_fields=['user'])
+
+        rapport_analyse = reparation_module.analyser_reparation(paquet, self.entreprise)
+        self.assertEqual(rapport_analyse['ambigus'], [{
+            'client': 'Client Avec Compte', 'ancien_username': 'ancien_client_portail',
+        }])
+
+        rapport = reparation_module.executer_reparation(
+            paquet, self.entreprise, overrides={'Client Avec Compte': 'nom_different_du_username_saas'},
+        )
+        self.assertEqual(rapport['lies'], ['Client Avec Compte'])
+        client.refresh_from_db()
+        self.assertEqual(client.user_id, compte_reel.id)
 
 
 class ImportEntrepriseViewTests(TestCase):
