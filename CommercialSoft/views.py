@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.models import Group
 from .forms import *
 from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, ClientSpecial, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
 from .decorators import client_required, superadmin_required
@@ -78,6 +79,9 @@ def est_utilisateur(user):
 
 def est_comptable(user):
     return user.groups.filter(name='Comptable').exists()
+
+# Groupe attribue automatiquement aux comptes du portail client
+GROUPE_CLIENT_BOUTIQUE = "Client Boutique"
 
 def est_admin_ou_gestionnaire(user):
     return (
@@ -5977,6 +5981,8 @@ def client_compte_creer(request, pk):
                 username=username, password=password1, is_staff=False,
                 entreprise=request.entreprise,
             )
+            groupe_client, _ = Group.objects.get_or_create(name=GROUPE_CLIENT_BOUTIQUE)
+            user.groups.add(groupe_client)
             client.user = user
             client.save()
             messages.success(request, f"Compte portail créé pour {client.nom}.")
