@@ -40,6 +40,11 @@ def utilisateur_de_entreprise(request, user_id):
     filtrer par un utilisateur de n'importe quelle autre entreprise cliente.
     Retourne None si l'id est absent, invalide, ou n'appartient pas à
     l'entreprise courante — à l'appelant de traiter ce cas comme "introuvable".
+
+    Exclut aussi les comptes portail client (client_profile non nul) : ce ne
+    sont pas des agents de l'entreprise, juste des comptes crees pour qu'un
+    client passe commande a distance, ils n'ont rien a faire dans les
+    resolutions "utilisateur/agent" des ventes, depenses, etc.
     """
     if not user_id:
         return None
@@ -53,18 +58,23 @@ def utilisateur_de_entreprise(request, user_id):
     return User.objects.filter(
         Q(entreprise=entreprise) | Q(entreprises_additionnelles=entreprise),
         pk=user_id,
+        client_profile__isnull=True,
     ).first()
 
 
 def utilisateurs_de_entreprise(request):
     """Liste des utilisateurs accessibles pour l'entreprise courante (pour
     peupler les listes déroulantes "Utilisateur" des pages de recherche).
-    Vide si aucune entreprise n'est résolue pour cette requête."""
+    Vide si aucune entreprise n'est résolue pour cette requête.
+
+    Exclut les comptes portail client (client_profile non nul) : voir
+    utilisateur_de_entreprise ci-dessus."""
     entreprise = getattr(request, 'entreprise', None)
     if entreprise is None:
         return User.objects.none()
     return User.objects.filter(
-        Q(entreprise=entreprise) | Q(entreprises_additionnelles=entreprise)
+        Q(entreprise=entreprise) | Q(entreprises_additionnelles=entreprise),
+        client_profile__isnull=True,
     ).distinct()
 
 #------------------------ Gestion des droits d'acces avec les decorateur -----------------

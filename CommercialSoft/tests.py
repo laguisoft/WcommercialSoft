@@ -67,10 +67,6 @@ class UtilisateurDeEntrepriseTests(TestCase):
         self.entreprise_a = Entreprise.objects.create(nom="Boutique A", ville="Conakry")
         self.entreprise_b = Entreprise.objects.create(nom="Boutique B", ville="Kankan")
 
-        User = get_user_model()
-        self.entreprise_a = Entreprise.objects.create(nom="Boutique A", ville="Conakry")
-        self.entreprise_b = Entreprise.objects.create(nom="Boutique B", ville="Kankan")
-
         self.user_a = User.objects.create_user(username="vendeur_a", password="secret123", entreprise=self.entreprise_a)
         self.user_b = User.objects.create_user(username="vendeur_b", password="secret123", entreprise=self.entreprise_b)
         permission_vente = Permission.objects.get(codename="view_commande")
@@ -537,9 +533,16 @@ class ImportEntrepriseViewTests(TestCase):
         self.assertTrue(ImportJournal.objects.filter(entreprise=self.entreprise).exists())
 
 
-# --- Tenant-scoping tests from origin/claude (kept intact) ---
+class ResolutionUtilisateurDeEntrepriseTests(TestCase):
+    """utilisateur(s)_de_entreprise est le seul point de resolution d'un
+    agent pour les listes deroulantes/filtres "Utilisateur" des pages de
+    recherche et statistiques : ne doit jamais exposer un utilisateur d'une
+    autre entreprise, ni un compte portail client (cree uniquement pour
+    qu'un client passe commande a distance, ce n'est pas un agent)."""
 
     def setUp(self):
+        self.entreprise_a = Entreprise.objects.create(nom="Boutique H", ville="Faranah")
+        self.entreprise_b = Entreprise.objects.create(nom="Boutique I", ville="Gueckedou")
         User = get_user_model()
         self.vendeur_a = User.objects.create_user(username="vendeur_a", password="x", entreprise=self.entreprise_a)
         self.vendeur_b = User.objects.create_user(username="vendeur_b", password="x", entreprise=self.entreprise_b)
@@ -569,6 +572,30 @@ class ImportEntrepriseViewTests(TestCase):
         request = type('R', (), {'entreprise': self.entreprise_a})()
         noms = set(utilisateurs_de_entreprise(request).values_list('username', flat=True))
         self.assertIn('vendeur_b', noms)
+
+    def test_utilisateurs_de_entreprise_exclut_les_comptes_portail_client(self):
+        compte_portail = get_user_model().objects.create_user(
+            username="client_portail_a", password="x", entreprise=self.entreprise_a,
+        )
+        Client.objects.create(
+            entreprise=self.entreprise_a, nom="Client Avec Compte Portail",
+            pourcentage=0, detteMaximale=0, user=compte_portail,
+        )
+        request = type('R', (), {'entreprise': self.entreprise_a})()
+        noms = set(utilisateurs_de_entreprise(request).values_list('username', flat=True))
+        self.assertIn('vendeur_a', noms)
+        self.assertNotIn('client_portail_a', noms)
+
+    def test_utilisateur_de_entreprise_refuse_un_compte_portail_client(self):
+        compte_portail = get_user_model().objects.create_user(
+            username="client_portail_b", password="x", entreprise=self.entreprise_a,
+        )
+        Client.objects.create(
+            entreprise=self.entreprise_a, nom="Client Avec Compte Portail 2",
+            pourcentage=0, detteMaximale=0, user=compte_portail,
+        )
+        request = type('R', (), {'entreprise': self.entreprise_a})()
+        self.assertIsNone(utilisateur_de_entreprise(request, compte_portail.id))
 
 
 class RechercheVenteTenantScopingTests(TestCase):
