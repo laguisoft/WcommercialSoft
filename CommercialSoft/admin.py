@@ -97,9 +97,9 @@ class DecaissementAdmin(admin.ModelAdmin):
 
 @admin.register(VersementClient)
 class versementClientAdmin(admin.ModelAdmin):
-    list_display = ('client', 'montant', 'date')
+    list_display = ('client', 'montant', 'date', 'typePayement')
     search_fields = ('client', 'montant', 'date')
-    list_filter = ('client', 'date')
+    list_filter = ('client', 'date', 'typePayement')
     ordering = ('-date',)
 
 
@@ -146,9 +146,9 @@ class societeAdmin(admin.ModelAdmin):
 
 @admin.register(VersementFournisseur)
 class versementFournisseurAdmin(admin.ModelAdmin):
-    list_display = ('fournisseur', 'montant', 'date')
+    list_display = ('fournisseur', 'montant', 'date', 'typePayement')
     search_fields = ('fournisseur', 'montant', 'date')
-    list_filter = ('fournisseur', 'date')
+    list_filter = ('fournisseur', 'date', 'typePayement')
     ordering = ('-date',)
 
 

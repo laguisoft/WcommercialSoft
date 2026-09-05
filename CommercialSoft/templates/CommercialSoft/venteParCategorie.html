@@ -1,0 +1,297 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'autre/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/toastr/toastr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2/css/select2.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css' %}">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="card card-primary">
+                  <div class="card-header">
+                    <h3 class="card-title">Vente par categorie</h3>
+                  </div>
+                  <form role="form" action="{% url 'commerce_venteParCategorie' %}" id="form-depense" method="post">
+                    {% if messages %}
+                      <div>
+                      {% for message in messages %}
+                        {% if message.tags == "success" %}
+                            <div class="alert alert-success text-center">
+                                {{ message }}
+                            </div>
+                            {% elif message.tags == "error" %}
+                            <div class="alert alert-danger text-center">
+                                {{ message }}
+                            </div>
+                            {% elif message.tags == "warning" %}
+                            <div class="alert alert-warning text-center">
+                                {{ message }}
+                            </div>
+                        {% endif %}
+                      {% endfor %}
+                      </div>
+                    {% endif %}
+                    {% csrf_token %}
+                    <div class="card-body">
+                      <div class="row justify-content-center align-items-end">
+
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="categorie">Categorie</label>
+                                <select class="form-control select2bs4" id="categorie" style="width: 100%;">
+                                  <option value="0">--------</option>
+                                  {% if categories %}
+                                    {% for categorie in categories %}
+                                     <option value="{{categorie.id}}">{{categorie.nom}}</option>
+                                    {% endfor %}
+                                {% else %}
+                                <option>Aucune categorie trouvee</option>
+                                {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
+                          <div class="form-group">
+                            <label for="dateDebut">Date debut</label>
+                            <input type="date" class="form-control" id="dateDebut">
+                          </div>
+                        </div>
+                        <div class="col-md-2">
+                          <div class="form-group">
+                            <label for="quantite">Date Fin</label>
+                            <input type="date" class="form-control" id="dateFin">
+                          </div>
+                        </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+    <div class="row text-center">
+      <h4 class="text-danger" id="montantDepense">Total : </h4>
+    </div>
+    <div class="row">
+
+      <div class="col-md-12">
+        <div class="card card-primary">
+            <div class="card-header">
+              <h3 class="card-title">Liste des produits vendus</h3>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped table-sm">
+                      <thead>
+                        <tr>
+                          <th style="width: 10px" class="text-center">N°</th>
+                          <th class="text-center">Libelle</th>
+                          <th class="text-center">Categorie</th>
+                          <th class="text-center">Prix</th>
+                          <th class="text-center">Quantite</th>
+                          <th class="text-center">Montant</th>
+                          <th class="text-center">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody id="liste-produit">
+
+                      </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- /.card-body -->
+            <div class="card-footer clearfix">
+              <ul class="pagination pagination-sm m-0 justify-content-center">
+                <li class="page-item">
+                  {% if listes.has_previous %}
+                    <a class="page-link" href="?page={{ listes.previous_page_number }}">«</a>
+                  {% endif %}
+                  {% for num in listes.paginator.page_range %}
+                    {% if listes.number == num %}
+                      <li class="page-item"><a class="page-link" href="">{{ num }}</a></li>
+                    {% else %}
+                      <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if listes.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ listes.next_page_number }}">»</a></li>
+                  {% endif %}
+
+              </ul>
+            </div>
+          </div>
+      </div>
+    </div>
+    <!-- /.row -->
+  </div><!-- /.container-fluid -->
+</section>
+<!-- /.content -->
+
+
+  {% endblock %}
+
+
+  {% block js %}
+
+    <!-- jQuery -->
+    <script src="{% static 'autre/plugins/jquery/jquery.min.js' %}"></script>
+    <!-- Bootstrap 4 -->
+    <script src="{% static 'autre/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <!-- bs-custom-file-input -->
+    <script src="{% static 'autre/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js' %}"></script>
+    <!-- AdminLTE App -->
+    <script src="{% static 'autre/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/adminlte.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/select2/js/select2.full.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/moment/moment.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/inputmask/min/jquery.inputmask.bundle.min.js' %}"></script>
+    <!-- AdminLTE for demo purposes -->
+    <script src="{% static 'autre/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+    <!-- Bootstrap Switch -->
+    <script src="{% static 'autre/plugins/bootstrap-switch/js/bootstrap-switch.min.js' %}"></script>
+    <script src="{% static 'autre/plugins/toastr/toastr.min.js' %}"></script>
+    <script src="{% static 'autre/dist/js/demo.js' %}"></script>
+    <script type="text/javascript">
+    $(document).ready(function () {
+    bsCustomFileInput.init();
+    });
+
+
+    $(document).ready(function () {
+        bsCustomFileInput.init();
+
+        //Initialize Select2 Elements
+        $('.select2').select2()
+
+        //Initialize Select2 Elements
+        $('.select2bs4').select2({
+        theme: 'bootstrap4'
+        })
+
+    });
+
+
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateDebut = document.getElementById("dateDebut");
+        const dateFin = document.getElementById("dateFin");
+        if (dateDebut && !dateDebut.value) {
+            let today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); // yyyy-mm-dd
+            dateDebut.value = today;
+        }
+        if (dateFin && !dateFin.value) {
+            let today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10); // yyyy-mm-dd
+            dateFin.value = today;
+        }
+    });
+
+
+
+
+    $(document).ready(function () {
+    $('#idrechercher').on('click', function (e) {
+      e.preventDefault();
+
+      const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+      const categorie = $('#categorie').val();
+      const dateDebut = $('#dateDebut').val();
+      const dateFin = $('#dateFin').val();
+
+      var montantTotal=0;
+      $('#montantDepense').html("Total : "+ montantTotal.toLocaleString());
+
+      $.ajax({
+        url: "{% url 'rechercheVenteCategorie' %}",
+        type: "POST",
+        data: {
+            categorie: categorie,
+            dateDebut: dateDebut,
+            dateFin: dateFin,
+            csrfmiddlewaretoken: csrfToken
+        },
+        success: function (response) {
+          const produitsTable = $('#liste-produit');
+          produitsTable.empty();
+          if (response.vente && response.vente.length > 0) {
+            response.vente.forEach(data => {
+              produitsTable.append(`
+                <tr>
+                  <td class="text-center">${data.id}</td>
+                  <td>${data.produit}</td>
+                  <td class="text-center">${data.categorie}</td>
+                  <td class="text-center">${data.prix}</td>
+                  <td class="text-center">${data.quantite}</td>
+                  <td class="text-center">${data.montant}</td>
+                  <td class="text-center">${data.date}</td>
+                </tr>
+              `);
+              montantTotal += parseFloat(data.montant);
+            });
+            $('#montantDepense').html("Total : "+ montantTotal.toLocaleString());
+          } else {
+            produitsTable.append('<tr><td colspan="7" class="text-center">Aucune ligne trouvée.</td></tr>');
+          }
+        },
+        error: function (xhr, status, error) {
+          alert('Une erreur est survenue. Veuillez réessayer. '+error);
+        }
+      });
+    });
+  });
+
+
+
+
+  $(function() {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000
+    });
+
+    $('.swalDefaultSuccess').click(function() {
+      Toast.fire({
+        icon: 'success',
+        title: 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.'
+      })
+    });
+    $('.toastrDefaultSuccess').click(function() {
+      toastr.success('Enregistrement reussi')
+    });
+    $('.toastrDefaultError').click(function() {
+      toastr.error('{{ message }}.')
+    });
+  });
+
+</script>
+
+
+  {% endblock %}

@@ -481,6 +481,13 @@ def vente_par_payement(request):
     return render(request, 'CommercialSoft/venteParPayement.html', {'users': users})
 
 
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def vente_par_categorie(request):
+    categories = Categorie.objects.all()
+    return render(request, 'CommercialSoft/venteParCategorie.html', {'categories': categories})
+
+
 
 
 @login_required
@@ -1516,6 +1523,59 @@ def recherche_vente_payement(request):
     return JsonResponse({"error": "Requête invalide"}, status=400)
 
 
+
+
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
+def recherche_vente_categorie(request):
+    if request.method == "POST":
+        idCategorie = request.POST.get('categorie')
+        dateDebut = request.POST.get("dateDebut")
+        dateFin = request.POST.get("dateFin")
+
+        # Construire le filtre dynamique sur les ventes (pour les dates)
+        filtre = {}
+        if dateDebut:
+            filtre["date__gte"] = dateDebut
+        if dateFin:
+            fin = _borne_fin_journee(dateFin)
+            if fin:
+                filtre["date__lt"] = fin
+
+        commande_ids = Commande.objects.filter(**filtre).values_list('id', flat=True)
+
+        commandesP = (
+            CommandeProduit.objects
+            .filter(commande_id__in=commande_ids)
+            .select_related('produit', 'produit__categorie', 'commande')
+        )
+
+        if idCategorie and idCategorie != "0":
+            try:
+                categorie = Categorie.objects.get(id=idCategorie)
+            except Categorie.DoesNotExist:
+                return JsonResponse({"error": "Categorie introuvable"}, status=404)
+            commandesP = commandesP.filter(produit__categorie=categorie)
+
+        # Construire la réponse JSON
+        produits_data = [
+            {
+                "id": commandeP.id,
+                "produit": commandeP.produit.libelle if commandeP.produit else "inconnu",
+                "categorie": commandeP.produit.categorie.nom if commandeP.produit and commandeP.produit.categorie else "",
+                "quantite": commandeP.quantite,
+                "prix": commandeP.prix,
+                "montant": commandeP.prix * commandeP.quantite,
+                "date": commandeP.date,
+            }
+            for commandeP in commandesP.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+        ]
+
+        return JsonResponse({"vente": produits_data})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
 
 
 

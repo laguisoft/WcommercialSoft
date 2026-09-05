@@ -297,10 +297,11 @@ class VersementClientForm(forms.ModelForm):
 
     class Meta:
         model = VersementClient
-        fields = ['client', 'montant', 'date']
+        fields = ['client', 'montant', 'date', 'typePayement']
         widgets = {
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
+            'typePayement': forms.Select(attrs={'class': 'form-control select2bs4', 'id': 'idTypePayement'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -425,10 +426,11 @@ class VersementFournisseurForm(forms.ModelForm):
 
     class Meta:
         model = VersementFournisseur
-        fields = ['fournisseur', 'montant', 'date']
+        fields = ['fournisseur', 'montant', 'date', 'typePayement']
         widgets = {
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date', 'id':'idDate'}),
+            'typePayement': forms.Select(attrs={'class': 'form-control select2bs4', 'id': 'idTypePayement'}),
         }
 
     def __init__(self, *args, **kwargs):

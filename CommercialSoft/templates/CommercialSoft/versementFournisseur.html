@@ -47,22 +47,28 @@
                     {% csrf_token %}
                     <div class="card-body">
                       <div class="row justify-content-center align-items-end">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                           <div class="form-group">
                             <label for="fournisseur">Fournisseur</label>
                             {{ form.fournisseur }}
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="montant">Montant</label>
                             {{ form.montant }}
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="date">Date</label>
                             {{ form.date }}
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="form-group">
+                            <label for="idTypePayement">Type payement</label>
+                            {{ form.typePayement }}
                           </div>
                         </div>
                         <div class="col-md-2">

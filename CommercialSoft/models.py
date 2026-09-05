@@ -273,6 +273,7 @@ class VersementClient(TenantScopedModel):
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Orange Money','Orange Money'),('Banque','Banque')])
 
     class Meta:
         indexes = [
@@ -317,6 +318,7 @@ class VersementFournisseur(TenantScopedModel):
     fournisseur=models.ForeignKey(Fournisseur, on_delete=models.CASCADE, related_name='versementFournisseur')
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
+    typePayement=models.CharField(max_length=15, default="Espece", choices=[('Espece','Espece'),('Orange Money','Orange Money'),('Banque','Banque')])
 
     class Meta:
         indexes = [

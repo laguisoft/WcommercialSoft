@@ -70,6 +70,12 @@
                         </div>
                         <div class="col-md-2">
                           <div class="form-group">
+                            <label for="idTypePayement">Type payement</label>
+                            {{ form.typePayement }}
+                          </div>
+                        </div>
+                        <div class="col-md-2">
+                          <div class="form-group">
                             <label for="quantite">Reste a payer</label>
                             <input type="text" class="form-control" id="reste" readonly>
                           </div>
@@ -102,6 +108,7 @@
                     <th class="text-center">Client</th>
                     <th class="text-center">Montant</th>
                     <th class="text-center">Date</th>
+                    <th class="text-center">Type payement</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
@@ -113,6 +120,7 @@
                         <td>{{liste.client}}</td>
                         <td class="text-center">{{liste.montant}}</td>
                         <td class="text-center">{{liste.date}}</td>
+                        <td class="text-center">{{liste.typePayement}}</td>
                         <td class="text-center">
                           <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">

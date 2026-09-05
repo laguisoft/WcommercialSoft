@@ -487,6 +487,7 @@ def executer(paquet, entreprise, mapping_utilisateurs, importe_par):
             continue
         VersementClient.objects.create(
             entreprise=entreprise, client=client, montant=f['montant'], date=f['date'], user=users_map[f['user']],
+            typePayement=f.get('typePayement', 'Espece'),
         )
         compte('commercialsoft.versementclient', rapport['crees'])
 
@@ -522,6 +523,7 @@ def executer(paquet, entreprise, mapping_utilisateurs, importe_par):
             continue
         VersementFournisseur.objects.create(
             entreprise=entreprise, fournisseur=fournisseur, montant=f['montant'], date=f['date'],
+            typePayement=f.get('typePayement', 'Espece'),
         )
         compte('commercialsoft.versementfournisseur', rapport['crees'])
 
