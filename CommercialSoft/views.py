@@ -463,7 +463,8 @@ def vente_par_client(request):
 @login_required
 @permission_required('CommercialSoft.view_commande')
 def vente_par_payement(request):
-    return render(request, 'CommercialSoft/venteParPayement.html')
+    users = utilisateurs_de_entreprise(request)
+    return render(request, 'CommercialSoft/venteParPayement.html', {'users': users})
 
 
 
@@ -1447,6 +1448,7 @@ def recherche_vente_client(request):
 def recherche_vente_payement(request):
     if request.method == "POST":
         payement = request.POST.get('payement')
+        idUser = request.POST.get('idUser')
         dateDebut = request.POST.get("dateDebut")
         dateFin = request.POST.get("dateFin")
 
@@ -1468,8 +1470,15 @@ def recherche_vente_payement(request):
             except :
                 return JsonResponse({"error": "Payement introuvable"}, status=404)
 
+        # Vérifier si idUser est valide (non 0 et correspondant à un utilisateur existant)
+        if idUser and idUser != "0":
+            user = utilisateur_de_entreprise(request, idUser)
+            if user is None:
+                return JsonResponse({"error": "Utilisateur introuvable"}, status=404)
+            filtre["user"] = user
+
         # Appliquer le filtre à la requête
-        ventes = Commande.objects.filter(**filtre).select_related('client')
+        ventes = Commande.objects.filter(**filtre).select_related('user', 'client')
 
         # Construire la réponse JSON
         produits_data = [
@@ -1479,6 +1488,7 @@ def recherche_vente_payement(request):
                 "remise": vente.remise,
                 "net": vente.montant - vente.remise,
                 "date": vente.date,
+                "user": vente.user.username if vente.user else "",
                 "type": vente.typeVente,
                 "payement": vente.typePayement,
                 "client": vente.client.nom if vente.client else "",
