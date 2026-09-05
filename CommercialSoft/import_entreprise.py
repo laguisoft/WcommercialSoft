@@ -288,9 +288,18 @@ def executer(paquet, entreprise, mapping_utilisateurs, importe_par):
     client_map = {}
     for obj in groupes.get('commercialsoft.client', []):
         f = obj['fields']
+        compte_portail = users_map.get(f.get('user'))
         existant = Client.objects.filter(entreprise=entreprise, nom=f['nom']).first()
         if existant:
             client_map[obj['pk']] = existant
+            # Ne jamais ecraser un lien deja existant, mais restaurer celui
+            # de l'export si le client cible n'a pas encore de compte portail
+            # (sinon le compte importe reste orphelin : hasattr(user,
+            # 'client_profile') est faux et l'utilisateur atterrit sur le
+            # tableau de bord staff au lieu du portail).
+            if compte_portail and not existant.user_id:
+                existant.user = compte_portail
+                existant.save(update_fields=['user'])
             compte('commercialsoft.client', rapport['reutilises'])
             continue
 
@@ -304,6 +313,7 @@ def executer(paquet, entreprise, mapping_utilisateurs, importe_par):
             matricule=f.get('matricule'),
             pourcentage=f.get('pourcentage', 0),
             detteMaximale=f.get('detteMaximale', 0),
+            user=compte_portail,
         )
         compte('commercialsoft.client', rapport['crees'])
 
