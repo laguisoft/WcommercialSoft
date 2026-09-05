@@ -237,6 +237,25 @@ class RenouvelerAbonnementViewTests(TestCase):
         self.assertEqual(paiement.transaction_id, 'txn-3')
 
     @patch('djomy.client.requests.post')
+    def test_post_utilise_le_montant_contrat_de_lentreprise(self, mock_post):
+        self.entreprise.montant_contrat = 1_200_000  # 100 000 GNF/mois
+        self.entreprise.save()
+
+        mock_post.side_effect = [
+            _fake_response({'success': True, 'data': {'accessToken': 'tok'}}),
+            _fake_response({'success': True, 'data': {
+                'transactionId': 'txn-5', 'status': 'REDIRECTED',
+                'redirectUrl': 'https://sandbox-portal.djomy.africa/pay/txn-5',
+            }}),
+        ]
+        response = self.client.post(reverse('djomy_renouveler'), {
+            'duree_mois': '3', 'payer_number': '00224623707722',
+        })
+        self.assertRedirects(response, 'https://sandbox-portal.djomy.africa/pay/txn-5', fetch_redirect_response=False)
+        paiement = PaiementAbonnement.all_objects.get(entreprise=self.entreprise)
+        self.assertEqual(paiement.montant, 3 * 100_000)
+
+    @patch('djomy.client.requests.post')
     def test_post_shows_error_on_djomy_failure(self, mock_post):
         mock_post.side_effect = [
             _fake_response({'success': True, 'data': {'accessToken': 'tok'}}),

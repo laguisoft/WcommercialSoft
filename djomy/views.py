@@ -33,6 +33,17 @@ def _nouvelle_reference(entreprise):
     return f"ABN-{entreprise.id}-{uuid.uuid4().hex[:12]}"
 
 
+def _prix_mensuel(entreprise):
+    """Prix mensuel de l'abonnement pour cette entreprise.
+
+    Dérivé du montant annuel du contrat propre à l'entreprise (`montant_contrat`)
+    quand il est renseigné, sinon on retombe sur le tarif global par défaut.
+    """
+    if entreprise.montant_contrat:
+        return entreprise.montant_contrat // 12
+    return settings.DJOMY_PRIX_MENSUEL_GNF
+
+
 def _appliquer_resultat(merchant_reference, data):
     """Met à jour la tentative de paiement à partir d'une réponse Djomy (verify_payment),
     et prolonge l'abonnement de l'entreprise une seule fois, à la première confirmation SUCCESS.
@@ -77,7 +88,7 @@ def renouveler_abonnement(request):
         next_url = reverse('djomy_renouveler')
         return redirect(f"{reverse('choisir_entreprise')}?next={next_url}")
 
-    prix_mensuel = settings.DJOMY_PRIX_MENSUEL_GNF
+    prix_mensuel = _prix_mensuel(entreprise)
     durees = [{'mois': m, 'montant': m * prix_mensuel} for m in DUREES_DISPONIBLES]
 
     if request.method == 'POST':
