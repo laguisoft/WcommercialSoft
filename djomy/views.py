@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import uuid
 
 from django.conf import settings
@@ -19,7 +20,9 @@ from .utils import ajouter_mois
 
 logger = logging.getLogger(__name__)
 
-DUREES_DISPONIBLES = [1, 3, 6, 12]
+# Seules ces deux durées sont proposées pour le moment : paiement mensuel (1 mois)
+# ou paiement annuel (12 mois, correspondant au montant du contrat).
+DUREES_DISPONIBLES = [1, 12]
 
 # Statuts définitifs : un webhook/retour ultérieur ne doit plus rien changer.
 STATUTS_TERMINAUX = {'SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT', 'REFUNDED'}
@@ -33,15 +36,24 @@ def _nouvelle_reference(entreprise):
     return f"ABN-{entreprise.id}-{uuid.uuid4().hex[:12]}"
 
 
-def _prix_mensuel(entreprise):
-    """Prix mensuel de l'abonnement pour cette entreprise.
+def _arrondir_millier_superieur(montant):
+    """Arrondit au multiple de 1000 GNF immédiatement supérieur (ou égal)."""
+    return math.ceil(montant / 1000) * 1000
 
-    Dérivé du montant annuel du contrat propre à l'entreprise (`montant_contrat`)
-    quand il est renseigné, sinon on retombe sur le tarif global par défaut.
+
+def _montants_renouvellement(entreprise):
+    """Montants proposés pour le renouvellement, par durée (1 ou 12 mois).
+
+    Le montant annuel correspond au montant du contrat propre à l'entreprise
+    (`montant_contrat`), ou au tarif global par défaut si non renseigné. Le
+    montant mensuel en est le douzième. Dans les deux cas, arrondi au multiple
+    de 1000 GNF supérieur.
     """
-    if entreprise.montant_contrat:
-        return entreprise.montant_contrat // 12
-    return settings.DJOMY_PRIX_MENSUEL_GNF
+    montant_annuel_brut = entreprise.montant_contrat or (settings.DJOMY_PRIX_MENSUEL_GNF * 12)
+    return {
+        1: _arrondir_millier_superieur(montant_annuel_brut / 12),
+        12: _arrondir_millier_superieur(montant_annuel_brut),
+    }
 
 
 def _appliquer_resultat(merchant_reference, data):
@@ -88,8 +100,8 @@ def renouveler_abonnement(request):
         next_url = reverse('djomy_renouveler')
         return redirect(f"{reverse('choisir_entreprise')}?next={next_url}")
 
-    prix_mensuel = _prix_mensuel(entreprise)
-    durees = [{'mois': m, 'montant': m * prix_mensuel} for m in DUREES_DISPONIBLES]
+    montants = _montants_renouvellement(entreprise)
+    durees = [{'mois': m, 'montant': montants[m]} for m in DUREES_DISPONIBLES]
 
     if request.method == 'POST':
         try:
@@ -105,7 +117,7 @@ def renouveler_abonnement(request):
             erreurs.append("Le numéro de téléphone du payeur est obligatoire.")
 
         if not erreurs:
-            montant = duree_mois * prix_mensuel
+            montant = montants[duree_mois]
             reference = _nouvelle_reference(entreprise)
             paiement = PaiementAbonnement.objects.create(
                 entreprise=entreprise,
@@ -149,7 +161,7 @@ def renouveler_abonnement(request):
     return render(request, 'djomy/renouveler.html', {
         'entreprise': entreprise,
         'durees': durees,
-        'prix_mensuel': prix_mensuel,
+        'prix_mensuel': montants[1],
     })
 
 

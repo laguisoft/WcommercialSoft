@@ -228,13 +228,22 @@ class RenouvelerAbonnementViewTests(TestCase):
             }}),
         ]
         response = self.client.post(reverse('djomy_renouveler'), {
-            'duree_mois': '3', 'payer_number': '00224623707722',
+            'duree_mois': '12', 'payer_number': '00224623707722',
         })
         self.assertRedirects(response, 'https://sandbox-portal.djomy.africa/pay/txn-3', fetch_redirect_response=False)
         paiement = PaiementAbonnement.all_objects.get(entreprise=self.entreprise)
-        self.assertEqual(paiement.duree_mois, 3)
-        self.assertEqual(paiement.montant, 3 * 150000)
+        self.assertEqual(paiement.duree_mois, 12)
+        self.assertEqual(paiement.montant, 12 * 150000)
         self.assertEqual(paiement.transaction_id, 'txn-3')
+
+    @patch('djomy.client.requests.post')
+    def test_post_rejette_une_duree_non_disponible(self, mock_post):
+        response = self.client.post(reverse('djomy_renouveler'), {
+            'duree_mois': '3', 'payer_number': '00224623707722',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PaiementAbonnement.all_objects.filter(entreprise=self.entreprise).exists())
+        mock_post.assert_not_called()
 
     @patch('djomy.client.requests.post')
     def test_post_utilise_le_montant_contrat_de_lentreprise(self, mock_post):
@@ -249,11 +258,31 @@ class RenouvelerAbonnementViewTests(TestCase):
             }}),
         ]
         response = self.client.post(reverse('djomy_renouveler'), {
-            'duree_mois': '3', 'payer_number': '00224623707722',
+            'duree_mois': '1', 'payer_number': '00224623707722',
         })
         self.assertRedirects(response, 'https://sandbox-portal.djomy.africa/pay/txn-5', fetch_redirect_response=False)
         paiement = PaiementAbonnement.all_objects.get(entreprise=self.entreprise)
-        self.assertEqual(paiement.montant, 3 * 100_000)
+        self.assertEqual(paiement.montant, 100_000)
+
+    @patch('djomy.client.requests.post')
+    def test_post_arrondit_au_millier_superieur(self, mock_post):
+        # 1 000 000 / 12 = 83 333,33... -> arrondi à 84 000.
+        self.entreprise.montant_contrat = 1_000_000
+        self.entreprise.save()
+
+        mock_post.side_effect = [
+            _fake_response({'success': True, 'data': {'accessToken': 'tok'}}),
+            _fake_response({'success': True, 'data': {
+                'transactionId': 'txn-6', 'status': 'REDIRECTED',
+                'redirectUrl': 'https://sandbox-portal.djomy.africa/pay/txn-6',
+            }}),
+        ]
+        response = self.client.post(reverse('djomy_renouveler'), {
+            'duree_mois': '1', 'payer_number': '00224623707722',
+        })
+        self.assertRedirects(response, 'https://sandbox-portal.djomy.africa/pay/txn-6', fetch_redirect_response=False)
+        paiement = PaiementAbonnement.all_objects.get(entreprise=self.entreprise)
+        self.assertEqual(paiement.montant, 84_000)
 
     @patch('djomy.client.requests.post')
     def test_post_shows_error_on_djomy_failure(self, mock_post):

@@ -33,7 +33,7 @@
         <select name="duree_mois" class="form-select" required>
           {% for choix in durees %}
             <option value="{{ choix.mois }}">
-              {{ choix.mois }} mois — {{ choix.montant }} GNF
+              {% if choix.mois == 12 %}1 an (12 mois){% else %}{{ choix.mois }} mois{% endif %} — {{ choix.montant }} GNF
             </option>
           {% endfor %}
         </select>
