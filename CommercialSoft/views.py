@@ -399,8 +399,6 @@ def produit_list(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 def inventaire(request):
     categorie=Categorie.objects.all()
     produit=Produit.objects.all()
@@ -518,8 +516,6 @@ def situation_vente(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.add_livraison')
 @permission_required('CommercialSoft.add_livraisonproduit')
 def reception_create(request):
@@ -633,7 +629,7 @@ import json
 from .models import Produit, Fournisseur, Livraison, LivraisonProduit, DetteFournisseur
 
 @login_required
-@user_passes_test(est_administrateur, est_gestionnaire)
+@user_passes_test(est_admin_ou_gestionnaire)
 @require_GET
 def api_reception(request):
     """
@@ -895,8 +891,6 @@ def reception_delete(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_livraison')
 def reception_edit(request, pk):
     livraisonP = get_object_or_404(LivraisonProduit, pk=pk)
@@ -917,8 +911,6 @@ def reception_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.view_livraison')
 @permission_required('CommercialSoft.view_livraisonproduit')
@@ -945,8 +937,6 @@ def detail_reception(request, pk):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.delete_livraisonproduit')
 def produit_livrer_delete(request, pk):
@@ -1844,7 +1834,6 @@ def vente_delete(request, pk):
 
 
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.delete_commandeproduit')
@@ -1871,8 +1860,6 @@ def commandeP_delete(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_produit')
 def produit_edit(request, pk):
@@ -1935,8 +1922,6 @@ def modifierProduitAjax(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_commande')
 def modifier_commande(request, pk):
@@ -2127,8 +2112,6 @@ def depense_list_create(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_depense')
 def depense_edit(request, pk):
@@ -2597,8 +2580,6 @@ def recherche_versementClient(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.delete_versementclient')
 def versementClient_delete(request, pk):
     versement = get_object_or_404(VersementClient, pk=pk)
@@ -2871,8 +2852,6 @@ def pretClient_delete(request, pk):
 # examen Views
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.add_versementfournisseur')
 def versementFournisseur_list_create(request):
     if request.method == "POST":
@@ -2898,8 +2877,6 @@ def versementFournisseur_list_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_versementfournisseur')
 def versementFournisseur_edit(request, pk):
     versementFournisseur = get_object_or_404(VersementFournisseur, pk=pk)
@@ -2922,8 +2899,6 @@ def versementFournisseur_edit(request, pk):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.view_versementfournisseur')
 def versementFournisseur_list(request):
     fournisseur=VersementFournisseur()
@@ -2934,8 +2909,6 @@ def versementFournisseur_list(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.view_versementfournisseur')
 def recherche_versementFournisseur(request):
@@ -2970,8 +2943,6 @@ def recherche_versementFournisseur(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.delete_versementfournisseur')
 def versementFournisseur_delete(request, pk):
     versement = get_object_or_404(VersementFournisseur, pk=pk)
@@ -2990,8 +2961,6 @@ def versementFournisseur_delete(request, pk):
 
 # examen Views
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.add_dettefournisseur')
 def detteFournisseur_list_create(request):
@@ -3018,8 +2987,6 @@ def detteFournisseur_list_create(request):
 
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
-@user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_dettefournisseur')
 def detteFournisseur_edit(request, pk):
     detteFournisseur = get_object_or_404(DetteFournisseur, pk=pk)
@@ -3043,8 +3010,6 @@ def detteFournisseur_edit(request, pk):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.view_dettefournisseur')
 def recherche_detteFournisseur(request):
@@ -3078,8 +3043,6 @@ def recherche_detteFournisseur(request):
 
 
 @login_required
-@user_passes_test(est_admin_ou_gestionnaire)
-@user_passes_test(est_administrateur, est_gestionnaire)
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.delete_dettefournisseur')
 def detteFournisseur_delete(request, pk):

@@ -788,3 +788,33 @@ class SyncLivraisonsOfflineTests(TestCase):
         self.assertEqual(self.produit.quantite, 15)
         self.assertEqual(self.produit.quantiteTotal, 15)
 
+
+class AccesReceptionGestionnaireTests(TestCase):
+    """@user_passes_test(est_administrateur, est_gestionnaire) etait invalide :
+    le 2e argument positionnel de user_passes_test est login_url, pas un second
+    test - ca ne faisait donc passer que les Administrateur, et un Gestionnaire
+    refuse declenchait un NoReverseMatch nonsense (resolve_url(est_gestionnaire))
+    au lieu d'un redirect propre, soit une erreur 500 en pratique. Un
+    utilisateur du groupe Gestionnaire (role courant pour la reception au
+    quotidien) doit pouvoir acceder aux pages de reception."""
+
+    def setUp(self):
+        self.entreprise = Entreprise.objects.create(nom="Boutique Test", ville="Conakry")
+        User = get_user_model()
+        self.gestionnaire = User.objects.create_user(
+            username="gestionnaire", password="secret123", entreprise=self.entreprise
+        )
+        groupe_gestionnaire, _ = Group.objects.get_or_create(name="Gestionnaire")
+        self.gestionnaire.groups.add(groupe_gestionnaire)
+        self.gestionnaire.user_permissions.add(*Permission.objects.filter(
+            codename__in=["add_livraison", "add_livraisonproduit"]
+        ))
+        self.client.login(username="gestionnaire", password="secret123")
+
+    def test_page_reception_accessible_a_un_gestionnaire(self):
+        response = self.client.get(reverse("commerce_reception"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_api_reception_accessible_a_un_gestionnaire(self):
+        response = self.client.get(reverse("api_reception"))
+        self.assertEqual(response.status_code, 200)
