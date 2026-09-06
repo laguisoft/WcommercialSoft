@@ -708,6 +708,7 @@ def api_sync_livraisons(request):
                 client_uid=id_local,
             )
 
+            lignes_traitees = 0
             for li in lignes:
                 pid = li.get("produit_id")
                 qte = int(li.get("quantite") or 0)
@@ -752,6 +753,14 @@ def api_sync_livraisons(request):
                 if prixEnGros > 0:
                     pr.prixEnGros = prixEnGros
                 pr.save()
+                lignes_traitees += 1
+
+            if lignes_traitees == 0:
+                # Aucune ligne valide (produit_id/quantite/prix manquant ou introuvable) :
+                # annule la Livraison plutot que de repondre "success" alors qu'aucun
+                # stock n'a ete mis a jour (cf. le controle qte<=0/prix<=0 ci-dessus qui
+                # ignorait silencieusement ces lignes).
+                raise ValueError("Aucune ligne valide : verifiez produit, quantite et prix d'achat (> 0).")
 
             if typePayement == "Pret":
                 DetteFournisseur.objects.create(

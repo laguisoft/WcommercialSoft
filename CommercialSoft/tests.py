@@ -818,3 +818,58 @@ class AccesReceptionGestionnaireTests(TestCase):
     def test_api_reception_accessible_a_un_gestionnaire(self):
         response = self.client.get(reverse("api_reception"))
         self.assertEqual(response.status_code, 200)
+
+
+class SyncLivraisonsLigneInvalideTests(TestCase):
+    """Reproduit le bug signale : une ligne avec un prix d'achat a 0 (autorise
+    a tort cote JS par `pa < 0` au lieu de `pa <= 0`) etait silencieusement
+    ignoree par api_sync_livraisons (`prix <= 0: continue`), tout en renvoyant
+    success=True car la Livraison (entete facture) etait quand meme creee :
+    la facture apparaissait "enregistree" sans que le stock du produit ne
+    bouge. Le serveur doit desormais refuser une livraison dont aucune ligne
+    n'a pu etre traitee, plutot que de repondre un faux succes."""
+
+    def setUp(self):
+        self.entreprise = Entreprise.objects.create(nom="Boutique Test", ville="Conakry")
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="gestionnaire", password="secret123", entreprise=self.entreprise
+        )
+        self.user.user_permissions.add(*Permission.objects.filter(
+            codename__in=["add_livraison", "add_livraisonproduit"]
+        ))
+        self.client.login(username="gestionnaire", password="secret123")
+
+        self.fournisseur = Fournisseur.objects.create(
+            entreprise=self.entreprise, nom="Fournisseur Test", adresse="Conakry", telephone="620000000"
+        )
+        self.categorie = Categorie.objects.create(entreprise=self.entreprise, nom="Divers")
+        self.produit = Produit.objects.create(
+            entreprise=self.entreprise, categorie=self.categorie, libelle="Riz",
+            quantite=10, quantiteTotal=10, prixAchat=1000, prixEnGros=1200, prixDetail=1500,
+        )
+
+    def test_prix_a_zero_est_refuse_sans_toucher_au_stock(self):
+        payload = {
+            "id_local": "liv-prix-zero",
+            "fournisseur": self.fournisseur.id,
+            "lignes": [{
+                "produit_id": self.produit.id, "quantite": 5, "prix": 0,
+                "prixEnGros": 0, "prixDetail": 0,
+            }],
+            "montant": 0,
+            "date": "2026-08-17",
+            "typePayement": "Espece",
+        }
+        response = self.client.post(
+            reverse("api_sync_livraisons"), data=json.dumps(payload), content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(response.json()["success"])
+
+        # Ni la facture ni la mise a jour de stock ne doivent avoir ete
+        # enregistrees (transaction annulee dans son ensemble).
+        self.assertFalse(Livraison.objects.filter(client_uid="liv-prix-zero").exists())
+        self.produit.refresh_from_db()
+        self.assertEqual(self.produit.quantite, 10)
+        self.assertEqual(self.produit.quantiteTotal, 10)

@@ -592,7 +592,7 @@ function ajouterLigneReception(p = null) {
   let categorieID = parseInt(inputCatR.dataset.id || "0");
   let categorieNom = inputCatR.value || "";
 
-  if (qte <= 0 || pa < 0 ) {
+  if (qte <= 0 || pa <= 0 ) {
     toastr.warning("Quantité et prix d'achat doivent être > 0");
     return;
   }
