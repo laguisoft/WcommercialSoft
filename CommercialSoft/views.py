@@ -716,7 +716,7 @@ def api_sync_livraisons(request):
                 prixEnGros = int(float(li.get("prixEnGros") or 0))
                 prixDetail = int(float(li.get("prixDetail") or 0))
                 per_mm_aa = (li.get("peremption") or "").strip()
-                if not pid or qte <= 0 or prix <= 0:
+                if not pid or qte <= 0 or prix < 0:
                     continue
 
                 pr = Produit.objects.filter(id=pid).first()

@@ -9,7 +9,7 @@ from . import import_entreprise as import_entreprise_module
 from . import reparer_import_client_portail as reparation_module
 from .models import (
     Categorie, Client, ClientSpecial, Commande, CommandeProduit, Fournisseur,
-    ImportJournal, Livraison, Produit,
+    ImportJournal, Livraison, LivraisonProduit, Produit,
 )
 from .views import utilisateur_de_entreprise, utilisateurs_de_entreprise
 from tenants.models import Entreprise
@@ -821,13 +821,12 @@ class AccesReceptionGestionnaireTests(TestCase):
 
 
 class SyncLivraisonsLigneInvalideTests(TestCase):
-    """Reproduit le bug signale : une ligne avec un prix d'achat a 0 (autorise
-    a tort cote JS par `pa < 0` au lieu de `pa <= 0`) etait silencieusement
-    ignoree par api_sync_livraisons (`prix <= 0: continue`), tout en renvoyant
-    success=True car la Livraison (entete facture) etait quand meme creee :
-    la facture apparaissait "enregistree" sans que le stock du produit ne
-    bouge. Le serveur doit desormais refuser une livraison dont aucune ligne
-    n'a pu etre traitee, plutot que de repondre un faux succes."""
+    """Le prix d'achat d'une ligne de reception peut legitimement etre a 0
+    (echantillon gratuit, don...) : api_sync_livraisons doit la traiter
+    normalement (creer la LivraisonProduit et incrementer le stock), et ne
+    doit rejeter une livraison que si AUCUNE de ses lignes n'a pu etre
+    traitee (produit introuvable, quantite invalide...), plutot que de
+    repondre un succes trompeur pour une facture vide."""
 
     def setUp(self):
         self.entreprise = Entreprise.objects.create(nom="Boutique Test", ville="Conakry")
@@ -849,7 +848,7 @@ class SyncLivraisonsLigneInvalideTests(TestCase):
             quantite=10, quantiteTotal=10, prixAchat=1000, prixEnGros=1200, prixDetail=1500,
         )
 
-    def test_prix_a_zero_est_refuse_sans_toucher_au_stock(self):
+    def test_prix_a_zero_est_accepte_et_met_a_jour_le_stock(self):
         payload = {
             "id_local": "liv-prix-zero",
             "fournisseur": self.fournisseur.id,
@@ -864,12 +863,37 @@ class SyncLivraisonsLigneInvalideTests(TestCase):
         response = self.client.post(
             reverse("api_sync_livraisons"), data=json.dumps(payload), content_type="application/json",
         )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertTrue(response.json()["success"])
+
+        self.assertEqual(Livraison.objects.filter(client_uid="liv-prix-zero").count(), 1)
+        self.assertEqual(LivraisonProduit.objects.filter(produit=self.produit, prix=0).count(), 1)
+        self.produit.refresh_from_db()
+        self.assertEqual(self.produit.quantite, 15)
+        self.assertEqual(self.produit.quantiteTotal, 15)
+        self.assertEqual(self.produit.prixAchat, 0)
+
+    def test_aucune_ligne_valide_est_refusee_sans_toucher_au_stock(self):
+        payload = {
+            "id_local": "liv-produit-introuvable",
+            "fournisseur": self.fournisseur.id,
+            "lignes": [{
+                "produit_id": self.produit.id + 999, "quantite": 5, "prix": 1000,
+                "prixEnGros": 0, "prixDetail": 0,
+            }],
+            "montant": 5000,
+            "date": "2026-08-17",
+            "typePayement": "Espece",
+        }
+        response = self.client.post(
+            reverse("api_sync_livraisons"), data=json.dumps(payload), content_type="application/json",
+        )
         self.assertEqual(response.status_code, 500)
         self.assertFalse(response.json()["success"])
 
         # Ni la facture ni la mise a jour de stock ne doivent avoir ete
         # enregistrees (transaction annulee dans son ensemble).
-        self.assertFalse(Livraison.objects.filter(client_uid="liv-prix-zero").exists())
+        self.assertFalse(Livraison.objects.filter(client_uid="liv-produit-introuvable").exists())
         self.produit.refresh_from_db()
         self.assertEqual(self.produit.quantite, 10)
         self.assertEqual(self.produit.quantiteTotal, 10)
