@@ -683,9 +683,16 @@ def api_sync_livraisons(request):
     numeroFacture = payload.get("numeroFacture") or None
     typePayement = payload.get("typePayement") or "Espece"
     date_str = payload.get("date") or ""
+    id_local = payload.get("id_local")
 
     if not fournisseur_id or not lignes:
         return JsonResponse({"success": False, "error": "Fournisseur et lignes requis"}, status=400)
+
+    # Cf. sync_ventes/id_local : un retry du client (timeout cote offline-core.js
+    # alors que le premier envoi avait en realite reussi) recreerait sinon la
+    # livraison et doublerait l'entree de stock a chaque rejeu.
+    if id_local and Livraison.objects.filter(client_uid=id_local).exists():
+        return JsonResponse({"success": True, "message": "Facture déjà synchronisée"})
 
     try:
         fournisseur = Fournisseur.objects.get(id=fournisseur_id)
@@ -702,6 +709,7 @@ def api_sync_livraisons(request):
                 montant=montant,
                 numeroFacture=numeroFacture,
                 typePayement=typePayement,
+                client_uid=id_local,
             )
 
             for li in lignes:

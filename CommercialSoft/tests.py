@@ -7,7 +7,10 @@ from django.urls import reverse
 
 from . import import_entreprise as import_entreprise_module
 from . import reparer_import_client_portail as reparation_module
-from .models import Categorie, Client, ClientSpecial, Commande, CommandeProduit, ImportJournal, Produit
+from .models import (
+    Categorie, Client, ClientSpecial, Commande, CommandeProduit, Fournisseur,
+    ImportJournal, Livraison, Produit,
+)
 from .views import utilisateur_de_entreprise, utilisateurs_de_entreprise
 from tenants.models import Entreprise
 
@@ -721,4 +724,67 @@ class SynchronisationHorsLigneGlobaleTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "js/offline-core.js")
         self.assertContains(response, 'id="etatSynchro"')
+
+
+class SyncLivraisonsOfflineTests(TestCase):
+    """api_sync_livraisons doit etre idempotent comme sync_ventes (cf. id_local/
+    client_uid) : un rejeu du meme id_local (timeout cote offline-core.js alors
+    que le premier envoi avait en realite reussi cote serveur) ne doit ni
+    recreer la livraison, ni redoubler l'entree de stock du produit."""
+
+    def setUp(self):
+        self.entreprise = Entreprise.objects.create(nom="Boutique Test", ville="Conakry")
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="gestionnaire", password="secret123", entreprise=self.entreprise
+        )
+        self.user.user_permissions.add(*Permission.objects.filter(
+            codename__in=["add_livraison", "add_livraisonproduit"]
+        ))
+        self.client.login(username="gestionnaire", password="secret123")
+
+        self.fournisseur = Fournisseur.objects.create(
+            entreprise=self.entreprise, nom="Fournisseur Test", adresse="Conakry", telephone="620000000"
+        )
+        self.categorie = Categorie.objects.create(entreprise=self.entreprise, nom="Divers")
+        self.produit = Produit.objects.create(
+            entreprise=self.entreprise, categorie=self.categorie, libelle="Riz",
+            quantite=10, quantiteTotal=10, prixAchat=1000, prixEnGros=1200, prixDetail=1500,
+        )
+
+    def _payload(self):
+        return {
+            "id_local": "liv-local-1",
+            "fournisseur": self.fournisseur.id,
+            "lignes": [{
+                "produit_id": self.produit.id, "quantite": 5, "prix": 1100,
+                "prixEnGros": 1300, "prixDetail": 1600,
+            }],
+            "montant": 5500,
+            "date": "2026-08-17",
+            "typePayement": "Espece",
+        }
+
+    def test_sync_cree_la_livraison_et_met_a_jour_le_stock(self):
+        response = self.client.post(
+            reverse("api_sync_livraisons"), data=json.dumps(self._payload()), content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(Livraison.objects.filter(client_uid="liv-local-1").count(), 1)
+        self.produit.refresh_from_db()
+        self.assertEqual(self.produit.quantite, 15)
+        self.assertEqual(self.produit.quantiteTotal, 15)
+
+    def test_rejouer_le_meme_id_local_ne_double_pas_le_stock(self):
+        payload = self._payload()
+        for _ in range(2):
+            response = self.client.post(
+                reverse("api_sync_livraisons"), data=json.dumps(payload), content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200, response.content)
+
+        self.assertEqual(Livraison.objects.filter(client_uid="liv-local-1").count(), 1)
+        self.produit.refresh_from_db()
+        self.assertEqual(self.produit.quantite, 15)
+        self.assertEqual(self.produit.quantiteTotal, 15)
 
