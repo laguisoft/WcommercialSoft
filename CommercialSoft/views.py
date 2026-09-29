@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.timezone import now, localdate
 from django.db import IntegrityError
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.db.models import Sum, F, ExpressionWrapper, IntegerField, DecimalField, BigIntegerField, OuterRef, Subquery, Count, Q
@@ -144,13 +145,16 @@ def login_view(request):
 @login_required
 def dashboard(request):
     info_boutique = request.entreprise
+    aujourdhui, limite = bornes_peremption(info_boutique)
     produits_stats = Produit.objects.aggregate(
         total=Count('id'),
-        perimes=Count('id', filter=Q(datePeremption__lt=now())),
+        perimes=Count('id', filter=Q(datePeremption__lt=aujourdhui)),
+        proches=Count('id', filter=Q(datePeremption__gte=aujourdhui, datePeremption__lte=limite)),
         rupture=Count('id', filter=Q(quantite__lte=F('seuil'))),
     )
     total_produits = produits_stats['total']
     produits_perimes = produits_stats['perimes']
+    produits_proches = produits_stats['proches']
     produits_rupture = produits_stats['rupture']
     total_dettes = PretClient.objects.count()
 
@@ -160,6 +164,7 @@ def dashboard(request):
         'boutique': info_boutique,
         'total_produits': total_produits,
         'produits_perimes': produits_perimes,
+        'produits_proches': produits_proches,
         'produits_rupture': produits_rupture,
         'total_dettes': total_dettes,
     }
@@ -429,14 +434,76 @@ def valider_quantite(request):
 
 
 
+DELAI_ALERTE_PEREMPTION_DEFAUT = 3  # mois
+
+
+def _ajouter_mois(jour, mois):
+    """jour + N mois, en ramenant au dernier jour du mois si besoin (31/01 + 1 mois = 28 ou 29/02)."""
+    import calendar
+    total = jour.month - 1 + mois
+    annee, mois_cible = jour.year + total // 12, total % 12 + 1
+    return jour.replace(year=annee, month=mois_cible,
+                        day=min(jour.day, calendar.monthrange(annee, mois_cible)[1]))
+
+
+def bornes_peremption(entreprise):
+    """(aujourd'hui, limite) : un produit est périmé si sa date de péremption
+    est avant aujourd'hui, et en voie de péremption si elle est entre
+    aujourd'hui et la limite (délai d'alerte réglé par l'administrateur)."""
+    delai = getattr(entreprise, 'delai_alerte_peremption_mois', None) or DELAI_ALERTE_PEREMPTION_DEFAUT
+    aujourdhui = localdate()
+    return aujourdhui, _ajouter_mois(aujourdhui, delai)
+
+
+def produits_selon_peremption(entreprise, etat):
+    """Produits « perime » (déjà périmés) ou « proche » (en voie de péremption)."""
+    aujourdhui, limite = bornes_peremption(entreprise)
+    if etat == 'proche':
+        return Produit.objects.filter(datePeremption__gte=aujourdhui, datePeremption__lte=limite)
+    return Produit.objects.filter(datePeremption__lt=aujourdhui)
+
+
 @login_required
 def produit_perime(request):
-    aujourdhui = timezone.now().date()
-    produits_perimes = Produit.objects.filter(datePeremption__lt=aujourdhui).order_by('datePeremption')
-    paginator = Paginator(produits_perimes, 15)
+    etat = 'proche' if request.GET.get('etat') == 'proche' else 'perime'
+    entreprise = request.entreprise
+    aujourdhui, limite = bornes_peremption(entreprise)
+    produits = produits_selon_peremption(entreprise, etat).order_by('datePeremption')
+    paginator = Paginator(produits, 15)
     page = request.GET.get('page')
     paginated = paginator.get_page(page)
-    return render(request, 'CommercialSoft/produitPerime.html',{'listes':paginated})
+    for produit in paginated:
+        produit.jours_restants = (produit.datePeremption - aujourdhui).days
+        produit.jours_depasses = -produit.jours_restants
+    return render(request, 'CommercialSoft/produitPerime.html', {
+        'listes': paginated,
+        'etat': etat,
+        'nb_perimes': produits_selon_peremption(entreprise, 'perime').count(),
+        'nb_proches': produits_selon_peremption(entreprise, 'proche').count(),
+        'delai': getattr(entreprise, 'delai_alerte_peremption_mois', None) or DELAI_ALERTE_PEREMPTION_DEFAUT,
+        'limite': limite,
+        'peut_parametrer': est_administrateur(request.user) and entreprise is not None,
+    })
+
+
+@login_required
+@user_passes_test(est_administrateur)
+@require_POST
+def parametre_peremption(request):
+    """L'administrateur règle le délai (en mois) qui définit « en voie de péremption »."""
+    try:
+        delai = int(request.POST.get('delai') or 0)
+    except ValueError:
+        delai = 0
+    if not 1 <= delai <= 60:
+        messages.error(request, "Le délai doit être compris entre 1 et 60 mois.")
+    elif request.entreprise is None:
+        messages.error(request, "Aucune entreprise associée à ce compte.")
+    else:
+        request.entreprise.delai_alerte_peremption_mois = delai
+        request.entreprise.save(update_fields=['delai_alerte_peremption_mois'])
+        messages.success(request, f"Délai d'alerte péremption réglé à {delai} mois.")
+    return redirect(f"{reverse('commerce_produitPerime')}?etat=proche")
 
 
 
@@ -4536,9 +4603,9 @@ def pdf_etat_situation_boutique(request):
 def pdf_etat_produit_perime(request):
     if request.method =="POST":
         
-        aujourdhui = timezone.now().date()
-        produits = Produit.objects.filter(datePeremption__lt=aujourdhui)
-        
+        etat = 'proche' if request.POST.get('etat') == 'proche' else 'perime'
+        produits = produits_selon_peremption(request.entreprise, etat).order_by('datePeremption')
+
         # Construction des données de réponse
         produits_data = [
             {
@@ -4553,7 +4620,8 @@ def pdf_etat_produit_perime(request):
         ]
 
         infoBoutique=request.entreprise
-        context = {'listes': produits_data,'boutique':infoBoutique}
+        titre = "Liste des produits en voie de péremption" if etat == 'proche' else "Liste des produits perimes"
+        context = {'listes': produits_data,'boutique':infoBoutique, 'titre': titre}
         
         return generate_pdf_response_vrais("CommercialSoft/pdfEtatProduitPerime.html", context)
 

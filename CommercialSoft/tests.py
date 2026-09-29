@@ -990,3 +990,73 @@ class AnnulationDetteClientTests(TestCase):
         self.client.post(reverse('commerce_supAnnulationDetteClient', args=[annulation.id]))
         self.assertFalse(AnnulationDetteClient.objects.exists())
         self.assertEqual(totaux_dette_client(self.fiche)['solde'], 70000)
+
+
+class PeremptionProduitsTests(TestCase):
+    """Sépare les produits périmés (date dépassée) de ceux en voie de
+    péremption (périment dans le délai réglé par l'administrateur)."""
+
+    def setUp(self):
+        from datetime import timedelta
+        from django.utils.timezone import localdate
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique Peremption", ville="Conakry")
+        self.admin = User.objects.create_user(username="admin_per", password="secret123", entreprise=self.entreprise)
+        groupe_admin, _ = Group.objects.get_or_create(name="Administrateur")
+        self.admin.groups.add(groupe_admin)
+        self.admin.user_permissions.add(*Permission.objects.filter(codename__in=["view_produit"]))
+        self.vendeur = User.objects.create_user(username="vendeur_per", password="secret123", entreprise=self.entreprise)
+        jour = localdate()
+
+        def produit(libelle, jours):
+            return Produit.objects.create(
+                entreprise=self.entreprise, libelle=libelle, quantite=5, prixAchat=1, prixEnGros=1,
+                prixDetail=1, datePeremption=jour + timedelta(days=jours),
+            )
+        self.perime = produit("Déjà périmé", -1)
+        self.aujourdhui = produit("Périme aujourd'hui", 0)
+        self.dans_2_mois = produit("Dans 2 mois", 60)
+        self.dans_5_mois = produit("Dans 5 mois", 150)
+        self.client.login(username="admin_per", password="secret123")
+
+    def _libelles(self, etat):
+        response = self.client.get(reverse('commerce_produitPerime'), {'etat': etat})
+        self.assertEqual(response.status_code, 200)
+        return {p.libelle for p in response.context['listes']}
+
+    def test_perimes_et_en_voie_sont_separes(self):
+        self.assertEqual(self._libelles('perime'), {"Déjà périmé"})
+        self.assertEqual(self._libelles('proche'), {"Périme aujourd'hui", "Dans 2 mois"})
+
+    def test_administrateur_regle_le_delai(self):
+        self.client.post(reverse('commerce_parametrePeremption'), {'delai': 6})
+        self.entreprise.refresh_from_db()
+        self.assertEqual(self.entreprise.delai_alerte_peremption_mois, 6)
+        self.assertIn("Dans 5 mois", self._libelles('proche'))
+
+    def test_delai_invalide_refuse(self):
+        for valeur in (0, 61, 'abc'):
+            self.client.post(reverse('commerce_parametrePeremption'), {'delai': valeur})
+        self.entreprise.refresh_from_db()
+        self.assertEqual(self.entreprise.delai_alerte_peremption_mois, 3)
+
+    def test_non_administrateur_ne_peut_pas_regler(self):
+        self.client.login(username="vendeur_per", password="secret123")
+        self.client.post(reverse('commerce_parametrePeremption'), {'delai': 12})
+        self.entreprise.refresh_from_db()
+        self.assertEqual(self.entreprise.delai_alerte_peremption_mois, 3)
+
+    def test_tableau_de_bord_compte_les_deux(self):
+        response = self.client.get(reverse('commerce_dashboard'))
+        self.assertEqual(response.context['produits_perimes'], 1)
+        self.assertEqual(response.context['produits_proches'], 2)
+
+    def test_pdf_en_voie_de_peremption(self):
+        response = self.client.post(reverse('commerce_etatProduitPerime'), {'etat': 'proche'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_ajouter_mois_fin_de_mois(self):
+        from datetime import date
+        from .views import _ajouter_mois
+        self.assertEqual(_ajouter_mois(date(2026, 1, 31), 1), date(2026, 2, 28))
+        self.assertEqual(_ajouter_mois(date(2026, 11, 15), 3), date(2027, 2, 15))

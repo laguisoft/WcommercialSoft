@@ -148,7 +148,7 @@
 
         {% include 'CommercialSoft/partials/pdf_entete.html' %}
 
-        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">Liste des produits perimes</h1>
+        <h1 style="text-align: center;color: #2d3e50;font-size: 25px; padding: 0px; margin: 0px;">{{ titre|default:'Liste des produits perimes' }}</h1>
 
         <div class="details">
             <table style="border: solid 1px; width: 100%;">

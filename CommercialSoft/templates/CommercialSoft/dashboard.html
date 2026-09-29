@@ -34,7 +34,7 @@
     
           <div class="row gy-4">
     
-            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+            <div class="col-lg col-md-6 d-flex flex-column align-items-center">
               <i class="fa-solid fa-user-doctor"></i>
               <div class="stats-item">
                 <span data-purecounter-start="0" data-purecounter-end="{{total_produits}}" data-purecounter-duration="1" class="purecounter"></span>
@@ -42,15 +42,23 @@
               </div>
             </div><!-- End Stats Item -->
     
-            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+            <div class="col-lg col-md-6 d-flex flex-column align-items-center">
               <i class="fa-regular fa-hospital"></i>
               <div class="stats-item{% if produits_perimes > 0 %} stats-alert{% endif %}">
                 <span data-purecounter-start="0" data-purecounter-end="{{produits_perimes}}" data-purecounter-duration="1" class="purecounter"></span>
                 <p>Produits périmés</p>
               </div>
             </div><!-- End Stats Item -->
+
+            <div class="col-lg col-md-6 d-flex flex-column align-items-center">
+              <i class="fas fa-hourglass-half"></i>
+              <div class="stats-item">
+                <span data-purecounter-start="0" data-purecounter-end="{{produits_proches}}" data-purecounter-duration="1" class="purecounter"></span>
+                <p>En voie de péremption</p>
+              </div>
+            </div><!-- End Stats Item -->
     
-            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+            <div class="col-lg col-md-6 d-flex flex-column align-items-center">
               <i class="fas fa-flask"></i>
               <div class="stats-item">
                 <span data-purecounter-start="0" data-purecounter-end="{{total_dettes}}" data-purecounter-duration="1" class="purecounter"></span>
@@ -58,7 +66,7 @@
               </div>
             </div><!-- End Stats Item -->
     
-            <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+            <div class="col-lg col-md-6 d-flex flex-column align-items-center">
               <i class="fas fa-award"></i>
               <div class="stats-item{% if produits_rupture > 0 %} stats-alert{% endif %}">
                 <span data-purecounter-start="0" data-purecounter-end="{{produits_rupture}}" data-purecounter-duration="1" class="purecounter"></span>

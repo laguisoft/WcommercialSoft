@@ -21,7 +21,7 @@
       <div class="col-md-12">
         <div class="card card-primary">
           <div class="card-header">
-            <h3 class="card-title">Nouveau produit</h3>
+            <h3 class="card-title">Péremption des produits</h3>
           </div>
           {% if messages %}
                       <div>
@@ -42,7 +42,37 @@
                       {% endfor %}
                       </div>
                     {% endif %}
-            <!-- /.card-body -->
+            <div class="card-body">
+              <ul class="nav nav-pills justify-content-center mb-3">
+                <li class="nav-item">
+                  <a class="nav-link {% if etat == 'perime' %}active bg-danger{% endif %}" href="?etat=perime">
+                    Périmés <span class="badge badge-light">{{ nb_perimes }}</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link {% if etat == 'proche' %}active bg-warning{% endif %}" href="?etat=proche">
+                    En voie de péremption <span class="badge badge-light">{{ nb_proches }}</span>
+                  </a>
+                </li>
+              </ul>
+              <p class="text-center text-muted mb-2">
+                {% if etat == 'proche' %}
+                  Produits qui périment d'ici le {{ limite|date:"d/m/Y" }} (délai d'alerte : {{ delai }} mois).
+                {% else %}
+                  Produits dont la date de péremption est dépassée.
+                {% endif %}
+              </p>
+              {% if peut_parametrer %}
+                <form method="post" action="{% url 'commerce_parametrePeremption' %}" class="form-inline justify-content-center">
+                  {% csrf_token %}
+                  <label class="mr-2" for="delaiPeremption">Délai d'alerte « en voie de péremption » :</label>
+                  <input type="number" class="form-control form-control-sm mr-2" id="delaiPeremption" name="delai"
+                         value="{{ delai }}" min="1" max="60" style="width: 80px;" required>
+                  <span class="mr-3">mois</span>
+                  <button type="submit" class="btn btn-sm btn-primary">Enregistrer</button>
+                </form>
+              {% endif %}
+            </div>
             <div class="card-footer text-center">
               <form method="POST">
                 {% csrf_token %}
@@ -56,7 +86,7 @@
      <div class="row">
       <div class="card card-primary">
         <div class="card-header">
-          <h3 class="card-title">Liste des produits</h3>
+          <h3 class="card-title">{% if etat == 'proche' %}Produits en voie de péremption{% else %}Produits périmés{% endif %}</h3>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -67,6 +97,7 @@
                 <th class="text-center">Libelle</th>
                 <th class="text-center">Quantite</th>
                 <th class="text-center">Peremption</th>
+                <th class="text-center">{% if etat == 'proche' %}Jours restants{% else %}Périmé depuis{% endif %}</th>
                 <th class="text-center">Seuil</th>
                 <th style="width: 40px" class="text-center">#</th>
               </tr>
@@ -79,6 +110,7 @@
                     <td class="text-center">{{liste.libelle}}</td>
                     <td class="text-center">{{liste.quantite}}</td>
                     <td class="text-center">{{liste.datePeremption}}</td>
+                    <td class="text-center">{% if etat == 'proche' %}{{ liste.jours_restants }} j{% else %}{{ liste.jours_depasses }} j{% endif %}</td>
                     <td class="text-center">{{liste.seuil}}</td>
                     <td class="text-center">
                       <div class="btn-group">
@@ -111,18 +143,18 @@
           <ul class="pagination pagination-sm m-0 justify-content-center">
             <li class="page-item">
               {% if listes.has_previous %}
-                <a class="page-link" href="?page={{ listes.previous_page_number }}">«</a>
+                <a class="page-link" href="?etat={{ etat }}&page={{ listes.previous_page_number }}">«</a>
               {% endif %}
               {% for num in listes.paginator.page_range %}
                 {% if listes.number == num %}
                   <li class="page-item"><a class="page-link" href="">{{ num }}</a></li>
                 {% else %}
-                  <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                  <li class="page-item"><a class="page-link" href="?etat={{ etat }}&page={{ num }}">{{ num }}</a></li>
                 {% endif %}
               {% endfor %}
 
               {% if listes.has_next %}
-                <li class="page-item"><a class="page-link" href="?page={{ listes.next_page_number }}">»</a></li>
+                <li class="page-item"><a class="page-link" href="?etat={{ etat }}&page={{ listes.next_page_number }}">»</a></li>
               {% endif %}
             
           </ul>
@@ -176,6 +208,7 @@
             url: "{% url 'commerce_etatProduitPerime' %}",
             type: "POST",
             data: {
+                etat: "{{ etat }}",
                 csrfmiddlewaretoken: csrfToken
             },
             xhrFields: {

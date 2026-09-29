@@ -21,6 +21,11 @@ class Entreprise(models.Model):
     email = models.EmailField(max_length=70, null=True, blank=True)
     proprietaire = models.CharField(max_length=100, null=True, blank=True)
     quantiteNegative = models.BooleanField(default=True)
+    delai_alerte_peremption_mois = models.PositiveSmallIntegerField(
+        default=3,
+        verbose_name="Délai d'alerte péremption (mois)",
+        help_text="Un produit est « en voie de péremption » s'il périme dans ce nombre de mois.",
+    )
     logo = models.ImageField(upload_to='logos/entreprises/', null=True, blank=True)
     date_fin_contrat = models.DateField(null=True, blank=True, verbose_name="Fin du contrat")
     montant_contrat = models.PositiveIntegerField(
