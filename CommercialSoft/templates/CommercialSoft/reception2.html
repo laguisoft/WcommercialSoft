@@ -550,6 +550,12 @@ function getCookie(name) {
 
 
 
+// "2027-03-15" -> "03/27" ; vide si pas de date
+function dateVersMMAA(iso) {
+  const m = /^(\d{4})-(\d{2})/.exec(iso || "");
+  return m ? m[2] + "/" + m[1].slice(2) : "";
+}
+
 function remplirInfosProduit(p) {
   produitSelectionneR = p;
   inputR.value = p.libelle;
@@ -558,7 +564,15 @@ function remplirInfosProduit(p) {
   prixDetailR.value = p.prixDetail;
   stockR.value = p.quantite;
   quantiteR.value = 1;
-  //peremptionR.focus();
+  // Péremption pré-remplie au format du champ (MM/AA) : l'utilisateur la
+  // garde si elle n'a pas changé, sinon il la corrige comme les prix.
+  if (p.perissable === false) {
+    peremptionR.value = "";
+    peremptionR.placeholder = "Ne périme pas";
+  } else {
+    peremptionR.value = dateVersMMAA(p.datePeremption);
+    peremptionR.placeholder = "MM/AA";
+  }
 
    // Remplir automatiquement la catégorie
     if (p.categorie) {
@@ -597,8 +611,12 @@ function ajouterLigneReception(p = null) {
     return;
   }
 
-  if (per=="" ) {
+  if (per=="" && p.perissable !== false) {
     toastr.warning("La date de peremption est obligatoire");
+    return;
+  }
+  if (per !== "" && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(per)) {
+    toastr.warning("La date de peremption doit être au format MM/AA");
     return;
   }
 
@@ -631,7 +649,7 @@ function ajouterLigneReception(p = null) {
   afficherPanierR();
 
   // reset champs
-  prixAchatR.value = ""; prixEnGrosR.value = ""; prixDetailR.value = ""; quantiteR.value = 1; stockR.value = ""; peremptionR.value = "";
+  prixAchatR.value = ""; prixEnGrosR.value = ""; prixDetailR.value = ""; quantiteR.value = 1; stockR.value = ""; peremptionR.value = ""; peremptionR.placeholder = "MM/AA";
   inputR.value = ""; produitSelectionneR = null; inputR.focus();
 }
 

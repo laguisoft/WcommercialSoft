@@ -750,7 +750,8 @@ def api_reception(request):
     - fournisseurs (localforage 'fournisseurs')
     """
     prods = list(Produit.objects.values(
-        "id", "libelle", "prixAchat", "prixDetail", "prixEnGros", "quantite", "categorie"
+        "id", "libelle", "prixAchat", "prixDetail", "prixEnGros", "quantite", "categorie",
+        "datePeremption", "perissable",
     ))
     categories= list(Categorie.objects.values("id", "nom"))
 
@@ -856,10 +857,18 @@ def api_sync_livraisons(request):
                     peremption=per_date
                 )
 
-                # entrée de stock + mise à jour prix
+                # entrée de stock + mise à jour prix et péremption
                 pr.quantite += qte
                 pr.quantiteTotal += qte
                 pr.prixAchat = prix
+                # Le champ réception est en MM/AA : si le mois/année n'a pas
+                # changé, on garde la date exacte du produit (sinon le jour
+                # serait ramené au 1er du mois à chaque réception).
+                if per_date and pr.perissable and (
+                    pr.datePeremption is None
+                    or (pr.datePeremption.year, pr.datePeremption.month) != (per_date.year, per_date.month)
+                ):
+                    pr.datePeremption = per_date
                 if prixDetail > 0:
                     pr.prixDetail = prixDetail
                 if prixEnGros > 0:

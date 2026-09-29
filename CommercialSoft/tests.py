@@ -1138,3 +1138,49 @@ class PaginationChoixTests(TestCase):
                 response = self.client.get(reverse(nom), {'par_page': 50})
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, 'name="par_page"')
+
+
+class ReceptionDatePeremptionTests(SyncLivraisonsOfflineTests):
+    """À la réception, la date de péremption du produit est proposée au
+    format du champ (MM/AA) et mise à jour comme les prix si elle change."""
+
+    def setUp(self):
+        super().setUp()
+        from datetime import date
+        self.produit.datePeremption = date(2027, 3, 15)
+        self.produit.save()
+
+    def _envoyer(self, peremption, id_local):
+        payload = self._payload()
+        payload["id_local"] = id_local
+        payload["lignes"][0]["peremption"] = peremption
+        response = self.client.post(
+            reverse("api_sync_livraisons"), data=json.dumps(payload), content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.produit.refresh_from_db()
+
+    def test_api_reception_fournit_la_date_et_perissable(self):
+        groupe, _ = Group.objects.get_or_create(name="Gestionnaire")
+        self.user.groups.add(groupe)
+        produit = next(p for p in self.client.get(reverse("api_reception")).json()["produits"] if p["id"] == self.produit.id)
+        self.assertEqual(produit["datePeremption"], "2027-03-15")
+        self.assertTrue(produit["perissable"])
+
+    def test_meme_mois_garde_la_date_exacte(self):
+        from datetime import date
+        self._envoyer("03/27", "liv-per-1")
+        self.assertEqual(self.produit.datePeremption, date(2027, 3, 15))
+
+    def test_nouvelle_date_met_a_jour_le_produit(self):
+        from datetime import date
+        self._envoyer("08/28", "liv-per-2")
+        self.assertEqual(self.produit.datePeremption, date(2028, 8, 1))
+
+    def test_produit_non_perissable_sans_date(self):
+        from datetime import date
+        self.produit.perissable = False
+        self.produit.save()
+        self._envoyer("", "liv-per-3")
+        self.assertEqual(self.produit.quantite, 15)
+        self.assertEqual(self.produit.datePeremption, date(2027, 3, 15))
