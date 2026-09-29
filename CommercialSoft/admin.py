@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, Categorie_Decaissement, Decaissement, VersementClient, PretClient, Client, ClientSpecial, Societe,
+    Fournisseur, Livraison, LivraisonProduit, Produit, Categorie, CommandeProduit, Commande, Categorie_Depense, Depense, Categorie_Decaissement, Decaissement, VersementClient, PretClient, AnnulationDetteClient, Client, ClientSpecial, Societe,
     VersementFournisseur, DetteFournisseur, VersementGerant, Retour
 )
 
@@ -110,6 +110,16 @@ class pretClientAdmin(admin.ModelAdmin):
     list_display = ('client', 'montant', 'date','dateEcheance','payer','commande','user','commentaire')
     search_fields = ('client', 'date', 'dateEcheance','payer','user')
     list_filter = ('client', 'date', 'dateEcheance','payer','user')
+    ordering = ('-date',)
+
+
+
+
+@admin.register(AnnulationDetteClient)
+class annulationDetteClientAdmin(admin.ModelAdmin):
+    list_display = ('client', 'montant', 'date', 'motif', 'user')
+    search_fields = ('client__nom', 'motif')
+    list_filter = ('date',)
     ordering = ('-date',)
 
 

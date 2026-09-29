@@ -897,3 +897,96 @@ class SyncLivraisonsLigneInvalideTests(TestCase):
         self.produit.refresh_from_db()
         self.assertEqual(self.produit.quantite, 10)
         self.assertEqual(self.produit.quantiteTotal, 10)
+
+
+class AnnulationDetteClientTests(TestCase):
+    """Un administrateur peut annuler une partie de la dette totale d'un
+    client, jamais plus que ce que le client doit. L'annulation réduit le
+    solde partout (détail, liste, portail) sans être comptée comme argent
+    reçu dans le bilan de caisse."""
+
+    def setUp(self):
+        from .models import PretClient, VersementClient
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique Annulation", ville="Conakry")
+        self.admin = User.objects.create_user(username="admin_annul", password="secret123", entreprise=self.entreprise)
+        groupe_admin, _ = Group.objects.get_or_create(name="Administrateur")
+        self.admin.groups.add(groupe_admin)
+        self.admin.user_permissions.add(*Permission.objects.filter(codename__in=["view_client"]))
+        self.vendeur = User.objects.create_user(username="vendeur_annul", password="secret123", entreprise=self.entreprise)
+        self.compte_portail = User.objects.create_user(username="portail_annul", password="secret123", entreprise=self.entreprise)
+        self.fiche = Client.objects.create(
+            entreprise=self.entreprise, nom="Client Endetté", pourcentage=0, detteMaximale=0,
+            user=self.compte_portail,
+        )
+        PretClient.objects.create(entreprise=self.entreprise, client=self.fiche, montant=100000, user=self.admin)
+        VersementClient.objects.create(entreprise=self.entreprise, client=self.fiche, montant=30000, user=self.admin)
+        self.client.login(username="admin_annul", password="secret123")
+
+    def _annuler(self, montant, motif="Geste commercial"):
+        return self.client.post(reverse('commerce_annulerDetteClient', args=[self.fiche.id]), data={
+            'montant': montant, 'date': '2026-09-29', 'motif': motif,
+        })
+
+    def test_administrateur_annule_une_partie_de_la_dette(self):
+        from .models import AnnulationDetteClient
+        from .views import totaux_dette_client
+        response = self._annuler(20000)
+        self.assertRedirects(response, reverse('commerce_detailClient', args=[self.fiche.id]), fetch_redirect_response=False)
+        self.assertEqual(AnnulationDetteClient.objects.get().montant, 20000)
+        self.assertEqual(totaux_dette_client(self.fiche)['solde'], 50000)
+
+    def test_on_ne_peut_pas_annuler_plus_que_la_dette(self):
+        from .models import AnnulationDetteClient
+        self._annuler(70001)
+        self.assertFalse(AnnulationDetteClient.objects.exists())
+        self._annuler(70000)
+        self.assertEqual(AnnulationDetteClient.objects.count(), 1)
+        self._annuler(1)
+        self.assertEqual(AnnulationDetteClient.objects.count(), 1)
+
+    def test_motif_obligatoire_et_montant_positif(self):
+        from .models import AnnulationDetteClient
+        self._annuler(1000, motif="  ")
+        self._annuler(0)
+        self._annuler(-500)
+        self.assertFalse(AnnulationDetteClient.objects.exists())
+
+    def test_non_administrateur_refuse(self):
+        from .models import AnnulationDetteClient
+        self.client.login(username="vendeur_annul", password="secret123")
+        response = self._annuler(1000)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response['Location'])
+        self.assertFalse(AnnulationDetteClient.objects.exists())
+
+    def test_solde_affiche_dans_detail_liste_et_reste(self):
+        self._annuler(20000)
+        detail = self.client.get(reverse('commerce_detailClient', args=[self.fiche.id]))
+        self.assertContains(detail, "Geste commercial")
+        self.assertEqual(detail.context['solde'], "50 000")
+        liste = self.client.post(reverse('commerce_rechercheClient'), data={'idClient': self.fiche.id})
+        self.assertEqual(liste.json()['clients'][0]['balance'], 50000)
+        reste = self.client.get(reverse('get_reste_client', args=[self.fiche.id]))
+        self.assertEqual(reste.json()['balance'], 50000)
+
+    def test_portail_client_voit_le_solde_apres_annulation(self):
+        self._annuler(20000)
+        self.client.login(username="portail_annul", password="secret123")
+        response = self.client.get(reverse('portail_accueil'))
+        self.assertEqual(response.context['solde'], 50000)
+
+    def test_bilan_caisse_ignore_les_annulations(self):
+        from .views import _calculer_totaux_bilan
+        avant = _calculer_totaux_bilan({})
+        self._annuler(20000)
+        self.assertEqual(_calculer_totaux_bilan({}), avant)
+
+    def test_suppression_retablit_la_dette(self):
+        from .models import AnnulationDetteClient
+        from .views import totaux_dette_client
+        self._annuler(20000)
+        annulation = AnnulationDetteClient.objects.get()
+        self.client.post(reverse('commerce_supAnnulationDetteClient', args=[annulation.id]))
+        self.assertFalse(AnnulationDetteClient.objects.exists())
+        self.assertEqual(totaux_dette_client(self.fiche)['solde'], 70000)

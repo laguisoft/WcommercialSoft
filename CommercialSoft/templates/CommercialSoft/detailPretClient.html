@@ -20,6 +20,11 @@
     <div class="row text-center">
       <h3 class="text-info"> {{client.nom}} </h3>
     </div>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} py-2 mb-2">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
     <form method="get" class="form-inline mb-2">
       <label class="mr-2" for="date_debut">Du</label>
       <input type="date" id="date_debut" name="date_debut" value="{{ date_debut }}" class="form-control form-control-sm mr-3">
@@ -28,6 +33,12 @@
       <button type="submit" class="btn btn-sm btn-primary mr-2"><i class="fas fa-filter"></i> Filtrer</button>
       <a href="{{ request.path }}" class="btn btn-sm btn-secondary"><i class="fas fa-undo"></i> Réinitialiser</a>
       <span class="ml-auto font-weight-bold">Solde : {{ solde }}</span>
+      {% if peut_annuler %}
+        <button type="button" class="btn btn-sm btn-warning ml-3" data-toggle="modal" data-target="#modalAnnulation"
+                {% if solde_actuel <= 0 %}disabled title="Le client ne doit rien"{% endif %}>
+          <i class="fas fa-eraser"></i> Annuler une partie de la dette
+        </button>
+      {% endif %}
     </form>
     <div class="row">
 
@@ -164,8 +175,93 @@
       </div>
     </div>
     <!-- /.row -->
+
+    <div class="row mt-3">
+      <div class="col-md-12">
+        <div class="card card-warning">
+          <div class="card-header">
+            <h3 class="card-title mb-0">Annulations de dette</h3>
+          </div>
+          <div class="card-body p-0" style="max-height: 35vh; overflow-y: auto;">
+            <table class="table table-bordered table-hover table-striped table-sm mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 10px" class="text-center">#</th>
+                  <th class="text-center">Date</th>
+                  <th class="text-center">Montant</th>
+                  <th class="text-center">Motif</th>
+                  <th class="text-center">Par</th>
+                  {% if peut_annuler %}<th style="width: 40px" class="text-center">#</th>{% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for annulation in annulations %}
+                  <tr>
+                    <td class="text-center">{{ annulation.id }}</td>
+                    <td>{{ annulation.date }}</td>
+                    <td>{{ annulation.montant }}</td>
+                    <td>{{ annulation.motif }}</td>
+                    <td>{{ annulation.user.first_name }} {{ annulation.user.last_name }}</td>
+                    {% if peut_annuler %}
+                    <td class="text-center">
+                      <form method="post" action="{% url 'commerce_supAnnulationDetteClient' annulation.id %}"
+                            onsubmit="return confirm('Supprimer cette annulation ? La dette du client sera rétablie.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-light" title="Supprimer">
+                          <i class="fas fa-times-circle text-danger"></i>
+                        </button>
+                      </form>
+                    </td>
+                    {% endif %}
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-center">Aucune annulation.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <h3 class="text-warning">Total annulé : {{ total_annulation }}</h3>
+      </div>
+    </div>
   </div><!-- /.container-fluid -->
 </section>
+
+{% if peut_annuler %}
+<div class="modal fade" id="modalAnnulation" tabindex="-1" role="dialog" aria-labelledby="modalAnnulationTitre" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{% url 'commerce_annulerDetteClient' client.id %}" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAnnulationTitre">Annuler une partie de la dette</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fermer"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3">Le client doit actuellement <strong>{{ solde_actuel_affiche }}</strong>. Aucun argent n'entre en caisse.</p>
+        <div class="form-group">
+          <label for="annulationMontant">Montant à annuler</label>
+          <input type="number" class="form-control" id="annulationMontant" name="montant" min="1" max="{{ solde_actuel }}" required>
+        </div>
+        <div class="form-group">
+          <label for="annulationDate">Date</label>
+          <input type="date" class="form-control" id="annulationDate" name="date" value="{{ aujourdhui }}" required>
+        </div>
+        <div class="form-group">
+          <label for="annulationMotif">Motif</label>
+          <input type="text" class="form-control" id="annulationMotif" name="motif" maxlength="200" required
+                 placeholder="Ex. : geste commercial, accord de règlement">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+        <button type="submit" class="btn btn-warning">Valider l'annulation</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
 <!-- /.content -->
  
 

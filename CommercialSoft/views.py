@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, permission_required, 
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import Group
 from .forms import *
-from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, Client, ClientSpecial, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
+from .models import Fournisseur, Livraison, Produit, Categorie, LivraisonProduit, Commande, CommandeProduit, Categorie_Depense, Depense, VersementClient, PretClient, AnnulationDetteClient, Client, ClientSpecial, Societe, VersementFournisseur, DetteFournisseur, VersementGerant, Decaissement, Categorie_Decaissement, Retour, CommandeClient, CommandeClientProduit
 from .decorators import client_required, superadmin_required
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -2437,18 +2437,26 @@ def categorie_decaissement_delete(request, pk):
 
 
 
+def totaux_dette_client(client):
+    """Totaux de la dette d'un client : prêts, paiements, annulations et
+    solde restant (prêts − paiements − annulations)."""
+    total_pret = PretClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
+    total_versement = VersementClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
+    total_annulation = AnnulationDetteClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
+    return {
+        'total_pret': total_pret,
+        'total_versement': total_versement,
+        'total_annulation': total_annulation,
+        'solde': total_pret - total_versement - total_annulation,
+    }
+
+
 @login_required
 @permission_required('CommercialSoft.view_versementclient')
 def imprimer_recu_versement(request, versement_id):
     versement = get_object_or_404(VersementClient, id=versement_id)
 
-    total_prets = PretClient.objects.filter(client=versement.client) \
-                                    .aggregate(total=Sum('montant'))['total'] or 0
-
-    total_versements = VersementClient.objects.filter(client=versement.client) \
-                                              .aggregate(total=Sum('montant'))['total'] or 0
-
-    reste = total_prets - total_versements
+    reste = totaux_dette_client(versement.client)['solde']
     if reste < 0:
         reste = 0
 
@@ -2503,13 +2511,7 @@ from django.db.models import Sum
 def imprimer_situation_client(request, client_id):
     client = Client.objects.get(id=client_id)
 
-    total_prets = PretClient.objects.filter(client=client) \
-                                    .aggregate(total=Sum('montant'))['total'] or 0
-
-    total_versements = VersementClient.objects.filter(client=client) \
-                                              .aggregate(total=Sum('montant'))['total'] or 0
-
-    reste = total_prets - total_versements
+    reste = totaux_dette_client(client)['solde']
     if reste < 0:
         reste = 0
 
@@ -2781,6 +2783,7 @@ def detail_pret_client(request, pk):
     client = get_object_or_404(Client, pk=pk)
     dette=PretClient.objects.filter(client=client)
     payement=VersementClient.objects.filter(client=client)
+    annulation=AnnulationDetteClient.objects.filter(client=client).select_related('user')
 
     # Filtre optionnel par intervalle de dates
     try:
@@ -2791,23 +2794,90 @@ def detail_pret_client(request, pk):
     if date_debut:
         dette = dette.filter(date__gte=date_debut)
         payement = payement.filter(date__gte=date_debut)
+        annulation = annulation.filter(date__gte=date_debut)
     if date_fin:
         dette = dette.filter(date__lte=date_fin)
         payement = payement.filter(date__lte=date_fin)
+        annulation = annulation.filter(date__lte=date_fin)
 
     total_dette=dette.aggregate(total=Sum('montant'))['total'] or 0
     total_payement=payement.aggregate(total=Sum('montant'))['total'] or 0
+    total_annulation=annulation.aggregate(total=Sum('montant'))['total'] or 0
+
+    solde_actuel = totaux_dette_client(client)['solde']
 
     return render(request, 'CommercialSoft/detailPretClient.html', {
         'dettes': dette.order_by('-date'),
         'payements': payement.order_by('-date'),
+        'annulations': annulation.order_by('-date', '-id'),
         'total_dette': separateur(total_dette),
         'total_payement': separateur(total_payement),
-        'solde': separateur(total_dette - total_payement),
+        'total_annulation': separateur(total_annulation),
+        'solde': separateur(total_dette - total_payement - total_annulation),
+        # Solde réel (toutes dates) : plafond d'une annulation
+        'solde_actuel': solde_actuel,
+        'solde_actuel_affiche': separateur(solde_actuel),
+        'peut_annuler': est_administrateur(request.user),
+        'aujourdhui': localdate().isoformat(),
         'client': client,
         'date_debut': date_debut.isoformat() if date_debut else '',
         'date_fin': date_fin.isoformat() if date_fin else '',
     })
+
+
+@login_required
+@user_passes_test(est_administrateur)
+@require_POST
+def annuler_dette_client(request, pk):
+    """Annule une partie de la dette totale d'un client (administrateur seul).
+    Le montant ne peut pas dépasser ce que le client doit encore."""
+    retour = redirect('commerce_detailClient', pk=pk)
+    motif = (request.POST.get('motif') or '').strip()
+    try:
+        montant = int(request.POST.get('montant') or 0)
+    except ValueError:
+        montant = 0
+    try:
+        date_annulation = parse_date(request.POST.get('date') or '') or localdate()
+    except ValueError:
+        date_annulation = localdate()
+
+    if montant <= 0:
+        messages.error(request, "Le montant à annuler doit être supérieur à 0.")
+        return retour
+    if not motif:
+        messages.error(request, "Le motif de l'annulation est obligatoire.")
+        return retour
+
+    with transaction.atomic():
+        # Verrou sur le client : deux annulations simultanées ne peuvent pas
+        # dépasser ensemble la dette restante.
+        client = get_object_or_404(Client.objects.select_for_update(), pk=pk)
+        solde = totaux_dette_client(client)['solde']
+        if montant > solde:
+            messages.error(request, f"Impossible d'annuler {separateur(montant)} : le client ne doit que {separateur(max(solde, 0))}.")
+            return retour
+        AnnulationDetteClient.objects.create(
+            entreprise=request.entreprise,
+            client=client,
+            montant=montant,
+            date=date_annulation,
+            motif=motif[:200],
+            user=request.user,
+        )
+    messages.success(request, f"Dette annulée de {separateur(montant)}.")
+    return retour
+
+
+@login_required
+@user_passes_test(est_administrateur)
+@require_POST
+def supprimer_annulation_dette_client(request, pk):
+    annulation = get_object_or_404(AnnulationDetteClient, pk=pk)
+    client_id = annulation.client_id
+    annulation.delete()
+    messages.success(request, "Annulation supprimée : la dette du client est rétablie.")
+    return redirect('commerce_detailClient', pk=client_id)
 
 
 
@@ -3170,10 +3240,13 @@ def recherche_client(request):
                    .order_by().values('client').annotate(total=Sum('montant')).values('total'))
         versement_sq = (VersementClient.objects.filter(client=OuterRef('pk'))
                         .order_by().values('client').annotate(total=Sum('montant')).values('total'))
+        annulation_sq = (AnnulationDetteClient.objects.filter(client=OuterRef('pk'))
+                         .order_by().values('client').annotate(total=Sum('montant')).values('total'))
 
         clients = clients.annotate(
             total_pret_calc=Coalesce(Subquery(pret_sq, output_field=BigIntegerField()), 0),
             total_versement_calc=Coalesce(Subquery(versement_sq, output_field=BigIntegerField()), 0),
+            total_annulation_calc=Coalesce(Subquery(annulation_sq, output_field=BigIntegerField()), 0),
         )
 
         if not numero:
@@ -3192,7 +3265,8 @@ def recherche_client(request):
                 "detteMaximale": client.detteMaximale,
                 "total_pret": client.total_pret_calc,
                 "total_versement": client.total_versement_calc,
-                "balance": client.total_pret_calc - client.total_versement_calc,
+                "total_annulation": client.total_annulation_calc,
+                "balance": client.total_pret_calc - client.total_versement_calc - client.total_annulation_calc,
                 "has_account": bool(client.user_id),
             }
             for client in clients
@@ -4275,9 +4349,11 @@ def pdf_etat_situation_client(request):
         # Reste du traitement…
         produits_data = []
         for client in clients:
-            total_pret = client.prets.aggregate(Sum('montant'))['montant__sum'] or 0
-            total_versement = client.versements.aggregate(Sum('montant'))['montant__sum'] or 0
-            balance = total_pret - total_versement
+            totaux = totaux_dette_client(client)
+            total_pret = totaux['total_pret']
+            total_versement = totaux['total_versement']
+            total_annulation = totaux['total_annulation']
+            balance = totaux['solde']
 
             produits_data.append({
                 "id": client.id,
@@ -4290,12 +4366,14 @@ def pdf_etat_situation_client(request):
                 "detteMaximale": client.detteMaximale,
                 "total_pret": total_pret,
                 "total_versement": total_versement,
+                "total_annulation": total_annulation,
                 "balance": balance,
             })
 
         # Totaux globaux
         montant_pret = sum(c["total_pret"] for c in produits_data)
         montant_versement = sum(c["total_versement"] for c in produits_data)
+        montant_annulation = sum(c["total_annulation"] for c in produits_data)
         balance_total = sum(c["balance"] for c in produits_data)
 
         # Format
@@ -4307,6 +4385,7 @@ def pdf_etat_situation_client(request):
             'listes': produits_data,
             'montantPret': formater(montant_pret),
             'montantVersement': formater(montant_versement),
+            'montantAnnulation': formater(montant_annulation),
             'balance': formater(balance_total),
             'boutique': infoBoutique,
         }
@@ -4322,14 +4401,13 @@ def pdf_etat_situation_client(request):
 @login_required
 @permission_required('CommercialSoft.view_client')
 def get_reste_client(request, id):
-    total_pret = PretClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
-    total_versement = VersementClient.objects.filter(client=id).aggregate(total=Sum('montant'))['total'] or 0
-    balance = total_pret - total_versement
+    totaux = totaux_dette_client(id)
 
     return JsonResponse({
-        'total_pret': total_pret,
-        'total_versement': total_versement,
-        'balance': balance
+        'total_pret': totaux['total_pret'],
+        'total_versement': totaux['total_versement'],
+        'total_annulation': totaux['total_annulation'],
+        'balance': totaux['solde'],
     })
 
 
@@ -4776,7 +4854,8 @@ def caisse(request):
     # solde client
     pret_client=PretClient.objects.aggregate(total=Sum('montant'))['total'] or 0
     versement_client=VersementClient.objects.aggregate(total=Sum('montant'))['total'] or 0
-    solde_client=pret_client-versement_client
+    annulation_client=AnnulationDetteClient.objects.aggregate(total=Sum('montant'))['total'] or 0
+    solde_client=pret_client-versement_client-annulation_client
 
     # depense
     #depense=Depense.objects.aggregate(total=Sum(F('quantite') * F('prix')))['total'] or 0
@@ -5657,9 +5736,7 @@ def sync_ventes(request):
 @client_required
 def portail_accueil(request):
     client = request.user.client_profile
-    total_pret = client.prets.aggregate(total=Sum('montant'))['total'] or 0
-    total_versement = client.versements.aggregate(total=Sum('montant'))['total'] or 0
-    solde = total_pret - total_versement
+    solde = totaux_dette_client(client)['solde']
     nombre_commandes = Commande.objects.filter(client=client).count()
     demandes_en_attente = client.demandes_commande.filter(statut='En attente').count()
     dernieres_demandes = client.demandes_commande.order_by('-date', '-id')[:5]

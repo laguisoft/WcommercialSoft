@@ -125,6 +125,8 @@ urlpatterns=[
     path('commerce/pret/client/liste', views.pretClient_list,name="commerce_listePretClient"),
     path('commerce/pret/client/recherche', views.recherche_pretClient,name="commerce_recherchePretClient"),
     path('commerce/pret/detail/<int:pk>/', views.detail_pret_client,name="commerce_detailClient"),
+    path('commerce/pret/detail/<int:pk>/annuler/', views.annuler_dette_client,name="commerce_annulerDetteClient"),
+    path('commerce/pret/annulation/suppression/<int:pk>/', views.supprimer_annulation_dette_client,name="commerce_supAnnulationDetteClient"),
     path('commerce/pret/client/etat', views.pdf_etat_pretClient,name="commerce_etatPretClient"),
     path('commerce/client/reste/<int:id>/', views.get_reste_client, name='get_reste_client'),
 

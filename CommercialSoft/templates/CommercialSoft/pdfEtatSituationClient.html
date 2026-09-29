@@ -154,9 +154,10 @@
             <table style="border: solid 1px; width: 100%;">
                 <thead>
                     <th style="width: 10%; text-align: center;">N°</th>
-                    <th style="width: 50%; text-align: center;">Client</th>
+                    <th style="width: 38%; text-align: center;">Client</th>
                     <th style="width: 12%; text-align: center;">Total pret</th>
                     <th style="width: 13%; text-align: center;">Total versement</th>
+                    <th style="width: 12%; text-align: center;">Total annulé</th>
                     <th style="width: 15%; text-align: center;">Balance</th>
                 </thead>
                 <tbody>
@@ -167,6 +168,7 @@
                         <td >{{ liste.nom }}</td>
                         <td style="text-align: center;">{{ liste.total_pret }}</td>
                         <td style="text-align: center;">{{ liste.total_versement }}</td>
+                        <td style="text-align: center;">{{ liste.total_annulation }}</td>
                         <td style="text-align: center;">{{ liste.balance }}</td>
                       </tr>
                     {% endfor %}
@@ -185,6 +187,9 @@
             </td>
             <td style="border: none;">
                 <h3>Total versement : {{montantVersement}}</h3>
+            </td>
+            <td style="border: none;">
+                <h3>Total annulé : {{montantAnnulation}}</h3>
             </td>
             <td style="border: none;">
                 <h3>Balance: {{balance}}</h3>

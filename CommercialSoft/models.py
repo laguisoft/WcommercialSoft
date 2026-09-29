@@ -283,6 +283,24 @@ class VersementClient(TenantScopedModel):
 
 
 
+class AnnulationDetteClient(TenantScopedModel):
+    """Part de la dette d'un client abandonnée par l'entreprise (geste
+    commercial, accord...). Réduit le solde du client sans être un paiement :
+    aucun argent n'entre en caisse, donc jamais compté dans le bilan."""
+    client=models.ForeignKey(Client, on_delete=models.CASCADE, related_name='annulations')
+    montant=models.BigIntegerField()
+    date=models.DateField(default=timezone.now, db_index=True)
+    motif=models.CharField(max_length=200)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['entreprise', 'date'], name='annuldette_entr_date_idx'),
+        ]
+
+
+
+
 class PretClient(TenantScopedModel):
     client=models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, related_name='prets')
     montant=models.BigIntegerField()
