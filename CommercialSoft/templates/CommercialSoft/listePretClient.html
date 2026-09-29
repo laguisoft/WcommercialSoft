@@ -61,6 +61,7 @@
                     </div>
                     <div class="card-footer text-center">
                         <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                        <button type="button" class="btn btn-secondary" id="idReinitialiser"><i class="fas fa-undo"></i> Réinitialiser</button>
                         <a type="submit" href="{% url 'commerce_etatPretClient' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
                       </div>
                   </form>
@@ -189,7 +190,18 @@
     $(document).ready(function () {
     $('#idrechercher').on('click', function (e) {
       e.preventDefault();
+      rechercherPrets();
+    });
 
+    // Réinitialiser : vide le client et les dates, puis réaffiche toute la liste
+    $('#idReinitialiser').on('click', function () {
+      $('#idClient').val('').trigger('change');
+      $('#dateDebut').val('');
+      $('#dateFin').val('');
+      rechercherPrets();
+    });
+
+    function rechercherPrets() {
       const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
       const clientId = $('#idClient').val();  // ID de l'examen sélectionné
@@ -254,7 +266,7 @@
           alert('Une erreur est survenue. Veuillez réessayer.');
         }
       });
-    });
+    }
   });
 
 

@@ -2844,7 +2844,7 @@ def recherche_pretClient(request):
         patients_data = [
             {
                 "id": pret.id,
-                "client": pret.client.nom,
+                "client": pret.client.nom if pret.client else "",
                 "montant":pret.montant,
                 "date": pret.date,
                 "dateEcheance":pret.dateEcheance,
@@ -4530,13 +4530,18 @@ def pdf_etat_pretClient(request):
         dateFin= request.POST.get('dateFin')
         clientId= request.POST.get('idClient')
 
-        prets=PretClient.objects.filter(date__gte=dateDebut, date__lte=dateFin)
+        prets=PretClient.objects.all()
+        # Dates optionnelles (vides après « Réinitialiser »)
+        if dateDebut:
+            prets=prets.filter(date__gte=dateDebut)
+        if dateFin:
+            prets=prets.filter(date__lte=dateFin)
 
-        # Filtrer par catégorie si elle est fournie
+        # Filtrer par client s'il est fourni
         if clientId:
             try:
                 client = Client.objects.get(id=clientId)
-                prets=PretClient.objects.filter(client=client,date__gte=dateDebut, date__lte=dateFin)
+                prets=prets.filter(client=client)
             except Client.DoesNotExist:
                 return JsonResponse({"error": "Client introuvable"}, status=404)
 
@@ -4545,7 +4550,7 @@ def pdf_etat_pretClient(request):
         produits_data = [
             {
                 "code": pret.id,
-                "client": pret.client.nom,
+                "client": pret.client.nom if pret.client else "",
                 "montant": pret.montant,
                 "date": pret.date,
                 "dateEcheance": pret.dateEcheance,
