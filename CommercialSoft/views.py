@@ -107,6 +107,45 @@ def separateur(valeur):
     return f"{valeur:,}".replace(",", " ")
 
 
+#------------------------ Pagination -----------------
+CHOIX_PAR_PAGE = (30, 50, 100)
+PAR_PAGE_DEFAUT = 30
+
+
+def _choix_par_page_valide(choix):
+    return choix == 'tous' or (str(choix).isdigit() and int(choix) in CHOIX_PAR_PAGE)
+
+
+def paginer(request, queryset):
+    """Pagine une liste selon le choix de l'utilisateur : 30, 50, 100 lignes
+    ou « tous ». Le choix (paramètre par_page) est retenu dans la session pour
+    les autres pages. La page renvoyée porte aussi par_page et querystring
+    (paramètres de l'URL sans page ni par_page) pour partials/pagination.html."""
+    choix = request.GET.get('par_page')
+    if choix and _choix_par_page_valide(choix):
+        request.session['par_page'] = choix
+    else:
+        choix = request.session.get('par_page')
+        if not (choix and _choix_par_page_valide(choix)):
+            choix = str(PAR_PAGE_DEFAUT)
+
+    if choix == 'tous':
+        taille = max(queryset.count() if hasattr(queryset, 'count') else len(queryset), 1)
+    else:
+        taille = int(choix)
+
+    page = Paginator(queryset, taille).get_page(request.GET.get('page'))
+    page.par_page = str(choix)
+    page.choix_par_page = [str(c) for c in CHOIX_PAR_PAGE]
+    page.pages_affichees = list(page.paginator.get_elided_page_range(page.number, on_each_side=2, on_ends=1))
+    params = request.GET.copy()
+    params.pop('page', None)
+    params.pop('par_page', None)
+    page.querystring = params.urlencode()
+    page.params = [(cle, valeur) for cle, valeurs in params.lists() for valeur in valeurs]
+    return page
+
+
 #------------------------ Gestion des droits d'acces avec les decorateur -----------------
 def permission_denied_view(request, exception):
     return render(request, "CommercialSoft/403.html", status=403)
@@ -200,9 +239,7 @@ def fournisseur_list_create(request):
         form = FournisseurForm()
     
     fournisseur = Fournisseur.objects.all().order_by('nom')
-    paginator = Paginator(fournisseur, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, fournisseur)
     
     return render(request, 'CommercialSoft/fournisseur.html', {'form': form,'listes': paginated})
 
@@ -325,9 +362,7 @@ def categorie_list_create(request):
         form = CategorieForm()
     
     categorie = Categorie.objects.all().order_by('nom')
-    paginator = Paginator(categorie, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, categorie)
     
     return render(request, 'CommercialSoft/categorie.html', {'form': form,'listes': paginated})
 
@@ -382,9 +417,7 @@ def produit_list_create(request):
         form = ProduitForm()
     
     produit = Produit.objects.all().order_by('id')
-    paginator = Paginator(produit, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, produit)
     
     return render(request, 'CommercialSoft/produit.html', {'form': form,'listes': paginated})
 
@@ -471,9 +504,7 @@ def produit_perime(request):
     entreprise = request.entreprise
     aujourdhui, limite = bornes_peremption(entreprise)
     produits = produits_selon_peremption(entreprise, etat).order_by('datePeremption')
-    paginator = Paginator(produits, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, produits)
     for produit in paginated:
         produit.jours_restants = (produit.datePeremption - aujourdhui).days
         produit.jours_depasses = -produit.jours_restants
@@ -527,9 +558,7 @@ def parametre_peremption(request):
 @login_required
 def produit_rupture(request):
     produits_rupture=Produit.objects.filter(quantite__lte=F('seuil')).order_by('libelle')
-    paginator = Paginator(produits_rupture, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, produits_rupture)
     return render(request, 'CommercialSoft/produitEnRupture.html',{'listes':paginated})
 
 
@@ -2194,9 +2223,7 @@ def depense_list_create(request):
         form = DepenseForm()
     
     depense = Depense.objects.select_related('categorie').order_by('-date')
-    paginator = Paginator(depense, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, depense)
     
     return render(request, 'CommercialSoft/depense.html', {'form': form,'listes': paginated_depense})
 
@@ -2304,9 +2331,7 @@ def categorie_depense_list_create(request):
         form = CategorieDepenseForm()
     
     categorie = Categorie_Depense.objects.all().order_by('nom')
-    paginator = Paginator(categorie, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, categorie)
     
     return render(request, 'CommercialSoft/categorieDepense.html', {'form': form,'listes': paginated_depense})
 
@@ -2368,9 +2393,7 @@ def decaissement_list_create(request):
         form = DecaissementForm()
     
     decaiss = Decaissement.objects.select_related('categorie').order_by('-date')
-    paginator = Paginator(decaiss, 15)
-    page = request.GET.get('page')
-    paginated_decaiss = paginator.get_page(page)
+    paginated_decaiss = paginer(request, decaiss)
     
     return render(request, 'CommercialSoft/decaissement.html', {'form': form,'listes': paginated_decaiss})
 
@@ -2475,9 +2498,7 @@ def categorie_decaissement_list_create(request):
         form = CategorieDecaissementForm()
     
     categorie = Categorie_Decaissement.objects.all().order_by('nom')
-    paginator = Paginator(categorie, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, categorie)
     
     return render(request, 'CommercialSoft/categorieDecaissement.html', {'form': form,'listes': paginated_depense})
 
@@ -2577,9 +2598,7 @@ def versementClient_list_create(request):
         form = VersementClientForm()
     
     versementClient = VersementClient.objects.select_related('client').order_by('-date')
-    paginator = Paginator(versementClient, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, versementClient)
     
     return render(request, 'CommercialSoft/versementClient.html', {'form': form,'listes': paginated_depense})
 
@@ -2720,9 +2739,7 @@ def versementGerant_list_create(request):
         form = VersementGerantForm()
     
     versementGerant = VersementGerant.objects.all().order_by('-date')
-    paginator = Paginator(versementGerant, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, versementGerant)
     
     return render(request, 'CommercialSoft/versementGerant.html', {'form': form,'listes': paginated_depense})
 
@@ -2827,9 +2844,7 @@ def pretClient_list_create(request):
         form = detteClientForm()
     
     pret = PretClient.objects.select_related('client').order_by('-date')
-    paginator = Paginator(pret, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, pret)
     
     return render(request, 'CommercialSoft/pretClient.html', {'form': form,'listes': paginated_depense})
 
@@ -3061,9 +3076,7 @@ def versementFournisseur_list_create(request):
         form = VersementFournisseurForm()
     
     versementFournisseur = VersementFournisseur.objects.all().order_by('-date')
-    paginator = Paginator(versementFournisseur, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, versementFournisseur)
     
     return render(request, 'CommercialSoft/versementFournisseur.html', {'form': form,'listes': paginated_depense})
 
@@ -3171,9 +3184,7 @@ def detteFournisseur_list_create(request):
         form = DetteFournisseurForm()
     
     detteFournisseur = DetteFournisseur.objects.select_related('fournisseur').order_by('-date')
-    paginator = Paginator(detteFournisseur, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, detteFournisseur)
     
     return render(request, 'CommercialSoft/detteFournisseur.html', {'form': form,'listes': paginated_depense})
 
@@ -3270,9 +3281,7 @@ def client_list_create(request):
         form = clientForm()
     
     client = Client.objects.all().order_by('nom')
-    paginator = Paginator(client, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, client)
     
     return render(request, 'CommercialSoft/client.html', {'form': form,'listes': paginated_depense})
 
@@ -3425,9 +3434,7 @@ def societe_list_create(request):
         form = societeForm()
     
     societe = Societe.objects.all().order_by('nom')
-    paginator = Paginator(societe, 15)
-    page = request.GET.get('page')
-    paginated_depense = paginator.get_page(page)
+    paginated_depense = paginer(request, societe)
     
     return render(request, 'CommercialSoft/societe.html', {'form': form,'listes': paginated_depense})
 
@@ -6044,9 +6051,7 @@ def demandes_commande_liste(request):
         .order_by('-date', '-id')
     )
     en_attente = demandes.count()
-    paginator = Paginator(demandes, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, demandes)
     return render(request, 'CommercialSoft/demandesCommande.html', {
         'demandes': paginated,
         'en_attente': en_attente,
@@ -6078,9 +6083,7 @@ def demandes_commande_historique(request):
 
     clients = Client.objects.filter(demandes_commande__isnull=False).distinct().order_by('nom')
 
-    paginator = Paginator(demandes, 15)
-    page = request.GET.get('page')
-    paginated = paginator.get_page(page)
+    paginated = paginer(request, demandes)
 
     querystring = request.GET.copy()
     querystring.pop('page', None)

@@ -1081,3 +1081,60 @@ class PeremptionProduitsTests(TestCase):
         from .views import _ajouter_mois
         self.assertEqual(_ajouter_mois(date(2026, 1, 31), 1), date(2026, 2, 28))
         self.assertEqual(_ajouter_mois(date(2026, 11, 15), 3), date(2027, 2, 15))
+
+
+class PaginationChoixTests(TestCase):
+    """L'utilisateur choisit 30, 50, 100 lignes ou « tous » sur les listes
+    paginées ; le choix est retenu dans la session."""
+
+    PAGES = [
+        'commerce_fournisseur', 'commerce_categorie', 'commerce_produit', 'commerce_produitPerime',
+        'commerce_produitEnRupture', 'commerce_depense', 'commerce_categorieDepense',
+        'commerce_decaissement', 'commerce_categorieDecaissement', 'commerce_versementClient',
+        'commerce_versementGerant', 'commerce_pretClient', 'commerce_versementFournisseur',
+        'commerce_detteFournisseur', 'commerce_client', 'commerce_societe',
+        'demandes_commande_liste', 'demandes_commande_historique',
+    ]
+
+    def setUp(self):
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique Pagination", ville="Conakry")
+        self.admin = User.objects.create_user(username="admin_pag", password="secret123", entreprise=self.entreprise)
+        groupe_admin, _ = Group.objects.get_or_create(name="Administrateur")
+        self.admin.groups.add(groupe_admin)
+        self.admin.user_permissions.add(*Permission.objects.filter(content_type__app_label="CommercialSoft"))
+        Categorie.objects.bulk_create([
+            Categorie(entreprise=self.entreprise, nom=f"Categorie {i:03d}") for i in range(120)
+        ])
+        self.client.login(username="admin_pag", password="secret123")
+
+    def _page(self, **params):
+        return self.client.get(reverse('commerce_categorie'), params).context['listes']
+
+    def test_30_lignes_par_defaut(self):
+        page = self._page()
+        self.assertEqual(len(page.object_list), 30)
+        self.assertEqual(page.paginator.num_pages, 4)
+
+    def test_choix_50_100_et_tous(self):
+        self.assertEqual(len(self._page(par_page=50).object_list), 50)
+        self.assertEqual(len(self._page(par_page=100).object_list), 100)
+        page = self._page(par_page='tous')
+        self.assertEqual(len(page.object_list), 120)
+        self.assertEqual(page.paginator.num_pages, 1)
+
+    def test_choix_retenu_et_valeur_invalide_ignoree(self):
+        self._page(par_page=100)
+        self.assertEqual(len(self._page().object_list), 100)
+        self.assertEqual(len(self._page(par_page=7).object_list), 100)
+
+    def test_liens_gardent_les_autres_parametres(self):
+        response = self.client.get(reverse('commerce_produitPerime'), {'etat': 'proche', 'par_page': 50})
+        self.assertEqual(response.context['listes'].querystring, 'etat=proche')
+
+    def test_toutes_les_pages_listes_affichent_le_choix(self):
+        for nom in self.PAGES:
+            with self.subTest(page=nom):
+                response = self.client.get(reverse(nom), {'par_page': 50})
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'name="par_page"')

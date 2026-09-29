@@ -1,0 +1,48 @@
+{% comment %}
+Pagination commune : choix du nombre de lignes (30, 50, 100, tous) et liens de pages.
+Usage : {% include 'CommercialSoft/partials/pagination.html' with page=listes %}
+« page » doit venir de paginer() dans views.py.
+{% endcomment %}
+<div class="d-flex flex-wrap justify-content-between align-items-center" style="gap: 8px;">
+  <form method="get" class="d-flex align-items-center mb-0" style="gap: 6px;">
+    {% for cle, valeur in page.params %}
+      <input type="hidden" name="{{ cle }}" value="{{ valeur }}">
+    {% endfor %}
+    <label for="parPage" class="mb-0 small">Afficher</label>
+    <select id="parPage" name="par_page" class="form-control form-control-sm d-inline-block w-auto" onchange="this.form.submit()">
+      {% for choix in page.choix_par_page %}
+        <option value="{{ choix }}" {% if page.par_page == choix %}selected{% endif %}>{{ choix }}</option>
+      {% endfor %}
+      <option value="tous" {% if page.par_page == 'tous' %}selected{% endif %}>Tous</option>
+    </select>
+    <span class="small">lignes</span>
+  </form>
+
+  <span class="small text-muted">
+    {% if page.paginator.count %}
+      {{ page.start_index }}–{{ page.end_index }} sur {{ page.paginator.count }}
+    {% else %}
+      0 ligne
+    {% endif %}
+  </span>
+
+  {% if page.paginator.num_pages > 1 %}
+    <ul class="pagination pagination-sm m-0">
+      {% if page.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{% if page.querystring %}{{ page.querystring }}&{% endif %}par_page={{ page.par_page }}&page={{ page.previous_page_number }}">«</a></li>
+      {% endif %}
+      {% for num in page.pages_affichees %}
+        {% if num == page.paginator.ELLIPSIS %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% elif num == page.number %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+        {% else %}
+          <li class="page-item"><a class="page-link" href="?{% if page.querystring %}{{ page.querystring }}&{% endif %}par_page={{ page.par_page }}&page={{ num }}">{{ num }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if page.has_next %}
+        <li class="page-item"><a class="page-link" href="?{% if page.querystring %}{{ page.querystring }}&{% endif %}par_page={{ page.par_page }}&page={{ page.next_page_number }}">»</a></li>
+      {% endif %}
+    </ul>
+  {% endif %}
+</div>
