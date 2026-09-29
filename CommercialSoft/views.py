@@ -148,8 +148,8 @@ def dashboard(request):
     aujourdhui, limite = bornes_peremption(info_boutique)
     produits_stats = Produit.objects.aggregate(
         total=Count('id'),
-        perimes=Count('id', filter=Q(datePeremption__lt=aujourdhui)),
-        proches=Count('id', filter=Q(datePeremption__gte=aujourdhui, datePeremption__lte=limite)),
+        perimes=Count('id', filter=Q(perissable=True, datePeremption__lt=aujourdhui)),
+        proches=Count('id', filter=Q(perissable=True, datePeremption__gte=aujourdhui, datePeremption__lte=limite)),
         rupture=Count('id', filter=Q(quantite__lte=F('seuil'))),
     )
     total_produits = produits_stats['total']
@@ -456,11 +456,13 @@ def bornes_peremption(entreprise):
 
 
 def produits_selon_peremption(entreprise, etat):
-    """Produits « perime » (déjà périmés) ou « proche » (en voie de péremption)."""
+    """Produits « perime » (déjà périmés) ou « proche » (en voie de péremption).
+    Les produits non périssables n'y figurent jamais."""
     aujourdhui, limite = bornes_peremption(entreprise)
+    produits = Produit.objects.filter(perissable=True)
     if etat == 'proche':
-        return Produit.objects.filter(datePeremption__gte=aujourdhui, datePeremption__lte=limite)
-    return Produit.objects.filter(datePeremption__lt=aujourdhui)
+        return produits.filter(datePeremption__gte=aujourdhui, datePeremption__lte=limite)
+    return produits.filter(datePeremption__lt=aujourdhui)
 
 
 @login_required
@@ -483,7 +485,21 @@ def produit_perime(request):
         'delai': getattr(entreprise, 'delai_alerte_peremption_mois', None) or DELAI_ALERTE_PEREMPTION_DEFAUT,
         'limite': limite,
         'peut_parametrer': est_administrateur(request.user) and entreprise is not None,
+        'peut_modifier_produit': request.user.has_perm('CommercialSoft.change_produit'),
     })
+
+
+@login_required
+@permission_required('CommercialSoft.change_produit')
+@require_POST
+def produit_non_perissable(request, pk):
+    """Marque un produit comme « ne périme pas » depuis la liste des périmés."""
+    produit = get_object_or_404(Produit, pk=pk)
+    produit.perissable = False
+    produit.save(update_fields=['perissable'])
+    messages.success(request, f"« {produit.libelle} » est marqué comme ne périmant pas.")
+    etat = 'proche' if request.POST.get('etat') == 'proche' else 'perime'
+    return redirect(f"{reverse('commerce_produitPerime')}?etat={etat}")
 
 
 @login_required
@@ -4648,7 +4664,7 @@ def pdf_etat_produit_rupture(request):
                 "libelle": produit.libelle,
                 "quantite": produit.quantite,
                 "seuil": produit.seuil,
-                "datePeremption": produit.datePeremption,  # Accès dynamique à l'attribut
+                "datePeremption": produit.datePeremption if produit.perissable else "Ne périme pas",
                 "prixDetail": produit.prixDetail,
             }
             for produit in produits

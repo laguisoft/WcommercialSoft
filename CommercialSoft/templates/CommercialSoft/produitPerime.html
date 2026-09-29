@@ -121,6 +121,16 @@
                           <a class="dropdown-item" href="{% url 'commerce_produitEdit' liste.id %}" title="Modifier">
                             <i class="fas fa-edit text-warning"></i> Modifier
                           </a>
+                          {% if peut_modifier_produit %}
+                          <form method="post" action="{% url 'commerce_produitNonPerissable' liste.id %}"
+                                onsubmit="return confirm('Ce produit ne périme pas ? Il ne sera plus suivi pour la péremption.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="etat" value="{{ etat }}">
+                            <button type="submit" class="dropdown-item">
+                              <i class="fas fa-infinity text-info"></i> Ne périme pas
+                            </button>
+                          </form>
+                          {% endif %}
                           <a class="dropdown-item" href="{% url 'commerce_produitDelete' liste.id %}"
                             onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette agence ?');" title="Annuler">
                             <i class="fas fa-times-circle text-danger"></i> Retirer

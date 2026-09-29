@@ -104,6 +104,10 @@
                     <label for="datePeremption">Date de peremption</label>
                     {{ form.datePeremption }}
                   </div>
+                  <div class="form-check mb-3">
+                    {{ form.perissable }}
+                    <label class="form-check-label" for="idPerissable">Ce produit périme</label>
+                  </div>
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <div class="form-group">
@@ -175,7 +179,7 @@
                     <td class="text-center">{{liste.prixDetail}}</td>
                     <td class="text-center">{{liste.prixEnGros}}</td>
                     <td class="text-center">{{liste.date}}</td>
-                    <td class="text-center">{{liste.datePeremption}}</td>
+                    <td class="text-center">{% if liste.perissable %}{{liste.datePeremption}}{% else %}Ne périme pas{% endif %}</td>
                     <td class="text-center">{{liste.seuil}}</td>
                     <td class="text-center">{{liste.commentaire}}</td>
                     <td class="text-center">{{patient.quantiteTotal}}</td>

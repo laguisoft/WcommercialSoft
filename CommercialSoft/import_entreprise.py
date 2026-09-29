@@ -282,6 +282,7 @@ def executer(paquet, entreprise, mapping_utilisateurs, importe_par):
             commentaire=f.get('commentaire'),
             quantiteTotal=f.get('quantiteTotal', 0),
             special=f.get('special', False),
+            perissable=f.get('perissable', True),
         )
         compte('commercialsoft.produit', rapport['crees'])
 

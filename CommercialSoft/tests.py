@@ -1055,6 +1055,27 @@ class PeremptionProduitsTests(TestCase):
         response = self.client.post(reverse('commerce_etatProduitPerime'), {'etat': 'proche'})
         self.assertEqual(response.status_code, 200)
 
+    def test_produit_non_perissable_exclu_partout(self):
+        Produit.objects.filter(pk__in=[self.perime.pk, self.dans_2_mois.pk]).update(perissable=False)
+        self.assertEqual(self._libelles('perime'), set())
+        self.assertEqual(self._libelles('proche'), {"Périme aujourd'hui"})
+        response = self.client.get(reverse('commerce_dashboard'))
+        self.assertEqual(response.context['produits_perimes'], 0)
+        self.assertEqual(response.context['produits_proches'], 1)
+
+    def test_marquer_ne_perime_pas_depuis_la_liste(self):
+        self.admin.user_permissions.add(*Permission.objects.filter(codename="change_produit"))
+        response = self.client.post(reverse('commerce_produitNonPerissable', args=[self.perime.id]), {'etat': 'perime'})
+        self.assertEqual(response.status_code, 302)
+        self.perime.refresh_from_db()
+        self.assertFalse(self.perime.perissable)
+        self.assertEqual(self._libelles('perime'), set())
+
+    def test_marquer_ne_perime_pas_exige_la_permission(self):
+        self.client.post(reverse('commerce_produitNonPerissable', args=[self.perime.id]))
+        self.perime.refresh_from_db()
+        self.assertTrue(self.perime.perissable)
+
     def test_ajouter_mois_fin_de_mois(self):
         from datetime import date
         from .views import _ajouter_mois

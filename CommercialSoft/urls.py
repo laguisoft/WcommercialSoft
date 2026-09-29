@@ -33,6 +33,7 @@ urlpatterns=[
     path('produit/rechercheLivrer', views.recherche_produit_livrer,name="rechercheProduitLivrer"),
     path('produit/perime', views.produit_perime,name="commerce_produitPerime"),    
     path('produits/perime/etat', views.pdf_etat_produit_perime,name="commerce_etatProduitPerime"),
+    path('produits/perime/non-perissable/<int:pk>/', views.produit_non_perissable,name="commerce_produitNonPerissable"),
     path('produits/perime/parametre', views.parametre_peremption,name="commerce_parametrePeremption"),
     path('produit/rupture', views.produit_rupture,name="commerce_produitEnRupture"),    
     path('produits/rupture/etat', views.pdf_etat_produit_rupture,name="commerce_etatProduitEnRupture"),

@@ -81,7 +81,7 @@
                     <td class="text-center">{{liste.libelle}}</td>
                     <td class="text-center">{{liste.quantite}}</td>
                     <td class="text-center">{{liste.seuil}}</td>
-                    <td class="text-center">{{liste.datePeremption}}</td>
+                    <td class="text-center">{% if liste.perissable %}{{liste.datePeremption}}{% else %}Ne périme pas{% endif %}</td>
                     <td class="text-center">{{liste.prixEnGros}}</td>
                     <td class="text-center">{{liste.prixDetail}}</td>
                     <td class="text-center">

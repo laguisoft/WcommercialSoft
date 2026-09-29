@@ -59,7 +59,7 @@ class ProduitForm(forms.ModelForm):
 
     class Meta:
         model = Produit
-        fields = ['codebare','categorie','libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','seuil','commentaire','special']
+        fields = ['codebare','categorie','libelle','quantite','prixAchat','prixDetail','prixEnGros','date','datePeremption','perissable','seuil','commentaire','special']
         widgets = {
             'codebare': forms.TextInput(attrs={'class': 'form-control'}),
             'libelle': forms.TextInput(attrs={'class': 'form-control'}),
@@ -72,6 +72,7 @@ class ProduitForm(forms.ModelForm):
             'seuil': forms.NumberInput(attrs={'class': 'form-control'}),
             'commentaire': forms.TextInput(attrs={'class': 'form-control'}),
             'special': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'perissable': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'idPerissable'}),
         }
 
     def __init__(self, *args, **kwargs):

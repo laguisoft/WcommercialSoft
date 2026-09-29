@@ -47,6 +47,7 @@ class Produit(TenantScopedModel):
     autrePrix=models.DecimalField(max_digits=30, decimal_places=0, default=0)
     date=models.DateField(default=timezone.now)
     datePeremption=models.DateField(default=timezone.now)
+    perissable=models.BooleanField(default=True, verbose_name="Périssable (a une date de péremption)")
     seuil=models.PositiveIntegerField(default=0)
     commentaire=models.CharField(max_length=60, null=True, blank=True)
     quantiteTotal=models.PositiveBigIntegerField(default=0)
