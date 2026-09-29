@@ -2769,13 +2769,35 @@ def pretClient_list(request):
 @login_required
 def detail_pret_client(request, pk):
     client = get_object_or_404(Client, pk=pk)
-    dette=PretClient.objects.filter(client=client).order_by('-date')
-    payement=VersementClient.objects.filter(client=client).order_by('-date')
+    dette=PretClient.objects.filter(client=client)
+    payement=VersementClient.objects.filter(client=client)
 
-    total_dette=PretClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
-    total_payement=VersementClient.objects.filter(client=client).aggregate(total=Sum('montant'))['total'] or 0
+    # Filtre optionnel par intervalle de dates
+    try:
+        date_debut = parse_date(request.GET.get('date_debut') or '')
+        date_fin = parse_date(request.GET.get('date_fin') or '')
+    except ValueError:
+        date_debut = date_fin = None
+    if date_debut:
+        dette = dette.filter(date__gte=date_debut)
+        payement = payement.filter(date__gte=date_debut)
+    if date_fin:
+        dette = dette.filter(date__lte=date_fin)
+        payement = payement.filter(date__lte=date_fin)
 
-    return render(request, 'CommercialSoft/detailPretClient.html', {'dettes': dette,'payements':payement,'total_dette': separateur(total_dette), 'total_payement': separateur(total_payement),'client':client})
+    total_dette=dette.aggregate(total=Sum('montant'))['total'] or 0
+    total_payement=payement.aggregate(total=Sum('montant'))['total'] or 0
+
+    return render(request, 'CommercialSoft/detailPretClient.html', {
+        'dettes': dette.order_by('-date'),
+        'payements': payement.order_by('-date'),
+        'total_dette': separateur(total_dette),
+        'total_payement': separateur(total_payement),
+        'solde': separateur(total_dette - total_payement),
+        'client': client,
+        'date_debut': date_debut.isoformat() if date_debut else '',
+        'date_fin': date_fin.isoformat() if date_fin else '',
+    })
 
 
 

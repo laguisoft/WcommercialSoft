@@ -20,6 +20,15 @@
     <div class="row text-center">
       <h3 class="text-info"> {{client.nom}} </h3>
     </div>
+    <form method="get" class="form-inline mb-2">
+      <label class="mr-2" for="date_debut">Du</label>
+      <input type="date" id="date_debut" name="date_debut" value="{{ date_debut }}" class="form-control form-control-sm mr-3">
+      <label class="mr-2" for="date_fin">Au</label>
+      <input type="date" id="date_fin" name="date_fin" value="{{ date_fin }}" class="form-control form-control-sm mr-3">
+      <button type="submit" class="btn btn-sm btn-primary mr-2"><i class="fas fa-filter"></i> Filtrer</button>
+      <a href="{{ request.path }}" class="btn btn-sm btn-secondary"><i class="fas fa-undo"></i> Réinitialiser</a>
+      <span class="ml-auto font-weight-bold">Solde : {{ solde }}</span>
+    </form>
     <div class="row">
 
 
@@ -113,7 +122,7 @@
                 </thead>
                 <tbody id="livraison-produits">
                   <!-- tes lignes dynamiques ici -->
-                   {% if dettes %}
+                   {% if payements %}
                     {% for liste in payements %}
                       <tr>
                         <td class="text-center">{{liste.id}}</td>
