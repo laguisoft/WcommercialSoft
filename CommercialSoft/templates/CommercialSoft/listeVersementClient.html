@@ -49,7 +49,7 @@
                                      <option value="{{liste.id}}">{{liste.nom}} </option>
                                     {% endfor %}
                                 {% else %}
-                                <option >Aucun client trouve</option>
+                                <option value="0">Aucun client trouve</option>
                                 {% endif %}
                                 </select>
                             </div>
@@ -70,6 +70,7 @@
                     </div>
                     <div class="card-footer text-center">
                         <button type="submit" class="btn btn-primary" id="idrechercher">Recherche</button>
+                        <button type="button" class="btn btn-secondary" id="idReinitialiser"><i class="fas fa-undo"></i> Réinitialiser</button>
                         <a type="submit" href="{% url 'commerce_etatVersementClient' %}" class="btn bg-fuchsia color-palette" id="idImprimer">Imprimer</a>
                       </div>
                   </form>
@@ -95,6 +96,7 @@
                     <th class="text-center">Client</th>
                     <th class="text-center">Montant</th>
                     <th class="text-center">Date</th>
+                    <th class="text-center">Type</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
@@ -201,7 +203,18 @@
     $(document).ready(function () {
     $('#idrechercher').on('click', function (e) {
       e.preventDefault();
+      rechercherVersements();
+    });
 
+    // Réinitialiser : vide le client et les dates, puis réaffiche tous les versements
+    $('#idReinitialiser').on('click', function () {
+      $('#idClient').val('0').trigger('change');
+      $('#dateDebut').val('');
+      $('#dateFin').val('');
+      rechercherVersements();
+    });
+
+    function rechercherVersements() {
       const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
 
       const clientId = $('#idClient').val();  // ID de l'examen sélectionné
@@ -215,7 +228,7 @@
         url: "{% url 'commerce_rechercheVersementClient' %}",
         type: "POST",
         data: {
-            idCategorie: clientId,
+            idClient: clientId,
             dateDebut: dateDebut,
             dateFin:dateFin,
             csrfmiddlewaretoken: csrfToken
@@ -234,6 +247,7 @@
                         <td>${data.client}</td>
                         <td class="text-center">${data.montant}</td>
                         <td class="text-center">${data.date}</td>
+                        <td class="text-center">${data.typePayement}</td>
                         <td class="text-center">
                           <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
@@ -263,7 +277,7 @@
           alert('Une erreur est survenue. Veuillez réessayer.');
         }
       });
-    });
+    }
   });
 
 

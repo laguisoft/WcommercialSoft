@@ -2546,36 +2546,46 @@ def versementClient_edit(request, pk):
 
  # Example for Patient Views
 @login_required
+@permission_required('CommercialSoft.view_versementclient')
 def versementClient_list(request):
-    client=VersementClientForm()
-    liste=Client.objects.all()
-    return render(request, 'CommercialSoft/listeClient.html',{'form':client, 'listes': liste})
+    liste=Client.objects.all().order_by('nom')
+    return render(request, 'CommercialSoft/listeVersementClient.html',{'listes': liste})
 
 
 
+
+
+def _filtrer_versements_client(data):
+    """Versements filtrés par client (vide ou « 0 » = tous) et par dates optionnelles."""
+    versements = VersementClient.objects.all()
+    clientId = (data.get('idClient') or '').strip()
+    dateDebut = data.get('dateDebut')
+    dateFin = data.get('dateFin')
+    if clientId and clientId != '0':
+        versements = versements.filter(client_id=clientId)
+    if dateDebut:
+        versements = versements.filter(date__gte=dateDebut)
+    if dateFin:
+        versements = versements.filter(date__lte=dateFin)
+    return versements
 
 
 @login_required
 @permission_required('CommercialSoft.view_versementclient')
 def recherche_versementClient(request):
     if request.method == "POST":
-        numero = request.POST.get('idClient', '0').strip()  # Récupérer le numéro envoyé
-        dateDebut = request.POST.get("dateDebut")
-        dateFin = request.POST.get("dateFin")
-        if numero :  # Si un numéro est saisi
-            client = client.objects.get(id=numero)
-            versementClients=VersementClient.objects.filter(client=client,date__gte=dateDebut, date__lte=dateFin)
-        else:  # Sinon, afficher les patients du jour
-            versementClients=VersementClient.objects.filter(date__gte=dateDebut, date__lte=dateFin)
-            
+        versementClients = _filtrer_versements_client(request.POST)
+
         # Construire une réponse JSON
         patients_data = [
             {
                 "id": versement.id,
+                "client": versement.client.nom,
                 "montant": versement.montant,
                 "date":versement.date,
+                "typePayement": versement.typePayement,
             }
-            for versement in versementClients.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
+            for versement in versementClients.select_related('client').order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
 
         return JsonResponse({"patients": patients_data})
@@ -4118,27 +4128,18 @@ def pdf_etat_detail_vente(request):
 @permission_required('CommercialSoft.view_versementclient')
 def pdf_etat_versementClient(request):
     if request.method =="POST":
-        dateDebut= request.POST.get('dateDebut')
-        dateFin= request.POST.get('dateFin')
-        clientId= request.POST.get('idClient')
-
-        versements=VersementClient.objects.filter(date__gte=dateDebut, date__lte=dateFin)
-
-        # Filtrer par catégorie si elle est fournie
-        if clientId:
-            try:
-                client = Client.objects.get(id=clientId)
-                versements=VersementClient.objects.filter(client=client,date__gte=dateDebut, date__lte=dateFin)
-            except VersementClient.DoesNotExist:
-                return JsonResponse({"error": "Client introuvable"}, status=404)
+        versements = _filtrer_versements_client(request.POST).select_related('client', 'user').order_by('-date')
 
         # Construire la réponse JSON
         montant=0
         produits_data = [
             {
                 "code": versement.id,
+                "client": versement.client.nom,
                 "montant": versement.montant,
                 "date": versement.date,
+                "typePayement": versement.typePayement,
+                "user": versement.user.first_name +" "+ versement.user.last_name,
             }
             for versement in versements
         ]
