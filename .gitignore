@@ -18,6 +18,7 @@ media/
 
 # Fichiers temporaires d'import d'entreprise
 tmp_import/
+sauvegardes/
 
 # Bases locales
 *.sqlite3

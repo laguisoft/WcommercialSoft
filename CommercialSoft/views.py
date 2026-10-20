@@ -5440,7 +5440,7 @@ def import_excel_view(request):
 DUREE_VIE_TEMP_IMPORT = 24 * 3600  # secondes
 
 
-def _chemin_temp_import(token):
+def _chemin_temp_import(token, prefixe='wcs_import_', extension='.json'):
     """Chemin du fichier temporaire d'un import, ou None si le jeton est
     invalide (il vient du formulaire : jamais de « ../ » dans un chemin)."""
     import os
@@ -5448,7 +5448,7 @@ def _chemin_temp_import(token):
     from django.conf import settings
     if not re.fullmatch(r'[0-9a-f]{32}', token or ''):
         return None
-    return os.path.join(settings.IMPORT_TEMP_DIR, f"wcs_import_{token}.json")
+    return os.path.join(settings.IMPORT_TEMP_DIR, f"{prefixe}{token}{extension}")
 
 
 def _nettoyer_temp_import():
@@ -5463,7 +5463,7 @@ def _nettoyer_temp_import():
     for nom in os.listdir(dossier):
         chemin = os.path.join(dossier, nom)
         try:
-            if nom.startswith('wcs_import_') and os.path.getmtime(chemin) < limite:
+            if nom.startswith('wcs_') and os.path.getmtime(chemin) < limite:
                 os.remove(chemin)
         except OSError:
             pass
@@ -5565,6 +5565,133 @@ def import_entreprise_view(request):
 
     return render(request, 'CommercialSoft/import_entreprise.html', {
         'entreprises': Entreprise.objects.all().order_by('nom'),
+    })
+
+
+
+
+#---------- Sauvegarde / restauration de toute la base (SaaS) ---------------------------
+@superadmin_required
+def sauvegarde_view(request):
+    """Page Paramétrage > Sauvegarde : exporter ou restaurer toute la base."""
+    return render(request, 'CommercialSoft/sauvegarde.html')
+
+
+@superadmin_required
+@require_POST
+def sauvegarde_exporter(request):
+    """Télécharge la sauvegarde complète de la base (.json.gz)."""
+    import os
+    import uuid
+    from django.conf import settings
+    from django.http import FileResponse
+    from . import sauvegarde
+
+    os.makedirs(settings.IMPORT_TEMP_DIR, exist_ok=True)
+    _nettoyer_temp_import()
+    chemin = os.path.join(settings.IMPORT_TEMP_DIR, f"wcs_export_{uuid.uuid4().hex}.json.gz")
+    try:
+        sauvegarde.exporter(chemin)
+        fichier = open(chemin, 'rb')
+    except OSError as e:
+        messages.error(request, f"Impossible de créer la sauvegarde ({e.strerror or e}). L'espace disque du serveur est peut-être plein.")
+        return redirect('sauvegarde')
+    finally:
+        # Le fichier ouvert reste lisible après suppression : rien ne reste sur le disque.
+        if os.path.exists(chemin):
+            os.remove(chemin)
+    nom = f"sauvegarde_wcs_{timezone.localtime():%Y%m%d_%H%M}.json.gz"
+    return FileResponse(fichier, as_attachment=True, filename=nom, content_type='application/gzip')
+
+
+@superadmin_required
+@require_POST
+def sauvegarde_importer(request):
+    """Restauration en deux étapes : 1) téléversement + aperçu, 2) confirmation."""
+    import os
+    import uuid
+    from django.conf import settings
+    from . import sauvegarde
+
+    if request.POST.get('etape') == '2':
+        chemin = _chemin_temp_import(request.POST.get('token'), 'wcs_restore_', '.json.gz')
+        if chemin is None or not os.path.exists(chemin):
+            messages.error(request, "Session de restauration expirée ou invalide, veuillez recommencer.")
+            return redirect('sauvegarde')
+        if request.POST.get('confirmation', '').strip() != 'RESTAURER':
+            messages.error(request, "Restauration annulée : tapez RESTAURER pour confirmer.")
+            return redirect('sauvegarde')
+        try:
+            contenu = sauvegarde.lire(chemin)
+            securite = sauvegarde.sauvegarde_de_securite(settings.SAUVEGARDE_DIR)
+            sauvegarde.restaurer(contenu, settings.IMPORT_TEMP_DIR)
+        except sauvegarde.SauvegardeInvalide as e:
+            messages.error(request, str(e))
+            return redirect('sauvegarde')
+        except Exception as e:
+            messages.error(request, f"Restauration impossible, la base n'a pas été modifiée : {e}")
+            return redirect('sauvegarde')
+        finally:
+            if os.path.exists(chemin):
+                os.remove(chemin)
+        messages.success(
+            request,
+            "Base restaurée. La base d'avant a été sauvegardée sur le serveur dans "
+            f"{os.path.relpath(securite, settings.BASE_DIR)}. Reconnectez-vous si besoin.",
+        )
+        return redirect('sauvegarde')
+
+    fichier = request.FILES.get('fichier')
+    if not fichier:
+        messages.error(request, "Veuillez choisir un fichier de sauvegarde.")
+        return redirect('sauvegarde')
+    token = uuid.uuid4().hex
+    chemin = _chemin_temp_import(token, 'wcs_restore_', '.json.gz')
+    try:
+        _nettoyer_temp_import()
+        os.makedirs(settings.IMPORT_TEMP_DIR, exist_ok=True)
+        sauvegarde.copier_televersement(fichier, chemin)
+        contenu = sauvegarde.lire(chemin)
+    except sauvegarde.SauvegardeInvalide as e:
+        os.remove(chemin)
+        messages.error(request, str(e))
+        return redirect('sauvegarde')
+    except OSError as e:
+        if os.path.exists(chemin):
+            os.remove(chemin)
+        messages.error(request, f"Impossible d'enregistrer le fichier ({e.strerror or e}). L'espace disque du serveur est peut-être plein.")
+        return redirect('sauvegarde')
+
+    return render(request, 'CommercialSoft/sauvegarde_confirmation.html', {
+        'token': token,
+        'nom_fichier': fichier.name,
+        'cree_le': contenu.get('cree_le'),
+        'resume': sauvegarde.resume(contenu),
+        'total': len(contenu['objets']),
+        'migrations_manquantes': sauvegarde.migrations_manquantes(contenu),
+    })
+
+
+@superadmin_required
+def remise_zero_stock(request):
+    """Remet à 0 le stock (quantité) de tous les produits de l'entreprise
+    courante. L'historique et la quantité totale reçue ne changent pas."""
+    entreprise = request.entreprise
+    if entreprise is None:
+        messages.error(request, "Choisissez d'abord une entreprise.")
+        return redirect('choisir_entreprise')
+    produits = Produit.objects.filter(entreprise=entreprise)
+    if request.method == "POST":
+        if request.POST.get('confirmation', '').strip() != 'ZERO':
+            messages.error(request, "Opération annulée : tapez ZERO pour confirmer.")
+            return redirect('remiseZeroStock')
+        nombre = produits.exclude(quantite=0).update(quantite=0)
+        messages.success(request, f"Stock remis à 0 pour {nombre} produit(s) de {entreprise.nom}.")
+        return redirect('remiseZeroStock')
+    return render(request, 'CommercialSoft/remise_zero_stock.html', {
+        'entreprise': entreprise,
+        'nb_produits': produits.count(),
+        'nb_en_stock': produits.exclude(quantite=0).count(),
     })
 
 

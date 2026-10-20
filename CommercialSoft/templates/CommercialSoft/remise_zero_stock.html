@@ -1,0 +1,50 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+        <div class="card card-warning">
+          <div class="card-header">
+            <h3 class="card-title">Remettre le stock à 0 — {{ entreprise.nom }}</h3>
+          </div>
+          <div class="card-body">
+            <p>
+              Met la <strong>quantité en stock</strong> de tous les produits de <strong>{{ entreprise.nom }}</strong> à 0.
+              Les autres entreprises, l'historique (ventes, réceptions…) et la quantité totale reçue ne changent pas.
+            </p>
+            <p>
+              Produits : <strong>{{ nb_produits }}</strong>, dont <strong>{{ nb_en_stock }}</strong> avec un stock différent de 0.
+            </p>
+            {% if nb_en_stock %}
+              <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                  <label for="confirmation">Tapez <strong>ZERO</strong> pour confirmer</label>
+                  <input type="text" name="confirmation" id="confirmation" class="form-control" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn btn-warning">Remettre le stock à 0</button>
+              </form>
+            {% else %}
+              <p class="text-success mb-0">Tous les produits sont déjà à 0.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

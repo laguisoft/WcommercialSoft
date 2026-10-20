@@ -191,6 +191,10 @@ urlpatterns=[
     
     path('charge/donnee', views.import_excel_view,name="chargeDonnee"),
     path('importer/entreprise', views.import_entreprise_view, name="importEntreprise"),
+    path('parametre/sauvegarde', views.sauvegarde_view, name="sauvegarde"),
+    path('parametre/sauvegarde/exporter', views.sauvegarde_exporter, name="sauvegardeExporter"),
+    path('parametre/sauvegarde/importer', views.sauvegarde_importer, name="sauvegardeImporter"),
+    path('parametre/stock/remise-a-zero', views.remise_zero_stock, name="remiseZeroStock"),
 
 
 

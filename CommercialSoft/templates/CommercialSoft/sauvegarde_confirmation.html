@@ -1,0 +1,74 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+        <div class="card card-danger">
+          <div class="card-header">
+            <h3 class="card-title">Confirmer la restauration</h3>
+          </div>
+          <div class="card-body">
+            <p>
+              Fichier : <strong>{{ nom_fichier }}</strong><br>
+              Sauvegarde créée le : <strong>{{ cree_le|default:"inconnu" }}</strong><br>
+              Nombre total d'éléments : <strong>{{ total }}</strong>
+            </p>
+
+            {% if migrations_manquantes %}
+              <div class="alert alert-danger">
+                Cette sauvegarde vient d'une version plus récente de l'application
+                ({{ migrations_manquantes|length }} migration(s) absente(s) sur ce serveur).
+                Mettez d'abord le serveur à jour (<code>git pull</code> puis <code>python manage.py migrate</code>).
+              </div>
+            {% endif %}
+
+            <table class="table table-sm table-bordered">
+              <thead><tr><th>Données</th><th class="text-right">Nombre</th></tr></thead>
+              <tbody>
+                {% for modele, nombre in resume %}
+                  <tr><td>{{ modele }}</td><td class="text-right">{{ nombre }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            {% if not migrations_manquantes %}
+              <div class="alert alert-warning">
+                <strong>Attention :</strong> toutes les données actuelles de la base (toutes les entreprises et tous
+                les comptes) seront remplacées par celles de ce fichier. La base actuelle sera d'abord sauvegardée
+                sur le serveur (dossier <code>sauvegardes/</code>).
+              </div>
+              <form method="post" action="{% url 'sauvegardeImporter' %}">
+                {% csrf_token %}
+                <input type="hidden" name="etape" value="2">
+                <input type="hidden" name="token" value="{{ token }}">
+                <div class="form-group">
+                  <label for="confirmation">Tapez <strong>RESTAURER</strong> pour confirmer</label>
+                  <input type="text" name="confirmation" id="confirmation" class="form-control" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Restaurer la base</button>
+                <a href="{% url 'sauvegarde' %}" class="btn btn-secondary">Annuler</a>
+              </form>
+            {% else %}
+              <a href="{% url 'sauvegarde' %}" class="btn btn-secondary">Retour</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

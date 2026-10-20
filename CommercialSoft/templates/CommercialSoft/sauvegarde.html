@@ -1,0 +1,69 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Sauvegarder toute la base</h3>
+          </div>
+          <div class="card-body">
+            <p>
+              Télécharge un fichier (<code>.json.gz</code>) contenant <strong>toutes les données de la base</strong> :
+              toutes les entreprises, produits, ventes, clients, dettes, versements… et les comptes utilisateurs
+              (avec leur mot de passe chiffré).
+            </p>
+            <p class="text-danger mb-3">
+              <i class="fas fa-lock"></i> Ce fichier contient des données sensibles : gardez-le en lieu sûr.
+            </p>
+            <form method="post" action="{% url 'sauvegardeExporter' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Télécharger la sauvegarde</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card card-danger">
+          <div class="card-header">
+            <h3 class="card-title">Restaurer une sauvegarde</h3>
+          </div>
+          <div class="card-body">
+            <p>
+              <strong>Remplace toutes les données actuelles de la base</strong> (toutes les entreprises) par celles
+              du fichier. Un aperçu vous sera montré avant toute modification, et la base actuelle sera
+              automatiquement sauvegardée sur le serveur avant la restauration.
+            </p>
+            <form method="post" action="{% url 'sauvegardeImporter' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="etape" value="1">
+              <div class="form-group">
+                <label for="fichier">Fichier de sauvegarde (.json.gz)</label>
+                <input type="file" name="fichier" id="fichier" class="form-control" accept=".gz,.json" required>
+              </div>
+              <button type="submit" class="btn btn-danger">Analyser le fichier</button>
+            </form>
+            <p class="small text-muted mt-3 mb-0">
+              Pour importer un export de l'ancienne version (branche main) dans une entreprise,
+              utilisez « Importer les données d'un client (main) ».
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

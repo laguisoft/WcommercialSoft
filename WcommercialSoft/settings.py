@@ -172,6 +172,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # depuis l'onglet Files de PythonAnywhere.
 IMPORT_TEMP_DIR = config('IMPORT_TEMP_DIR', default=os.path.join(BASE_DIR, 'tmp_import'))
 
+# Sauvegardes automatiques faites avant chaque restauration complète de la base
+SAUVEGARDE_DIR = config('SAUVEGARDE_DIR', default=os.path.join(BASE_DIR, 'sauvegardes'))
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

@@ -1227,3 +1227,128 @@ class ReceptionDatePeremptionTests(SyncLivraisonsOfflineTests):
         self._envoyer("", "liv-per-3")
         self.assertEqual(self.produit.quantite, 15)
         self.assertEqual(self.produit.datePeremption, date(2027, 3, 15))
+
+
+class SauvegardeBaseCompleteTests(TestCase):
+    """Paramétrage > Sauvegarde : export et restauration de TOUTE la base
+    (toutes les entreprises, comptes compris), super-administrateur seul."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        from django.test import override_settings
+        self.dossier = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dossier, ignore_errors=True)
+        reglage = override_settings(IMPORT_TEMP_DIR=self.dossier + "/tmp", SAUVEGARDE_DIR=self.dossier + "/sauvegardes")
+        reglage.enable()
+        self.addCleanup(reglage.disable)
+
+        User = get_user_model()
+        self.entreprise_a = Entreprise.objects.create(nom="Boutique A1", ville="Conakry")
+        self.entreprise_b = Entreprise.objects.create(nom="Boutique B1", ville="Kindia")
+        self.root = User.objects.create_superuser(username="root_sauv", password="secret123")
+        self.vendeur = User.objects.create_user(username="vendeur_sauv", password="motdepasse1", entreprise=self.entreprise_b)
+        groupe, _ = Group.objects.get_or_create(name="Administrateur")
+        groupe.permissions.add(Permission.objects.get(codename="view_produit"))
+        self.vendeur.groups.add(groupe)
+        self.produit_a = Produit.objects.create(entreprise=self.entreprise_a, libelle="Sucre", quantite=7, prixAchat=1, prixEnGros=1, prixDetail=1)
+        self.produit_b = Produit.objects.create(entreprise=self.entreprise_b, libelle="Huile", quantite=4, prixAchat=1, prixEnGros=1, prixDetail=1)
+        self.client.login(username="root_sauv", password="secret123")
+        self.client.post(reverse('choisir_entreprise'), data={'entreprise_id': self.entreprise_a.id})
+
+    def _exporter(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        response = self.client.post(reverse('sauvegardeExporter'))
+        self.assertEqual(response.status_code, 200)
+        contenu = b"".join(response.streaming_content)
+        return SimpleUploadedFile("sauvegarde.json.gz", contenu, content_type="application/gzip")
+
+    def _restaurer(self, fichier, confirmation="RESTAURER"):
+        etape1 = self.client.post(reverse('sauvegardeImporter'), data={'etape': '1', 'fichier': fichier})
+        self.assertEqual(etape1.status_code, 200, etape1.content[:500])
+        return self.client.post(reverse('sauvegardeImporter'), data={
+            'etape': '2', 'token': etape1.context['token'], 'confirmation': confirmation,
+        }, follow=True)
+
+    def test_export_contient_toutes_les_entreprises(self):
+        import gzip
+        donnees = json.loads(gzip.decompress(self._exporter().read()))
+        self.assertEqual(donnees['format'], "wcs-saas-sauvegarde")
+        libelles = {o['fields']['libelle'] for o in donnees['objets'] if o['model'].lower() == 'commercialsoft.produit'}
+        self.assertEqual(libelles, {"Sucre", "Huile"})
+        self.assertTrue(any(o['model'] == 'accounts.customuser' and o['fields']['username'] == 'vendeur_sauv' for o in donnees['objets']))
+        self.assertFalse(any(o['model'] in ('auth.permission', 'sessions.session', 'contenttypes.contenttype') for o in donnees['objets']))
+
+    def test_restauration_remet_la_base_dans_letat_sauvegarde(self):
+        entreprises_avant = set(Entreprise.objects.values_list('nom', flat=True))
+        fichier = self._exporter()
+        # Modifications après la sauvegarde
+        Produit.all_objects.filter(pk=self.produit_b.pk).delete()
+        Produit.objects.create(entreprise=self.entreprise_a, libelle="Ajout après", quantite=1, prixAchat=1, prixEnGros=1, prixDetail=1)
+        self.vendeur.set_password("autre")
+        self.vendeur.save()
+        Entreprise.objects.create(nom="Boutique C1", ville="Labe")
+
+        response = self._restaurer(fichier)
+        self.assertContains(response, "Base restaurée")
+
+        self.assertEqual(set(Produit.all_objects.values_list('libelle', flat=True)), {"Sucre", "Huile"})
+        self.assertEqual(set(Entreprise.objects.values_list('nom', flat=True)), entreprises_avant)
+        self.assertNotIn("Boutique C1", entreprises_avant)
+        vendeur = get_user_model().objects.get(username="vendeur_sauv")
+        self.assertTrue(vendeur.check_password("motdepasse1"))
+        self.assertTrue(vendeur.groups.filter(name="Administrateur", permissions__codename="view_produit").exists())
+        import os
+        self.assertEqual(len(os.listdir(self.dossier + "/sauvegardes")), 1)
+
+    def test_mauvaise_confirmation_ne_touche_a_rien(self):
+        fichier = self._exporter()
+        Produit.all_objects.filter(pk=self.produit_b.pk).delete()
+        self._restaurer(fichier, confirmation="oui")
+        self.assertFalse(Produit.all_objects.filter(libelle="Huile").exists())
+
+    def test_fichier_invalide_refuse(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        fichier = SimpleUploadedFile("x.json", json.dumps(_paquet_export_exemple()).encode(), content_type="application/json")
+        response = self.client.post(reverse('sauvegardeImporter'), data={'etape': '1', 'fichier': fichier}, follow=True)
+        self.assertContains(response, "pas une sauvegarde de la base SaaS")
+
+    def test_sauvegarde_dune_version_plus_recente_refusee(self):
+        import gzip
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        donnees = json.loads(gzip.decompress(self._exporter().read()))
+        donnees['migrations'].append(["CommercialSoft", "9999_future"])
+        fichier = SimpleUploadedFile("s.json.gz", gzip.compress(json.dumps(donnees).encode()))
+        response = self._restaurer(fichier)
+        self.assertContains(response, "version plus récente")
+        self.assertTrue(Produit.all_objects.filter(libelle="Huile").exists())
+
+    def test_echec_de_chargement_annule_tout(self):
+        from unittest import mock
+        fichier = self._exporter()
+        Produit.objects.create(entreprise=self.entreprise_a, libelle="Gardé", quantite=1, prixAchat=1, prixEnGros=1, prixDetail=1)
+        with mock.patch("CommercialSoft.sauvegarde.call_command", side_effect=RuntimeError("panne")):
+            response = self._restaurer(fichier)
+        self.assertContains(response, "la base n&#x27;a pas été modifiée")
+        self.assertTrue(Produit.all_objects.filter(libelle="Gardé").exists())
+
+    def test_reserve_au_super_administrateur(self):
+        self.client.login(username="vendeur_sauv", password="motdepasse1")
+        self.assertEqual(self.client.get(reverse('sauvegarde')).status_code, 403)
+        self.assertEqual(self.client.post(reverse('sauvegardeExporter')).status_code, 403)
+        self.assertEqual(self.client.post(reverse('remiseZeroStock'), {'confirmation': 'ZERO'}).status_code, 403)
+        self.produit_b.refresh_from_db()
+        self.assertEqual(self.produit_b.quantite, 4)
+
+    def test_remise_a_zero_du_stock_de_lentreprise_courante_seulement(self):
+        self.assertEqual(self.client.get(reverse('remiseZeroStock')).status_code, 200)
+        self.client.post(reverse('remiseZeroStock'), {'confirmation': 'ZERO'})
+        self.produit_a.refresh_from_db()
+        self.produit_b.refresh_from_db()
+        self.assertEqual(self.produit_a.quantite, 0)
+        self.assertEqual(self.produit_b.quantite, 4)
+
+    def test_remise_a_zero_exige_la_confirmation(self):
+        self.client.post(reverse('remiseZeroStock'), {'confirmation': 'zero?'})
+        self.produit_a.refresh_from_db()
+        self.assertEqual(self.produit_a.quantite, 7)

@@ -243,8 +243,9 @@
                 <li class="dropdown"><a href="#"><span>Parametrage</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                   <ul>
                     <li><a href="{% url 'chargeDonnee' %}">importer</a></li>
-                    <li><a href="#">Sauvegarde</a></li>
                     {% if user.is_superuser %}
+                    <li><a href="{% url 'sauvegarde' %}">Sauvegarde / restauration</a></li>
+                    <li><a href="{% url 'remiseZeroStock' %}">Remettre le stock à 0</a></li>
                     <li><a href="{% url 'importEntreprise' %}">Importer les données d'un client (main)</a></li>
                     {% endif %}
                   </ul>
