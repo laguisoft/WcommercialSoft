@@ -466,6 +466,14 @@ class ReparationImportClientPortailTests(TestCase):
 
 class ImportEntrepriseViewTests(TestCase):
     def setUp(self):
+        import shutil
+        import tempfile
+        from django.test import override_settings
+        self.dossier_temp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dossier_temp, ignore_errors=True)
+        reglage = override_settings(IMPORT_TEMP_DIR=self.dossier_temp)
+        reglage.enable()
+        self.addCleanup(reglage.disable)
         self.entreprise = Entreprise.objects.create(nom="Boutique F", ville="Boke")
         User = get_user_model()
         self.superadmin = User.objects.create_superuser(username="root2", password="secret123")
@@ -475,6 +483,41 @@ class ImportEntrepriseViewTests(TestCase):
         from django.core.files.uploadedfile import SimpleUploadedFile
         contenu = json.dumps(_paquet_export_exemple()).encode('utf-8')
         return SimpleUploadedFile("export.json", contenu, content_type="application/json")
+
+    def test_disque_plein_affiche_un_message_au_lieu_dune_erreur_500(self):
+        from unittest import mock
+        self.client.login(username="root2", password="secret123")
+        with mock.patch("CommercialSoft.views.json.dump", side_effect=OSError(122, "Disk quota exceeded")):
+            response = self.client.post(reverse("importEntreprise"), data={
+                'etape': '1', 'fichier': self._fichier_export(), 'entreprise_id': self.entreprise.id,
+            }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "espace disque")
+        import os
+        self.assertEqual(os.listdir(self.dossier_temp), [])
+
+    def test_jeton_invalide_refuse(self):
+        self.client.login(username="root2", password="secret123")
+        response = self.client.post(reverse("importEntreprise"), data={
+            'etape': '2', 'token': '../../etc/passwd', 'entreprise_id': self.entreprise.id,
+        }, follow=True)
+        self.assertContains(response, "Session d&#x27;import invalide")
+
+    def test_anciens_fichiers_temporaires_nettoyes(self):
+        import os
+        import time
+        ancien = os.path.join(self.dossier_temp, "wcs_import_" + "a" * 32 + ".json")
+        with open(ancien, "w") as f:
+            f.write("{}")
+        vieux = time.time() - 2 * 24 * 3600
+        os.utime(ancien, (vieux, vieux))
+        self.client.login(username="root2", password="secret123")
+        etape1 = self.client.post(reverse("importEntreprise"), data={
+            'etape': '1', 'fichier': self._fichier_export(), 'entreprise_id': self.entreprise.id,
+        })
+        self.assertEqual(etape1.status_code, 200)
+        self.assertFalse(os.path.exists(ancien))
+        self.assertTrue(os.path.exists(os.path.join(self.dossier_temp, f"wcs_import_{etape1.context['token']}.json")))
 
     def test_reservee_au_superadmin(self):
         self.client.login(username="gerant_f", password="secret123")

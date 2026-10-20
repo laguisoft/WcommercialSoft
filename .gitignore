@@ -16,6 +16,9 @@ media/
 
 *.pdf
 
+# Fichiers temporaires d'import d'entreprise
+tmp_import/
+
 # Bases locales
 *.sqlite3
 

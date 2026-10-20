@@ -167,6 +167,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Fichiers temporaires de l'import d'entreprise (entre l'étape 1 et la
+# confirmation). Dossier du projet plutôt que /tmp : visible et nettoyable
+# depuis l'onglet Files de PythonAnywhere.
+IMPORT_TEMP_DIR = config('IMPORT_TEMP_DIR', default=os.path.join(BASE_DIR, 'tmp_import'))
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

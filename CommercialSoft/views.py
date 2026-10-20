@@ -5437,10 +5437,36 @@ def import_excel_view(request):
 
 
 #---------- Import complet d'une entreprise (depuis main) ---------------------------
+DUREE_VIE_TEMP_IMPORT = 24 * 3600  # secondes
+
+
 def _chemin_temp_import(token):
+    """Chemin du fichier temporaire d'un import, ou None si le jeton est
+    invalide (il vient du formulaire : jamais de « ../ » dans un chemin)."""
     import os
-    import tempfile
-    return os.path.join(tempfile.gettempdir(), f"wcs_import_{token}.json")
+    import re
+    from django.conf import settings
+    if not re.fullmatch(r'[0-9a-f]{32}', token or ''):
+        return None
+    return os.path.join(settings.IMPORT_TEMP_DIR, f"wcs_import_{token}.json")
+
+
+def _nettoyer_temp_import():
+    """Supprime les fichiers d'imports abandonnés depuis plus de 24 h."""
+    import os
+    import time
+    from django.conf import settings
+    dossier = settings.IMPORT_TEMP_DIR
+    if not os.path.isdir(dossier):
+        return
+    limite = time.time() - DUREE_VIE_TEMP_IMPORT
+    for nom in os.listdir(dossier):
+        chemin = os.path.join(dossier, nom)
+        try:
+            if nom.startswith('wcs_import_') and os.path.getmtime(chemin) < limite:
+                os.remove(chemin)
+        except OSError:
+            pass
 
 
 @superadmin_required
@@ -5470,9 +5496,24 @@ def import_entreprise_view(request):
             messages.error(request, "Fichier invalide : ce n'est pas un paquet d'export reconnu.")
             return redirect('importEntreprise')
 
+        import os
+        from django.conf import settings
         token = uuid.uuid4().hex
-        with open(_chemin_temp_import(token), 'w', encoding='utf-8') as f:
-            json.dump(paquet, f)
+        chemin = _chemin_temp_import(token)
+        try:
+            _nettoyer_temp_import()
+            os.makedirs(settings.IMPORT_TEMP_DIR, exist_ok=True)
+            with open(chemin, 'w', encoding='utf-8') as f:
+                json.dump(paquet, f)
+        except OSError as e:
+            if os.path.exists(chemin):
+                os.remove(chemin)
+            messages.error(
+                request,
+                "Impossible d'enregistrer le fichier temporaire de l'import "
+                f"({e.strerror or e}). L'espace disque du serveur est peut-être plein.",
+            )
+            return redirect('importEntreprise')
 
         rapport = analyser(paquet, entreprise)
         return render(request, 'CommercialSoft/import_entreprise_etape2.html', {
@@ -5487,6 +5528,9 @@ def import_entreprise_view(request):
         entreprise_id = request.POST.get('entreprise_id')
         entreprise = get_object_or_404(Entreprise, pk=entreprise_id)
         chemin = _chemin_temp_import(token)
+        if chemin is None:
+            messages.error(request, "Session d'import invalide, veuillez recommencer.")
+            return redirect('importEntreprise')
 
         try:
             with open(chemin, encoding='utf-8') as f:
