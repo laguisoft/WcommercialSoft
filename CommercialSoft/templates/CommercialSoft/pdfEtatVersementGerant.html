@@ -156,9 +156,10 @@
             <table style="border: solid 1px; width: 100%;">
                 <thead>
                     <th style="width: 10%; text-align: center;">N°</th>
-                    <th style="width: 25%; text-align: center;">Montant</th>
-                    <th style="width: 25%; text-align: center;">Date</th>
-                    <th style="width: 40%; text-align: center;">Agent</th>
+                    <th style="width: 18%; text-align: center;">Montant</th>
+                    <th style="width: 17%; text-align: center;">Date</th>
+                    <th style="width: 25%; text-align: center;">Agent</th>
+                    <th style="width: 30%; text-align: center;">Commentaire</th>
                 </thead>
                 <tbody>
                     {% if listes %}
@@ -168,6 +169,7 @@
                         <td style="text-align: center;">{{ liste.montant }}</td>
                         <td style="text-align: center;">{{ liste.date }}</td>
                         <td style="text-align: center;">{{ liste.user }}</td>
+                        <td>{{ liste.commentaire }}</td>
                       </tr>
                     {% endfor %}
                   {% else %}

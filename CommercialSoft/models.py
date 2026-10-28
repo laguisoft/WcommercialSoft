@@ -349,6 +349,7 @@ class VersementGerant(TenantScopedModel):
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     montant=models.BigIntegerField()
     date=models.DateField(default=timezone.now, db_index=True)
+    commentaire=models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         indexes = [

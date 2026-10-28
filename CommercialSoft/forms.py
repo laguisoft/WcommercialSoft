@@ -471,8 +471,9 @@ class DetteFournisseurForm(forms.ModelForm):
 class VersementGerantForm(forms.ModelForm):
     class Meta:
         model = VersementGerant
-        fields = ['user', 'montant', 'date']
+        fields = ['user', 'montant', 'date', 'commentaire']
         widgets = {
+            'commentaire': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 200}),
             'user': forms.Select(attrs={'class': 'form-control select2bs4', "id":"idUser"}),
             'montant': forms.NumberInput(attrs={'class': 'form-control'}),
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),

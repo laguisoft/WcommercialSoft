@@ -47,22 +47,28 @@
                     {% csrf_token %}
                     <div class="card-body">
                       <div class="row justify-content-center align-items-end">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                           <div class="form-group">
                             <label for="client">Agent</label>
                             {{ form.user }} 
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="quantite">Montant</label>
                             {{ form.montant }}
                           </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                           <div class="form-group">
                             <label for="prix">Date</label>
                             {{ form.date }}
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="form-group">
+                            <label for="{{ form.commentaire.id_for_label }}">Commentaire</label>
+                            {{ form.commentaire }}
                           </div>
                         </div>
                         <div class="col-md-2">
@@ -93,6 +99,7 @@
                     <th class="text-center">Montant</th>
                     <th class="text-center">Date</th>
                     <th class="text-center">Agent</th>
+                    <th class="text-center">Commentaire</th>
                     <th style="width: 40px" class="text-center">#</th>
                   </tr>
                 </thead>
@@ -104,6 +111,7 @@
                         <td class="text-center">{{liste.montant}}</td>
                         <td class="text-center">{{liste.date}}</td>
                         <td>{{liste.user}}</td>
+                        <td>{{liste.commentaire|default:""}}</td>
                         <td class="text-center">
                           <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">

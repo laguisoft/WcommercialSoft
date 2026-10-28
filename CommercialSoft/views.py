@@ -2804,7 +2804,8 @@ def recherche_versementGerant(request):
                 "id": versement.id,
                 "montant": versement.montant,
                 "date":versement.date,
-                "user": versement.user.first_name +" "+versement.user.last_name
+                "user": versement.user.first_name +" "+versement.user.last_name,
+                "commentaire": versement.commentaire or "",
             }
             for versement in versementGerants.order_by('-date')[:MAX_RESULTATS_RECHERCHE]
         ]
@@ -4781,7 +4782,8 @@ def pdf_etat_versementGerant(request):
                 "code": versement.id,
                 "montant": versement.montant,
                 "date": versement.date,
-                "user":versement.user.first_name+" "+versement.user.last_name
+                "user":versement.user.first_name+" "+versement.user.last_name,
+                "commentaire": versement.commentaire or "",
             }
             for versement in versements
         ]

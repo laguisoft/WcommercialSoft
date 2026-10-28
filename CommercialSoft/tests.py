@@ -1352,3 +1352,40 @@ class SauvegardeBaseCompleteTests(TestCase):
         self.client.post(reverse('remiseZeroStock'), {'confirmation': 'zero?'})
         self.produit_a.refresh_from_db()
         self.assertEqual(self.produit_a.quantite, 7)
+
+
+class VersementGerantCommentaireTests(TestCase):
+    def setUp(self):
+        from django.test import override_settings
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique VG", ville="Conakry")
+        self.admin = User.objects.create_user(username="admin_vg", password="secret123", entreprise=self.entreprise)
+        groupe, _ = Group.objects.get_or_create(name="Administrateur")
+        self.admin.groups.add(groupe)
+        self.admin.user_permissions.add(*Permission.objects.filter(content_type__app_label="CommercialSoft"))
+        self.client.login(username="admin_vg", password="secret123")
+
+    def test_commentaire_enregistre_affiche_et_dans_la_recherche(self):
+        from .models import VersementGerant
+        self.client.post(reverse('commerce_versementGerant'), {
+            'user': self.admin.id, 'montant': 50000, 'date': '2026-10-28', 'commentaire': "Dépôt <banque> BICIGUI",
+        })
+        versement = VersementGerant.objects.get()
+        self.assertEqual(versement.commentaire, "Dépôt <banque> BICIGUI")
+        page = self.client.get(reverse('commerce_versementGerant'))
+        self.assertContains(page, "Dépôt &lt;banque&gt; BICIGUI")
+        recherche = self.client.post(reverse('commerce_rechercheVersementGerant'), {
+            'idGerant': '0', 'dateDebut': '2026-10-01', 'dateFin': '2026-10-31',
+        })
+        self.assertEqual(recherche.json()['patients'][0]['commentaire'], "Dépôt <banque> BICIGUI")
+        pdf = self.client.post(reverse('commerce_etatVersementGerant'), {
+            'idGerant': '0', 'dateDebut': '2026-10-01', 'dateFin': '2026-10-31',
+        })
+        self.assertEqual(pdf.status_code, 200)
+
+    def test_commentaire_facultatif(self):
+        from .models import VersementGerant
+        self.client.post(reverse('commerce_versementGerant'), {
+            'user': self.admin.id, 'montant': 1000, 'date': '2026-10-28',
+        })
+        self.assertIsNone(VersementGerant.objects.get().commentaire)
