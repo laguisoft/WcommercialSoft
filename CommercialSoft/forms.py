@@ -479,6 +479,16 @@ class VersementGerantForm(forms.ModelForm):
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date','id':'idDate'}),
         }
 
+    def __init__(self, *args, utilisateurs=None, **kwargs):
+        # CustomUser n'est pas filtré par entreprise : sans ce queryset, la
+        # liste « Agent » proposerait les comptes de toutes les entreprises.
+        # Les vues passent utilisateurs_de_entreprise(request) ; à défaut,
+        # liste vide (jamais tous les comptes).
+        super().__init__(*args, **kwargs)
+        self.fields['user'].queryset = (
+            utilisateurs if utilisateurs is not None else self.fields['user'].queryset.none()
+        ).order_by('first_name', 'last_name', 'username')
+
 
 
 

@@ -1389,3 +1389,32 @@ class VersementGerantCommentaireTests(TestCase):
             'user': self.admin.id, 'montant': 1000, 'date': '2026-10-28',
         })
         self.assertIsNone(VersementGerant.objects.get().commentaire)
+
+
+class VersementGerantAgentParEntrepriseTests(VersementGerantCommentaireTests):
+    """La liste « Agent » ne propose que les comptes de l'entreprise courante."""
+
+    def setUp(self):
+        super().setUp()
+        User = get_user_model()
+        autre = Entreprise.objects.create(nom="Autre Boutique VG", ville="Kindia")
+        self.agent_autre = User.objects.create_user(username="agent_autre_vg", password="x", entreprise=autre)
+        self.agent_ici = User.objects.create_user(username="agent_ici_vg", password="x", entreprise=self.entreprise)
+
+    def test_listes_deroulantes_filtrees(self):
+        from .models import VersementGerant
+        versement = VersementGerant.objects.create(entreprise=self.entreprise, user=self.agent_ici, montant=1)
+        for url in (reverse('commerce_versementGerant'), reverse('commerce_listeVersementGerant'),
+                    reverse('commerce_modVersementGerant', args=[versement.id])):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, f'value="{self.agent_ici.id}"')
+                self.assertNotContains(response, f'value="{self.agent_autre.id}"')
+
+    def test_agent_dune_autre_entreprise_refuse(self):
+        from .models import VersementGerant
+        self.client.post(reverse('commerce_versementGerant'), {
+            'user': self.agent_autre.id, 'montant': 1000, 'date': '2026-10-29',
+        })
+        self.assertFalse(VersementGerant.objects.exists())

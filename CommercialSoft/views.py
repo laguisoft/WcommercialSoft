@@ -2736,7 +2736,7 @@ def versementClient_delete(request, pk):
 @permission_required('CommercialSoft.add_versementgerant')
 def versementGerant_list_create(request):
     if request.method == "POST":
-        form = VersementGerantForm(request.POST)
+        form = VersementGerantForm(request.POST, utilisateurs=utilisateurs_de_entreprise(request))
         if form.is_valid():
             form.instance.entreprise = request.entreprise
             form.save()  # Sauvegarder après modification
@@ -2745,7 +2745,7 @@ def versementGerant_list_create(request):
         else:
             messages.error(request, "Erreur lors de la création du versement.")
     else:
-        form = VersementGerantForm()
+        form = VersementGerantForm(utilisateurs=utilisateurs_de_entreprise(request))
     
     versementGerant = VersementGerant.objects.all().order_by('-date')
     paginated_depense = paginer(request, versementGerant)
@@ -2760,7 +2760,7 @@ def versementGerant_list_create(request):
 def versementGerant_edit(request, pk):
     versementGerant = get_object_or_404(VersementGerant, pk=pk)
     if request.method == "POST":
-        form = VersementGerantForm(request.POST, instance=versementGerant)
+        form = VersementGerantForm(request.POST, instance=versementGerant, utilisateurs=utilisateurs_de_entreprise(request))
         if form.is_valid():
             form.save()
             messages.success(request, "Versement mise à jour avec succès!")
@@ -2768,7 +2768,7 @@ def versementGerant_edit(request, pk):
         else:
             messages.error(request, "Erreur lors de la mise à jour du versement.")
     else:
-        form = VersementGerantForm(instance=versementGerant)
+        form = VersementGerantForm(instance=versementGerant, utilisateurs=utilisateurs_de_entreprise(request))
     
     return render(request, 'CommercialSoft/modification.html', {'form': form})
 
@@ -2776,7 +2776,7 @@ def versementGerant_edit(request, pk):
  # Example for Patient Views
 @login_required
 def versementGerant_list(request):
-    agent=VersementGerantForm()
+    agent=VersementGerantForm(utilisateurs=utilisateurs_de_entreprise(request))
     return render(request, 'CommercialSoft/listeVersementGerant.html',{'form':agent})
 
 
