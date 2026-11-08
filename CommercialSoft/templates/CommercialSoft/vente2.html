@@ -912,11 +912,25 @@ async function validerVente() {
   for (let item of panier) {
     let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
     if (produit && produit.quantiteMaxVente && item.quantite > produit.quantiteMaxVente) {
-      depassements.push(`- ${item.nom} : max ${produit.quantiteMaxVente} (demandé ${item.quantite})`);
+      depassements.push(
+        `<tr><td class="text-left">${$('<div>').text(item.nom).html()}</td>`
+        + `<td class="text-center">${produit.quantiteMaxVente}</td>`
+        + `<td class="text-center text-danger font-weight-bold">${item.quantite}</td></tr>`
+      );
     }
   }
   if (depassements.length) {
-    alert("Vente refusée : la quantité maximale autorisée par vente est dépassée pour :\n" + depassements.join("\n"));
+    Swal.fire({
+      icon: "error",
+      title: "Vente refusée",
+      width: 420,
+      html: `<p class="mb-2">La quantité maximale autorisée par vente est dépassée pour :</p>
+             <table class="table table-sm table-bordered mb-0">
+               <thead><tr><th class="text-left">Produit</th><th>Max</th><th>Demandé</th></tr></thead>
+               <tbody>${depassements.join("")}</tbody>
+             </table>`,
+      confirmButtonText: "Corriger le panier",
+    });
     return;
   }
 
