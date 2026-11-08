@@ -48,6 +48,11 @@ class Produit(TenantScopedModel):
     date=models.DateField(default=timezone.now)
     datePeremption=models.DateField(default=timezone.now)
     perissable=models.BooleanField(default=True, verbose_name="Périssable (a une date de péremption)")
+    quantiteMaxVente=models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Quantité maximale par vente",
+        help_text="Au-delà, la vente est refusée. Vide = pas de limite.",
+    )
     seuil=models.PositiveIntegerField(default=0)
     commentaire=models.CharField(max_length=60, null=True, blank=True)
     quantiteTotal=models.PositiveBigIntegerField(default=0)

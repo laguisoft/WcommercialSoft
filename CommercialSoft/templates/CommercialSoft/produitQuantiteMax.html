@@ -1,0 +1,48 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-6 offset-md-3">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Quantité maximale par vente — {{ produit.libelle }}</h3>
+          </div>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="card-body">
+              <p>
+                Si un vendeur met plus que cette quantité de <strong>{{ produit.libelle }}</strong> dans une vente,
+                la vente est refusée. Laissez vide pour ne pas limiter.
+              </p>
+              <div class="form-group">
+                <label for="quantiteMaxVente">Quantité maximale par vente</label>
+                <input type="number" min="1" step="1" class="form-control" id="quantiteMaxVente" name="quantiteMaxVente"
+                       value="{{ produit.quantiteMaxVente|default_if_none:'' }}" placeholder="Pas de limite" autofocus>
+              </div>
+            </div>
+            <div class="card-footer text-center">
+              <button type="submit" class="btn btn-primary">Enregistrer</button>
+              <a href="{{ next }}" class="btn btn-secondary">Annuler</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

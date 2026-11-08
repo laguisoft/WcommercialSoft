@@ -751,7 +751,7 @@ def api_reception(request):
     """
     prods = list(Produit.objects.values(
         "id", "libelle", "prixAchat", "prixDetail", "prixEnGros", "quantite", "categorie",
-        "datePeremption", "perissable",
+        "datePeremption", "perissable", "quantiteMaxVente",
     ))
     categories= list(Categorie.objects.values("id", "nom"))
 
@@ -1198,6 +1198,7 @@ def recherche_produit(request):
                 "prixEnGros": produit.prixEnGros,
                 "peremption": produit.datePeremption.strftime("%Y-%m-%d") if produit.datePeremption else None,
                 "seuil": produit.seuil,
+                "quantiteMaxVente": produit.quantiteMaxVente,
             }
             for produit in produits.order_by('libelle')[:MAX_RESULTATS_RECHERCHE]
         ]
@@ -1362,7 +1363,12 @@ def vente_creates(request):
         except json.JSONDecodeError:
             produits_data = []
 
-        if commande_form.is_valid() and (not produits_data == []):
+        depassements = depassements_quantite_max(
+            (item.get('id'), item.get('quantite')) for item in produits_data if isinstance(item, dict)
+        )
+        if depassements:
+            messages.error(request, message_quantite_max(depassements))
+        elif commande_form.is_valid() and (not produits_data == []):
             with transaction.atomic():
                 try:
                     # Création de la commande
@@ -1989,6 +1995,66 @@ def commandeP_delete(request):
 
 
 
+def depassements_quantite_max(lignes):
+    """Produits d'une vente dont la quantité dépasse la quantité maximale
+    autorisée par vente. `lignes` : itérable de (produit_id, quantite) ; les
+    quantités d'un même produit sont additionnées. Retourne une liste de
+    (produit, quantite_demandee) — vide si tout est autorisé."""
+    totaux = {}
+    for produit_id, quantite in lignes:
+        try:
+            produit_id, quantite = int(produit_id), int(quantite)
+        except (TypeError, ValueError):
+            continue
+        totaux[produit_id] = totaux.get(produit_id, 0) + quantite
+    if not totaux:
+        return []
+    produits = Produit.objects.filter(id__in=totaux, quantiteMaxVente__isnull=False)
+    return [
+        (produit, totaux[produit.id])
+        for produit in produits.order_by('libelle')
+        if totaux[produit.id] > produit.quantiteMaxVente
+    ]
+
+
+def message_quantite_max(depassements):
+    details = ", ".join(
+        f"{produit.libelle} (max {produit.quantiteMaxVente}, demandé {quantite})"
+        for produit, quantite in depassements
+    )
+    return f"Vente refusée : la quantité maximale autorisée par vente est dépassée pour : {details}."
+
+
+@login_required
+@permission_required('CommercialSoft.change_produit')
+def produit_quantite_max(request, pk):
+    """Règle la quantité maximale d'un produit autorisée dans une vente."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+    produit = get_object_or_404(Produit, pk=pk)
+    retour = request.POST.get('next') or request.GET.get('next') or ''
+    if not url_has_allowed_host_and_scheme(retour, allowed_hosts={request.get_host()}):
+        retour = ''
+    retour = retour or reverse('produitDisponible')
+
+    if request.method == "POST":
+        valeur = (request.POST.get('quantiteMaxVente') or '').strip()
+        if valeur == '':
+            produit.quantiteMaxVente = None
+        elif valeur.isdigit() and int(valeur) > 0:
+            produit.quantiteMaxVente = int(valeur)
+        else:
+            messages.error(request, "La quantité maximale doit être un nombre entier supérieur à 0 (ou vide pour aucune limite).")
+            return redirect(f"{reverse('produitQuantiteMax', args=[produit.pk])}?next={retour}")
+        produit.save(update_fields=['quantiteMaxVente'])
+        if produit.quantiteMaxVente:
+            messages.success(request, f"« {produit.libelle} » : {produit.quantiteMaxVente} au maximum par vente.")
+        else:
+            messages.success(request, f"« {produit.libelle} » : plus de quantité maximale par vente.")
+        return redirect(retour)
+
+    return render(request, 'CommercialSoft/produitQuantiteMax.html', {'produit': produit, 'next': retour})
+
+
 @login_required
 @user_passes_test(est_admin_ou_gestionnaire)
 @permission_required('CommercialSoft.change_produit')
@@ -2087,6 +2153,12 @@ def modifier_commande(request, pk):
 
         if typePayement == "Pret" and not client_id:
             return JsonResponse({"success": False, "message": "Veuillez sélectionner un client pour un prêt."}, status=400)
+
+        depassements = depassements_quantite_max(
+            (item.get('produit_id'), item.get('quantite')) for item in lignes if isinstance(item, dict)
+        )
+        if depassements:
+            return JsonResponse({"success": False, "message": message_quantite_max(depassements)}, status=400)
 
         boutique = request.entreprise
         verifier_stock = not (boutique and boutique.quantiteNegative)
@@ -5702,7 +5774,7 @@ def remise_zero_stock(request):
 #---------- Gestion horconnexion ---------------------------
 @login_required
 def api_produits(request):
-    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal", "special"))
+    produits = list(Produit.objects.values("id", "codebare", "categorie","libelle", "quantite", "prixAchat", "prixEnGros", "prixDetail", "autrePrix", "date", "datePeremption", "seuil", "commentaire", "quantiteTotal", "special", "quantiteMaxVente"))
     clients = list(Client.objects.values("id", "nom", "telephone", "adresse", "email", "matricule", "pourcentage", "detteMaximale"))
     return JsonResponse({
         "produits": produits,
@@ -5914,6 +5986,12 @@ def sync_ventes(request):
             # premier succes cote serveur) : on repond succes pour que le
             # client la retire de la file, sans la recreer en double.
             return JsonResponse({"success": True, "message": "Vente déjà synchronisée"})
+
+        depassements = depassements_quantite_max(
+            (item.get("produit_id"), item.get("quantite")) for item in vente.get("lignes", [])
+        )
+        if depassements:
+            return JsonResponse({"success": False, "message": message_quantite_max(depassements)}, status=400)
 
         client_special = _get_or_create_client_special(
             vente.get("clientSpecialNom"),

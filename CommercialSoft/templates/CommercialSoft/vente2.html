@@ -658,6 +658,10 @@ async function ajouterAuPanier(produit = null) {
   }
 
   let produitExistant = panier.find(item => item.produit_id === produit.id);
+  let quantiteAuPanier = (produitExistant ? produitExistant.quantite : 0) + quantite;
+  if (produit.quantiteMaxVente && quantiteAuPanier > produit.quantiteMaxVente) {
+    toastr.warning(`${produit.libelle} : ${produit.quantiteMaxVente} au maximum par vente (vous en avez ${quantiteAuPanier}). La vente sera refusée.`);
+  }
   if (produitExistant) {
     produitExistant.quantite += quantite;
     produitExistant.total = produitExistant.quantite * produitExistant.prix;
@@ -900,6 +904,19 @@ async function validerVente() {
 
   if (panier.length === 0) {
     alert("Le panier est vide !");
+    return;
+  }
+
+  // Refuser si un produit dépasse sa quantité maximale autorisée par vente
+  let depassements = [];
+  for (let item of panier) {
+    let produit = produitsCache.find(p => p.id === parseInt(item.produit_id));
+    if (produit && produit.quantiteMaxVente && item.quantite > produit.quantiteMaxVente) {
+      depassements.push(`- ${item.nom} : max ${produit.quantiteMaxVente} (demandé ${item.quantite})`);
+    }
+  }
+  if (depassements.length) {
+    alert("Vente refusée : la quantité maximale autorisée par vente est dépassée pour :\n" + depassements.join("\n"));
     return;
   }
 

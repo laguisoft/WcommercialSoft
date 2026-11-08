@@ -220,6 +220,7 @@
             response.produits.forEach(data => {
               const supUrl = "{% url 'commerce_produitDelete' 0 %}".replace("0", data.id);
               const modUrl = "{% url 'commerce_produitEdit' 0 %}".replace("0", data.id);
+              const maxUrl = "{% url 'produitQuantiteMax' 0 %}".replace("0", data.id) + "?next=" + encodeURIComponent(window.location.pathname);
               patientsTable.append(`
                 <tr>
                         <td class="text-center">${data.code}</td>
@@ -238,6 +239,9 @@
                             <div class="dropdown-menu">
                               <a class="dropdown-item" href="${modUrl} " title="Modifier">
                                 <i class="fas fa-edit text-warning"></i> Modifier
+                              </a>
+                              <a class="dropdown-item" href="${maxUrl}" title="Quantité max. par vente">
+                                <i class="fas fa-hand-paper text-info"></i> Quantité max. par vente${data.quantiteMaxVente ? ' (' + data.quantiteMaxVente + ')' : ''}
                               </a>
                               <a class="dropdown-item" href="${supUrl}"
                                 onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet element ?');" title="Annuler">

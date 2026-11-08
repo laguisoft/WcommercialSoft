@@ -21,6 +21,7 @@ urlpatterns=[
     #-------------------Produits-------------------------
     path('produit/', views.produit_list_create,name="commerce_produit"),    
     path('produit/modification/<int:pk>/', views.produit_edit,name="commerce_produitEdit"),
+    path('produit/quantite-max/<int:pk>/', views.produit_quantite_max,name="produitQuantiteMax"),
     path('modifier-produit-ajax/',views.modifierProduitAjax,name='modifierProduitAjax'),
     path('produit/modifiction/prix/', views.modifierPrixProduit,name="commerce_modificationPrixProduit"),
     path('produit/suppression/<int:pk>/', views.produit_delete,name="commerce_produitDelete"),

@@ -1418,3 +1418,85 @@ class VersementGerantAgentParEntrepriseTests(VersementGerantCommentaireTests):
             'user': self.agent_autre.id, 'montant': 1000, 'date': '2026-10-29',
         })
         self.assertFalse(VersementGerant.objects.exists())
+
+
+class QuantiteMaxVenteTests(TestCase):
+    """Quantité maximale d'un produit par vente : au-delà, la vente est
+    refusée avec un message listant les produits et leur maximum."""
+
+    def setUp(self):
+        from .models import Commande
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique QMax", ville="Conakry")
+        self.user = User.objects.create_user(username="vendeur_qmax", password="secret123", entreprise=self.entreprise)
+        groupe, _ = Group.objects.get_or_create(name="Administrateur")
+        self.user.groups.add(groupe)
+        self.user.user_permissions.add(*Permission.objects.filter(content_type__app_label="CommercialSoft"))
+        self.riz = Produit.objects.create(entreprise=self.entreprise, libelle="Riz", quantite=100, prixAchat=1, prixEnGros=1, prixDetail=1, quantiteMaxVente=10)
+        self.huile = Produit.objects.create(entreprise=self.entreprise, libelle="Huile", quantite=100, prixAchat=1, prixEnGros=1, prixDetail=1)
+        self.client.login(username="vendeur_qmax", password="secret123")
+        self.Commande = Commande
+
+    def _sync(self, lignes, id_local):
+        return self.client.post(reverse("sync_ventes"), data=json.dumps({
+            "id_local": id_local, "user": self.user.id, "typePayement": "Espece", "typeVente": "detail",
+            "montant": 1, "remise": 0, "date": "2026-11-08", "lignes": lignes,
+        }), content_type="application/json")
+
+    def test_reglage_depuis_le_menu(self):
+        url = reverse('produitQuantiteMax', args=[self.huile.id])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.client.post(url, {'quantiteMaxVente': '5', 'next': '/commerce/produitDisponible'})
+        self.huile.refresh_from_db()
+        self.assertEqual(self.huile.quantiteMaxVente, 5)
+        self.client.post(url, {'quantiteMaxVente': ''})
+        self.huile.refresh_from_db()
+        self.assertIsNone(self.huile.quantiteMaxVente)
+        self.client.post(url, {'quantiteMaxVente': '0'})
+        self.huile.refresh_from_db()
+        self.assertIsNone(self.huile.quantiteMaxVente)
+
+    def test_option_dans_le_menu_de_la_liste(self):
+        response = self.client.get(reverse('commerce_produit'))
+        self.assertContains(response, reverse('produitQuantiteMax', args=[self.riz.id]))
+        self.assertContains(response, "Quantité max. par vente (10)")
+
+    def test_vente_au_maximum_acceptee(self):
+        response = self._sync([{"produit_id": self.riz.id, "quantite": 10, "prix": 1}], "qmax-1")
+        self.assertTrue(response.json()["success"], response.content)
+        self.riz.refresh_from_db()
+        self.assertEqual(self.riz.quantite, 90)
+
+    def test_vente_au_dela_refusee_avec_le_maximum_dans_le_message(self):
+        response = self._sync([
+            {"produit_id": self.riz.id, "quantite": 11, "prix": 1},
+            {"produit_id": self.huile.id, "quantite": 50, "prix": 1},
+        ], "qmax-2")
+        self.assertEqual(response.status_code, 400)
+        message = response.json()["message"]
+        self.assertIn("Riz (max 10, demandé 11)", message)
+        self.assertNotIn("Huile", message)
+        self.assertFalse(self.Commande.objects.filter(client_uid="qmax-2").exists())
+        self.riz.refresh_from_db()
+        self.assertEqual(self.riz.quantite, 100)
+
+    def test_lignes_du_meme_produit_additionnees(self):
+        response = self._sync([
+            {"produit_id": self.riz.id, "quantite": 6, "prix": 1},
+            {"produit_id": self.riz.id, "quantite": 6, "prix": 1},
+        ], "qmax-3")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("demandé 12", response.json()["message"])
+
+    def test_modification_dune_vente_refusee_au_dela(self):
+        commande = self.Commande.objects.create(entreprise=self.entreprise, user=self.user, montant=1, montantAchat=1)
+        response = self.client.post(reverse('commerce_modVente', args=[commande.id]), {
+            'jsonDataInput': json.dumps([{"produit_id": self.riz.id, "quantite": 15, "prix": 1}]),
+            'date': '2026-11-08', 'typeVente': 'detail', 'typePayement': 'Espece',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Riz (max 10, demandé 15)", response.json()["message"])
+
+    def test_api_produits_fournit_le_maximum(self):
+        produits = self.client.get(reverse("api_produits")).json()["produits"]
+        self.assertEqual(next(p for p in produits if p["id"] == self.riz.id)["quantiteMaxVente"], 10)
