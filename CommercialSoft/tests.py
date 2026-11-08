@@ -1500,3 +1500,40 @@ class QuantiteMaxVenteTests(TestCase):
     def test_api_produits_fournit_le_maximum(self):
         produits = self.client.get(reverse("api_produits")).json()["produits"]
         self.assertEqual(next(p for p in produits if p["id"] == self.riz.id)["quantiteMaxVente"], 10)
+
+
+class TableauDeBordClientsAvecDetteTests(TestCase):
+    """« Clients avec dette » de l'accueil : nombre de clients dont le solde
+    (prêts − paiements − annulations) est strictement positif."""
+
+    def setUp(self):
+        from .models import AnnulationDetteClient, PretClient, VersementClient
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique Accueil", ville="Conakry")
+        autre = Entreprise.objects.create(nom="Autre Accueil", ville="Kindia")
+        self.user = User.objects.create_user(username="admin_accueil", password="secret123", entreprise=self.entreprise)
+        self.client.login(username="admin_accueil", password="secret123")
+
+        def client(nom, entreprise=self.entreprise):
+            return Client.objects.create(entreprise=entreprise, nom=nom, pourcentage=0, detteMaximale=0)
+
+        def pret(c, montant, nb=1):
+            for _ in range(nb):
+                PretClient.objects.create(entreprise=c.entreprise, client=c, montant=montant, user=self.user)
+
+        doit = client("Doit encore")
+        pret(doit, 1000, nb=3)                      # 3 prêts, 1 seul client
+        VersementClient.objects.create(entreprise=self.entreprise, client=doit, montant=500, user=self.user)
+        rembourse = client("Remboursé")
+        pret(rembourse, 1000)
+        VersementClient.objects.create(entreprise=self.entreprise, client=rembourse, montant=1000, user=self.user)
+        annule = client("Annulé")
+        pret(annule, 1000)
+        AnnulationDetteClient.objects.create(entreprise=self.entreprise, client=annule, montant=1000, motif="x", user=self.user)
+        client("Sans prêt")
+        pret(client("Autre entreprise", autre), 1000)
+
+    def test_compte_les_clients_qui_doivent_encore(self):
+        response = self.client.get(reverse('commerce_dashboard'))
+        self.assertEqual(response.context['total_dettes'], 1)
+        self.assertContains(response, "Clients avec dette")

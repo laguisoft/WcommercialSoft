@@ -181,6 +181,21 @@ def login_view(request):
 
 
 
+def nombre_clients_avec_solde():
+    """Nombre de clients qui doivent encore de l'argent : solde
+    (prêts − paiements − annulations) strictement positif. Même calcul que
+    la situation des clients, en une seule requête."""
+    def total(modele):
+        return Coalesce(Subquery(
+            modele.objects.filter(client=OuterRef('pk'))
+            .order_by().values('client').annotate(total=Sum('montant')).values('total'),
+            output_field=BigIntegerField(),
+        ), 0)
+    return Client.objects.annotate(
+        solde_calc=total(PretClient) - total(VersementClient) - total(AnnulationDetteClient),
+    ).filter(solde_calc__gt=0).count()
+
+
 @login_required
 def dashboard(request):
     info_boutique = request.entreprise
@@ -195,7 +210,7 @@ def dashboard(request):
     produits_perimes = produits_stats['perimes']
     produits_proches = produits_stats['proches']
     produits_rupture = produits_stats['rupture']
-    total_dettes = PretClient.objects.count()
+    total_dettes = nombre_clients_avec_solde()
 
     context = {
         'nom_agent': request.user.username,
