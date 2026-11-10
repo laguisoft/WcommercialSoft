@@ -632,6 +632,48 @@ def detail_vente(request):
 
 @login_required
 @permission_required('CommercialSoft.view_commande')
+def mouvements_produit(request, pk):
+    """Détail des entrées (réceptions) et sorties (ventes) d'un produit,
+    ouvert depuis le menu de la page Situation vente."""
+    produit = get_object_or_404(Produit, pk=pk)
+    try:
+        date_debut = parse_date(request.GET.get('date_debut') or '')
+        date_fin = parse_date(request.GET.get('date_fin') or '')
+    except ValueError:
+        date_debut = date_fin = None
+
+    entrees = (LivraisonProduit.objects.filter(produit=produit)
+               .select_related('livraison__fournisseur'))
+    sorties = (CommandeProduit.objects.filter(produit=produit)
+               .select_related('commande__client', 'commande__clientSpecial', 'commande__user'))
+    if date_debut:
+        entrees = entrees.filter(livraison__date__gte=date_debut)
+        sorties = sorties.filter(date__gte=date_debut)
+    if date_fin:
+        entrees = entrees.filter(livraison__date__lte=date_fin)
+        sorties = sorties.filter(date__lte=date_fin)
+    entrees = list(entrees.order_by('-livraison__date', '-id'))
+    sorties = list(sorties.order_by('-date', '-id'))
+    for ligne in entrees + sorties:
+        ligne.montant = ligne.quantite * ligne.prix
+
+    return render(request, 'CommercialSoft/mouvementsProduit.html', {
+        'produit': produit,
+        'entrees': entrees,
+        'sorties': sorties,
+        'total_qte_entree': sum(l.quantite for l in entrees),
+        'total_qte_sortie': sum(l.quantite for l in sorties),
+        'total_montant_entree': separateur(sum(l.montant for l in entrees)),
+        'total_montant_sortie': separateur(sum(l.montant for l in sorties)),
+        'date_debut': date_debut.isoformat() if date_debut else '',
+        'date_fin': date_fin.isoformat() if date_fin else '',
+        'peut_voir_reception': est_admin_ou_gestionnaire(request.user)
+            and request.user.has_perms(['CommercialSoft.view_livraison', 'CommercialSoft.view_livraisonproduit']),
+    })
+
+
+@login_required
+@permission_required('CommercialSoft.view_commande')
 def situation_vente(request):
     produit = Produit.objects.all()  # Récupérer tous les utilisateurs
     return render(request, 'CommercialSoft/situationVente.html', {'listes': produit})

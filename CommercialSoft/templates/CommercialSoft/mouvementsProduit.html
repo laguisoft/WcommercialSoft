@@ -1,0 +1,125 @@
+{% extends "CommercialSoft/starter-page.html" %}
+
+{% load static %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'autre/plugins/fontawesome-free/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'autre/dist/css/adminlte.min.css' %}">
+{% endblock %}
+
+{% block corp %}
+<section class="content pt-0">
+  <div class="container-fluid">
+    <div class="row text-center mb-2">
+      <div class="col-12">
+        <h3 class="text-info mb-0">{{ produit.libelle }}</h3>
+        <span class="text-muted">Stock actuel : <strong>{{ produit.quantite }}</strong></span>
+      </div>
+    </div>
+
+    <form method="get" class="form-inline justify-content-center mb-3">
+      <label class="mr-2" for="date_debut">Du</label>
+      <input type="date" id="date_debut" name="date_debut" value="{{ date_debut }}" class="form-control form-control-sm mr-3">
+      <label class="mr-2" for="date_fin">Au</label>
+      <input type="date" id="date_fin" name="date_fin" value="{{ date_fin }}" class="form-control form-control-sm mr-3">
+      <button type="submit" class="btn btn-sm btn-primary mr-2"><i class="fas fa-filter"></i> Filtrer</button>
+      <a href="{{ request.path }}" class="btn btn-sm btn-secondary mr-2"><i class="fas fa-undo"></i> Réinitialiser</a>
+      <a href="{% url 'situationVente' %}" class="btn btn-sm btn-light"><i class="fas fa-arrow-left"></i> Situation vente</a>
+    </form>
+
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="card card-success">
+          <div class="card-header">
+            <h3 class="card-title">Entrées (réceptions)</h3>
+          </div>
+          <div class="card-body p-0" style="max-height: 60vh; overflow-y: auto;">
+            <table class="table table-bordered table-hover table-striped table-sm mb-0">
+              <thead>
+                <tr>
+                  <th class="text-center">Date</th>
+                  <th class="text-center">Réception</th>
+                  <th class="text-center">Fournisseur</th>
+                  <th class="text-center">Qté</th>
+                  <th class="text-center">Prix achat</th>
+                  <th class="text-center">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ligne in entrees %}
+                  <tr>
+                    <td class="text-center">{{ ligne.livraison.date|date:"d/m/Y" }}</td>
+                    <td class="text-center">
+                      {% if peut_voir_reception %}<a href="{% url 'commerce_detailReception' ligne.livraison.id %}">N° {{ ligne.livraison.id }}</a>{% else %}N° {{ ligne.livraison.id }}{% endif %}
+                      {% if ligne.livraison.numeroFacture %}<br><small class="text-muted">Fact. {{ ligne.livraison.numeroFacture }}</small>{% endif %}
+                    </td>
+                    <td>{{ ligne.livraison.fournisseur.nom }}</td>
+                    <td class="text-center">{{ ligne.quantite }}</td>
+                    <td class="text-right">{{ ligne.prix }}</td>
+                    <td class="text-right">{{ ligne.montant }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="6" class="text-center">Aucune réception sur la période.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <strong>Total entré : {{ total_qte_entree }}</strong>
+            <span class="float-right">Montant : {{ total_montant_entree }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card card-danger">
+          <div class="card-header">
+            <h3 class="card-title">Sorties (ventes)</h3>
+          </div>
+          <div class="card-body p-0" style="max-height: 60vh; overflow-y: auto;">
+            <table class="table table-bordered table-hover table-striped table-sm mb-0">
+              <thead>
+                <tr>
+                  <th class="text-center">Date</th>
+                  <th class="text-center">Vente</th>
+                  <th class="text-center">Client</th>
+                  <th class="text-center">Vendeur</th>
+                  <th class="text-center">Qté</th>
+                  <th class="text-center">Prix</th>
+                  <th class="text-center">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ligne in sorties %}
+                  <tr>
+                    <td class="text-center">{{ ligne.date|date:"d/m/Y" }}</td>
+                    <td class="text-center">
+                      <a href="{% url 'pdf_facture_proforma_2' ligne.commande.id %}" target="_blank">N° {{ ligne.commande.id }}</a>
+                      <br><small class="text-muted">{{ ligne.commande.typePayement }}</small>
+                    </td>
+                    <td>
+                      {% if ligne.commande.client %}{{ ligne.commande.client.nom }}
+                      {% elif ligne.commande.clientSpecial %}{{ ligne.commande.clientSpecial }}
+                      {% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                    <td>{{ ligne.commande.user.first_name }} {{ ligne.commande.user.last_name }}</td>
+                    <td class="text-center">{{ ligne.quantite }}</td>
+                    <td class="text-right">{{ ligne.prix }}</td>
+                    <td class="text-right">{{ ligne.montant }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="7" class="text-center">Aucune vente sur la période.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <strong>Total sorti : {{ total_qte_sortie }}</strong>
+            <span class="float-right">Montant : {{ total_montant_sortie }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

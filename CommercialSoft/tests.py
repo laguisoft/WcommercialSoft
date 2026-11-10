@@ -1537,3 +1537,60 @@ class TableauDeBordClientsAvecDetteTests(TestCase):
         response = self.client.get(reverse('commerce_dashboard'))
         self.assertEqual(response.context['total_dettes'], 1)
         self.assertContains(response, "Clients avec dette")
+
+
+class MouvementsProduitTests(TestCase):
+    """Situation vente > ⚙ > Détail : entrées (réceptions) et sorties
+    (ventes) d'un produit, filtrables par période."""
+
+    def setUp(self):
+        from datetime import date
+        from .models import Commande
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique Mouv", ville="Conakry")
+        self.user = User.objects.create_user(username="admin_mouv", password="secret123", entreprise=self.entreprise, first_name="Awa")
+        groupe, _ = Group.objects.get_or_create(name="Administrateur")
+        self.user.groups.add(groupe)
+        self.user.user_permissions.add(*Permission.objects.filter(content_type__app_label="CommercialSoft"))
+        self.client.login(username="admin_mouv", password="secret123")
+        e = self.entreprise
+        self.produit = Produit.objects.create(entreprise=e, libelle="Sucre", quantite=40, prixAchat=1, prixEnGros=1, prixDetail=1)
+        autre = Produit.objects.create(entreprise=e, libelle="Sel", quantite=1, prixAchat=1, prixEnGros=1, prixDetail=1)
+        fournisseur = Fournisseur.objects.create(entreprise=e, nom="Fournisseur Mouv", adresse="x", telephone="1")
+        for jour, qte, facture in ((date(2026, 10, 5), 30, "F-001"), (date(2026, 11, 5), 20, "F-002")):
+            liv = Livraison.objects.create(entreprise=e, fournisseur=fournisseur, date=jour, montant=0, numeroFacture=facture)
+            LivraisonProduit.objects.create(entreprise=e, livraison=liv, produit=self.produit, quantite=qte, prix=500, prixDetail=700)
+        LivraisonProduit.objects.create(entreprise=e, livraison=liv, produit=autre, quantite=99, prix=1, prixDetail=1)
+        client = Client.objects.create(entreprise=e, nom="Mamadou", pourcentage=0, detteMaximale=0)
+        for jour, qte in ((date(2026, 10, 10), 4), (date(2026, 11, 8), 6)):
+            commande = Commande.objects.create(entreprise=e, user=self.user, client=client, montant=0, montantAchat=0, typePayement="Pret")
+            CommandeProduit.objects.create(entreprise=e, commande=commande, produit=self.produit, quantite=qte, prix=700, date=jour)
+
+    def test_menu_detail_dans_situation_vente(self):
+        response = self.client.get(reverse('situationVente'))
+        self.assertContains(response, "fa-cogs")
+        self.assertContains(response, "Détail")
+        self.assertContains(response, reverse('mouvementsProduit', args=[0]))
+
+    def test_detail_entrees_et_sorties(self):
+        response = self.client.get(reverse('mouvementsProduit', args=[self.produit.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_qte_entree'], 50)
+        self.assertEqual(response.context['total_qte_sortie'], 10)
+        self.assertEqual(response.context['total_montant_sortie'], "7 000")
+        self.assertContains(response, "F-001")
+        self.assertContains(response, "Fournisseur Mouv")
+        self.assertContains(response, "Mamadou")
+        self.assertContains(response, "Awa")
+
+    def test_filtre_par_periode(self):
+        response = self.client.get(reverse('mouvementsProduit', args=[self.produit.id]),
+                                   {'date_debut': '2026-11-01', 'date_fin': '2026-11-30'})
+        self.assertEqual(response.context['total_qte_entree'], 20)
+        self.assertEqual(response.context['total_qte_sortie'], 6)
+        self.assertNotContains(response, "F-001")
+
+    def test_produit_dune_autre_entreprise_introuvable(self):
+        autre_entreprise = Entreprise.objects.create(nom="Autre Mouv", ville="Kindia")
+        etranger = Produit.objects.create(entreprise=autre_entreprise, libelle="X", quantite=1, prixAchat=1, prixEnGros=1, prixDetail=1)
+        self.assertEqual(self.client.get(reverse('mouvementsProduit', args=[etranger.id])).status_code, 404)

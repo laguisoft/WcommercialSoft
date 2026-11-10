@@ -112,6 +112,7 @@
                           <th class="text-center">Qté entrée</th>
                           <th class="text-center">Qté sortie</th>
                           <th class="text-center">Qté en stock</th>
+                          <th style="width: 40px" class="text-center">#</th>
                         </tr>
                       </thead>
                       <tbody id="liste-vente">
@@ -234,6 +235,14 @@
         success: function (response) {
           const patientsTable = $('#liste-vente');
           patientsTable.empty();
+          // Lien « Détail » : garde la période de la recherche
+          const urlDetail = (id) => {
+            const params = new URLSearchParams();
+            if ($('#dateDebut').val()) params.set('date_debut', $('#dateDebut').val());
+            if ($('#dateFin').val()) params.set('date_fin', $('#dateFin').val());
+            const qs = params.toString();
+            return "{% url 'mouvementsProduit' 0 %}".replace("/0/", "/" + id + "/") + (qs ? "?" + qs : "");
+          };
           if (response.vente && response.vente.length > 0) {
             response.vente.forEach(data => {
               patientsTable.append(`
@@ -243,6 +252,18 @@
                         <td class="text-center">${data.quantite_entree}</td>
                         <td class="text-center">${data.quantite_sortie}</td>
                         <td class="text-center">${data.stock}</td>
+                        <td class="text-center">
+                          <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                              <i class="fas fa-cogs"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                              <a class="dropdown-item" href="${urlDetail(data.id)}" title="Détail">
+                                <i class="fas fa-list text-info"></i> Détail
+                              </a>
+                            </div>
+                          </div>
+                        </td>
                     </tr>
               `);
             });

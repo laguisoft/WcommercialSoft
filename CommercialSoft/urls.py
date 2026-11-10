@@ -56,6 +56,7 @@ urlpatterns=[
     path('vente/recherche/vente', views.recherche_vente,name="rechercheVente"),
     path('vente/produitParVente', views.produit_par_vente, name="produitParVente"),
     path('vente/situation', views.situation_vente,name="situationVente"),
+    path('vente/situation/produit/<int:pk>/', views.mouvements_produit,name="mouvementsProduit"),
     path('vente/recherche/situation', views.recherche_situation_vente,name="rechercheSituationVente"),
     path('vente/situation/etat', views.pdf_etat_situation_vente,name="pdfSituationVente"),
     path('vente/detail/vente', views.detail_vente,name="detailVente"),
