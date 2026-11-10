@@ -1594,3 +1594,47 @@ class MouvementsProduitTests(TestCase):
         autre_entreprise = Entreprise.objects.create(nom="Autre Mouv", ville="Kindia")
         etranger = Produit.objects.create(entreprise=autre_entreprise, libelle="X", quantite=1, prixAchat=1, prixEnGros=1, prixDetail=1)
         self.assertEqual(self.client.get(reverse('mouvementsProduit', args=[etranger.id])).status_code, 404)
+
+
+class DetailFournisseurFiltreDatesTests(TestCase):
+    """Détail de la situation fournisseur : dettes et paiements filtrés par
+    période ; sans date, tout est affiché."""
+
+    def setUp(self):
+        from datetime import date
+        from .models import DetteFournisseur, VersementFournisseur
+        User = get_user_model()
+        self.entreprise = Entreprise.objects.create(nom="Boutique Four", ville="Conakry")
+        user = User.objects.create_user(username="admin_four", password="secret123", entreprise=self.entreprise)
+        user.user_permissions.add(*Permission.objects.filter(content_type__app_label="CommercialSoft"))
+        self.client.login(username="admin_four", password="secret123")
+        e = self.entreprise
+        self.fournisseur = Fournisseur.objects.create(entreprise=e, nom="Fournisseur Det", adresse="x", telephone="1")
+        liv = Livraison.objects.create(entreprise=e, fournisseur=self.fournisseur, montant=0, numeroFacture="FAC-77")
+        DetteFournisseur.objects.create(entreprise=e, fournisseur=self.fournisseur, montant=1000, date=date(2026, 10, 1), facture=liv)
+        DetteFournisseur.objects.create(entreprise=e, fournisseur=self.fournisseur, montant=3000, date=date(2026, 11, 1))
+        VersementFournisseur.objects.create(entreprise=e, fournisseur=self.fournisseur, montant=500, date=date(2026, 10, 15))
+        VersementFournisseur.objects.create(entreprise=e, fournisseur=self.fournisseur, montant=2000, date=date(2026, 11, 15))
+
+    def _get(self, **params):
+        return self.client.get(reverse('commerce_detailFournisseur', args=[self.fournisseur.id]), params)
+
+    def test_sans_date_tout_est_affiche(self):
+        response = self._get()
+        self.assertEqual(response.context['total_dette'], "4 000")
+        self.assertEqual(response.context['total_payement'], "2 500")
+        self.assertEqual(response.context['solde'], "1 500")
+        self.assertContains(response, "FAC-77")
+
+    def test_filtre_par_periode(self):
+        response = self._get(date_debut='2026-11-01', date_fin='2026-11-30')
+        self.assertEqual(response.context['total_dette'], "3 000")
+        self.assertEqual(response.context['total_payement'], "2 000")
+        self.assertEqual(len(response.context['dettes']), 1)
+        self.assertEqual(len(response.context['payements']), 1)
+
+    def test_paiements_affiches_meme_sans_dette_sur_la_periode(self):
+        response = self._get(date_debut='2026-10-10', date_fin='2026-10-20')
+        self.assertEqual(len(response.context['dettes']), 0)
+        self.assertEqual(response.context['total_payement'], "500")
+        self.assertContains(response, "Aucune ligne disponible")

@@ -3127,13 +3127,35 @@ def supprimer_annulation_dette_client(request, pk):
 @permission_required('CommercialSoft.view_dettefournisseur')
 def detail_pret_fournisseur(request, pk):
     fournisseur = get_object_or_404(Fournisseur, pk=pk)
-    dette=DetteFournisseur.objects.filter(fournisseur=fournisseur)
+    dette=DetteFournisseur.objects.filter(fournisseur=fournisseur).select_related('facture')
     payement=VersementFournisseur.objects.filter(fournisseur=fournisseur)
 
-    total_dette=DetteFournisseur.objects.filter(fournisseur=fournisseur).aggregate(total=Sum('montant'))['total'] or 0
-    total_payement=VersementFournisseur.objects.filter(fournisseur=fournisseur).aggregate(total=Sum('montant'))['total'] or 0
+    # Filtre optionnel par intervalle de dates (aucune date = tout afficher)
+    try:
+        date_debut = parse_date(request.GET.get('date_debut') or '')
+        date_fin = parse_date(request.GET.get('date_fin') or '')
+    except ValueError:
+        date_debut = date_fin = None
+    if date_debut:
+        dette = dette.filter(date__gte=date_debut)
+        payement = payement.filter(date__gte=date_debut)
+    if date_fin:
+        dette = dette.filter(date__lte=date_fin)
+        payement = payement.filter(date__lte=date_fin)
 
-    return render(request, 'CommercialSoft/detailFournisseur.html', {'dettes': dette,'payements':payement,'total_dette': separateur(total_dette), 'total_payement': separateur(total_payement),'four':fournisseur})
+    total_dette=dette.aggregate(total=Sum('montant'))['total'] or 0
+    total_payement=payement.aggregate(total=Sum('montant'))['total'] or 0
+
+    return render(request, 'CommercialSoft/detailFournisseur.html', {
+        'dettes': dette.order_by('-date', '-id'),
+        'payements': payement.order_by('-date', '-id'),
+        'total_dette': separateur(total_dette),
+        'total_payement': separateur(total_payement),
+        'solde': separateur(total_dette - total_payement),
+        'four': fournisseur,
+        'date_debut': date_debut.isoformat() if date_debut else '',
+        'date_fin': date_fin.isoformat() if date_fin else '',
+    })
 
 
 
